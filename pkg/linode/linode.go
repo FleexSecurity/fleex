@@ -220,6 +220,7 @@ func Scan(fleetName string, command string, input string, output string, token s
 
 	counter := 1
 	chunkContent := ""
+	var inputFiles []string
 	for scanner.Scan() {
 		line := scanner.Text()
 		chunkContent += line + "\n"
@@ -227,9 +228,12 @@ func Scan(fleetName string, command string, input string, output string, token s
 			// Remove bottom empty line
 			chunkContent = strings.TrimSuffix(chunkContent, "\n")
 			// Save chunk
+			chunkPath := path.Join(tempFolder, "chunk-"+fleetName+"-"+strconv.Itoa(counter/linesPerChunk))
+			utils.StringToFile(chunkPath, chunkContent)
+			inputFiles = append(inputFiles, chunkPath)
 
-			utils.StringToFile(path.Join(tempFolder, "chunk-"+fleetName+"-"+strconv.Itoa(counter/linesPerChunk)), chunkContent)
-			fmt.Println(path.Join(tempFolder, "chunk-"+fleetName+"-"+strconv.Itoa(counter/linesPerChunk)))
+			fmt.Println(chunkPath)
+
 			chunkContent = ""
 		}
 		counter++
@@ -256,7 +260,13 @@ func Scan(fleetName string, command string, input string, output string, token s
 					break
 				}
 
-				fmt.Println("SCANNING WITH " + linodeName)
+				finalCommand := command
+				finalCommand = strings.ReplaceAll(command, "{{INPUT}}", path.Join(tempFolder, "chunk-"+linodeName))
+				finalCommand = strings.ReplaceAll(command, "{{OUTPUT}}", "TODO")
+
+				fmt.Println("SCANNING WITH ", path.Join(tempFolder, "chunk-"+linodeName), " ")
+				// TODO: Not optimal, it runs GetBoxes() every time which is dumb, should use a function that does the same but by id
+				RunCommand(linodeName, finalCommand, token)
 
 			}
 			processGroup.Done()

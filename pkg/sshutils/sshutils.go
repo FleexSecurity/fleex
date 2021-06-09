@@ -2,7 +2,6 @@ package sshutils
 
 import (
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -10,6 +9,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/sw33tLie/fleex/pkg/utils"
 
@@ -29,26 +29,17 @@ func GetLocalPublicSSHKey() string {
 	return retString
 }
 
+var mutex = &sync.Mutex{}
+
 func RunCommand(command string, ip string, port int, username string, password string) *Connection {
 	conn, err := Connect(ip+":"+strconv.Itoa(port), username, password)
 	if err != nil {
 		log.Fatal(err)
 	}
+	mutex.Lock()
 	conn.sendCommands(command)
+	mutex.Unlock()
 	return conn
-}
-
-func publicKeyFile(file string) ssh.AuthMethod {
-	buffer, err := ioutil.ReadFile(file)
-	if err != nil {
-		return nil
-	}
-
-	key, err := ssh.ParsePrivateKey(buffer)
-	if err != nil {
-		return nil
-	}
-	return ssh.PublicKeys(key)
 }
 
 func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
@@ -66,7 +57,7 @@ func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
 
 	term := os.Getenv("TERM")
 	if term == "" {
-		term = "xterm-256color"
+		term = "xterm"
 	}
 
 	fd := int(os.Stdin.Fd())
@@ -118,7 +109,7 @@ func Connect(addr, user, password string) (*Connection, error) {
 	sshConfig := &ssh.ClientConfig{
 		User: user,
 		Auth: []ssh.AuthMethod{
-			publicKeyFile(path.Join(getHomeDir(), ".ssh", "id_dsa")), // todo fix
+			publicKeyFile(path.Join(getHomeDir(), ".ssh", "id_dsa")), // todo replace with rsa
 		},
 		HostKeyCallback: ssh.HostKeyCallback(func(hostname string, remote net.Addr, key ssh.PublicKey) error { return nil }),
 	}
