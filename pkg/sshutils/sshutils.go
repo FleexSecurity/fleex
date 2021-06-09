@@ -2,6 +2,7 @@ package sshutils
 
 import (
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -40,6 +41,19 @@ func RunCommand(command string, ip string, port int, username string, password s
 	conn.sendCommands(command)
 	mutex.Unlock()
 	return conn
+}
+
+func publicKeyFile(file string) ssh.AuthMethod {
+	buffer, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil
+	}
+
+	key, err := ssh.ParsePrivateKey(buffer)
+	if err != nil {
+		return nil
+	}
+	return ssh.PublicKeys(key)
 }
 
 func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
