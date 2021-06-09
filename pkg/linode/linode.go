@@ -170,6 +170,16 @@ func DeleteFleetOrBox(name string, token string) {
 
 }
 
+func RunCommand(name string, command string, token string) {
+	linodes := GetBoxes(token)
+	for _, linode := range linodes {
+		if linode.Label == name {
+			sshutils.RunCommand(command, linode.IP, 2266, "op", "1337superPass")
+			return
+		}
+	}
+}
+
 func deleteBoxByID(id int, token string) {
 	for {
 		req, err := http.NewRequest("DELETE", "https://api.linode.com/v4/linode/instances/"+strconv.Itoa(id), nil)
