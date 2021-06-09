@@ -182,7 +182,11 @@ func DeleteFleetOrBox(name string, token string) {
 	}
 
 	// Otherwise, we got a fleet to delete
-
+	for _, linode := range linodes {
+		if strings.HasPrefix(linode.Label, name) {
+			deleteBoxByID(linode.ID, token)
+		}
+	}
 }
 
 func RunCommand(name string, command string, token string) {
