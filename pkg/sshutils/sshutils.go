@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sw33tLie/fleex/pkg/utils"
+
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -20,7 +22,7 @@ type Connection struct {
 }
 
 func GetLocalPublicSSHKey() string {
-	rawKey := fileToString(path.Join(getHomeDir(), ".ssh", "id_ed25519.pub"))
+	rawKey := utils.FileToString(path.Join(getHomeDir(), ".ssh", "id_ed25519.pub"))
 	retString := strings.ReplaceAll(rawKey, "\r\n", "")
 	retString = strings.ReplaceAll(retString, "\n", "")
 
@@ -128,15 +130,6 @@ func Connect(addr, user, password string) (*Connection, error) {
 
 	return &Connection{conn}, nil
 
-}
-
-func fileToString(filePath string) string {
-	content, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return string(content)
 }
 
 func getHomeDir() string {

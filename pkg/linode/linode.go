@@ -1,18 +1,22 @@
 package linode
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/sw33tLie/fleex/pkg/sshutils"
+	"github.com/sw33tLie/fleex/pkg/utils"
 	"github.com/tidwall/gjson"
 )
 
@@ -110,6 +114,17 @@ func GetBoxes(token string) (boxes []LinodeBox) {
 	return boxes
 }
 
+func GetFleet(name string, token string) (fleet []LinodeBox) {
+	boxes := GetBoxes(token)
+
+	for _, box := range boxes {
+		if strings.HasPrefix(box.Label, name) {
+			fleet = append(fleet, box)
+		}
+	}
+	return fleet
+}
+
 func GetImages(token string) (images []LinodeImage) {
 	req, err := http.NewRequest("GET", "https://api.linode.com/v4/images", nil)
 	if err != nil {
@@ -180,6 +195,82 @@ func RunCommand(name string, command string, token string) {
 	}
 }
 
+func Scan(fleetName string, command string, input string, output string, token string) {
+	fmt.Println("Scan started. Input: ", input, " output: ", output)
+
+	// Make local temp folder
+	tempFolder := path.Join("/tmp", strconv.FormatInt(time.Now().UnixNano(), 10))
+
+	// Create temp folder
+	err := os.Mkdir(tempFolder, 0755)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Input file to string
+	inputString := utils.FileToString(input)
+
+	fleet := GetFleet(fleetName, token)
+
+	linesCount := linesCount(inputString)
+	linesPerChunk := linesCount / len(fleet)
+
+	// Iterate over multiline input string
+	scanner := bufio.NewScanner(strings.NewReader(inputString))
+
+	counter := 1
+	chunkContent := ""
+	for scanner.Scan() {
+		line := scanner.Text()
+		chunkContent += line + "\n"
+		if counter%linesPerChunk == 0 {
+			// Remove bottom empty line
+			chunkContent = strings.TrimSuffix(chunkContent, "\n")
+			// Save chunk
+
+			utils.StringToFile(path.Join(tempFolder, "chunk-"+fleetName+"-"+strconv.Itoa(counter/linesPerChunk)), chunkContent)
+			fmt.Println(path.Join(tempFolder, "chunk-"+fleetName+"-"+strconv.Itoa(counter/linesPerChunk)))
+			chunkContent = ""
+		}
+		counter++
+	}
+
+	if scanner.Err() != nil {
+		log.Println(scanner.Err())
+	}
+
+	// Replace labels
+
+	// Send SSH commands to all boxes
+
+	fleetNames := make(chan string, len(fleet))
+	processGroup := new(sync.WaitGroup)
+	processGroup.Add(len(fleet))
+
+	for i := 0; i < len(fleet); i++ {
+		go func() {
+			for {
+				linodeName := <-fleetNames
+
+				if linodeName == "" {
+					break
+				}
+
+				fmt.Println("SCANNING WITH " + linodeName)
+
+			}
+			processGroup.Done()
+		}()
+	}
+
+	for i := 0; i < len(fleet); i++ {
+		fleetNames <- fleetName + "-" + strconv.Itoa(i+1)
+	}
+
+	close(fleetNames)
+	processGroup.Wait()
+}
+
 func deleteBoxByID(id int, token string) {
 	for {
 		req, err := http.NewRequest("DELETE", "https://api.linode.com/v4/linode/instances/"+strconv.Itoa(id), nil)
@@ -243,4 +334,12 @@ func spawnBox(name string, image string, region string, token string) {
 		}
 		time.Sleep(5 * time.Second)
 	}
+}
+
+func linesCount(s string) int {
+	n := strings.Count(s, "\n")
+	if len(s) > 0 && !strings.HasSuffix(s, "\n") {
+		n++
+	}
+	return n
 }

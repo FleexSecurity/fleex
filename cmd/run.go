@@ -11,7 +11,7 @@ import (
 // runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "run",
-	Short: "A brief description of your command",
+	Short: "Run a command",
 	Run: func(cmd *cobra.Command, args []string) {
 		boxName, _ := cmd.Flags().GetString("name")
 		command, _ := cmd.Flags().GetString("command")
