@@ -119,6 +119,14 @@ func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
 	return output, err
 }
 
+func GetConnection(ip string, port int, username string, password string) *Connection {
+	conn, err := Connect(ip+":"+strconv.Itoa(port), username, password)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return conn
+}
+
 func Connect(addr, user, password string) (*Connection, error) {
 	sshConfig := &ssh.ClientConfig{
 		User: user,

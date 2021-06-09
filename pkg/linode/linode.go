@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hnakamur/go-scp"
 	"github.com/sw33tLie/fleex/pkg/sshutils"
 	"github.com/sw33tLie/fleex/pkg/utils"
 	"github.com/tidwall/gjson"
@@ -251,19 +252,28 @@ func Scan(fleetName string, command string, input string, output string, token s
 
 	// Send SSH commands to all boxes
 
-	fleetNames := make(chan string, len(fleet))
+	fleetNames := make(chan *LinodeBox, len(fleet))
 	processGroup := new(sync.WaitGroup)
 	processGroup.Add(len(fleet))
 
 	for i := 0; i < len(fleet); i++ {
 		go func() {
 			for {
-				linodeName := <-fleetNames
+				l := <-fleetNames
 
-				if linodeName == "" {
+				if l == nil {
 					break
 				}
 
+				linodeName := l.Label
+
+				// Send input file via SCP
+				err := scp.NewSCP(sshutils.GetConnection(l.IP, 2266, "op", "1337superPass").Client).SendFile(path.Join(tempFolder, "chunk-"+linodeName), "/home/op")
+				if err != nil {
+					log.Fatalf("Failed to send file: %s", err)
+				}
+
+				// Replace labels and craft final command
 				finalCommand := command
 				finalCommand = strings.ReplaceAll(command, "{{INPUT}}", path.Join(tempFolder, "chunk-"+linodeName))
 				finalCommand = strings.ReplaceAll(command, "{{OUTPUT}}", "TODO")
@@ -277,8 +287,8 @@ func Scan(fleetName string, command string, input string, output string, token s
 		}()
 	}
 
-	for i := 0; i < len(fleet); i++ {
-		fleetNames <- fleetName + "-" + strconv.Itoa(i+1)
+	for i := range fleet {
+		fleetNames <- &fleet[i]
 	}
 
 	close(fleetNames)
