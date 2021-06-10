@@ -200,6 +200,7 @@ func RunCommand(name string, command string, token string) {
 	}
 }
 
+// TODO Polish this code
 func Scan(fleetName string, command string, input string, output string, token string) {
 	fmt.Println("Scan started. Input: ", input, " output: ", output)
 
@@ -275,12 +276,18 @@ func Scan(fleetName string, command string, input string, output string, token s
 
 				// Replace labels and craft final command
 				finalCommand := command
-				finalCommand = strings.ReplaceAll(command, "{{INPUT}}", path.Join(tempFolder, "chunk-"+linodeName))
-				finalCommand = strings.ReplaceAll(command, "{{OUTPUT}}", "TODO")
+				finalCommand = strings.ReplaceAll(finalCommand, "{{INPUT}}", path.Join("/home/op", "chunk-"+linodeName))
+				finalCommand = strings.ReplaceAll(finalCommand, "{{OUTPUT}}", "chunk-res-"+linodeName)
 
 				fmt.Println("SCANNING WITH ", path.Join(tempFolder, "chunk-"+linodeName), " ")
 				// TODO: Not optimal, it runs GetBoxes() every time which is dumb, should use a function that does the same but by id
 				RunCommand(linodeName, finalCommand, token)
+
+				// Now download the output file
+				err = scp.NewSCP(sshutils.GetConnection(l.IP, 2266, "op", "1337superPass").Client).ReceiveFile("chunk-res-"+linodeName, path.Join(tempFolder, "chunk-res-"+linodeName))
+				if err != nil {
+					log.Fatalf("Failed to get file: %s", err)
+				}
 
 			}
 			processGroup.Done()

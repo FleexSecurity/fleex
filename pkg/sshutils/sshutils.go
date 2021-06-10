@@ -37,9 +37,7 @@ func RunCommand(command string, ip string, port int, username string, password s
 	if err != nil {
 		log.Fatal(err)
 	}
-	mutex.Lock()
 	conn.sendCommands(command)
-	mutex.Unlock()
 	return conn
 }
 
@@ -101,7 +99,12 @@ func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
 	if err != nil {
 		log.Fatal("Unable to setup stdout for session: ", err)
 	}
-	go io.Copy(os.Stdout, stdout)
+
+	go func() {
+		mutex.Lock()
+		io.Copy(os.Stdout, stdout)
+		mutex.Unlock()
+	}()
 
 	stderr, err := session.StderrPipe()
 	if err != nil {
