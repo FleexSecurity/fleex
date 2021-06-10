@@ -1,6 +1,0 @@
-linode-image: '{YOUR LINODE IMAGE}'
-linode-region: '{YOUR REGION}'
-linode-token: '{YOUR TOKEN}'
-provider: linode
-sas: dun
-ses: din

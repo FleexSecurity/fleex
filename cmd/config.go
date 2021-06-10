@@ -12,7 +12,7 @@ import (
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "fleex config setup",
-	Long:  "fleex init project",
+	Long:  "fleex config setup",
 }
 
 var configInit = &cobra.Command{
@@ -24,12 +24,14 @@ var configInit = &cobra.Command{
 		fmt.Println(configPath)
 
 		viper.SetConfigType("yaml")
-		viper.SetDefault("provider", "linode")
+		viper.SetDefault("provider", []string{"linode", "digitalocean"})
 		viper.SetDefault("linode-image", "{YOUR LINODE IMAGE}")
 		viper.SetDefault("linode-region", "{YOUR REGION}")
 		viper.SetDefault("linode-token", "{YOUR TOKEN}")
 		err := viper.SafeWriteConfigAs(configPath)
-		fmt.Println(err)
+		if err != nil {
+			fmt.Println(err)
+		}
 	},
 }
 
@@ -59,7 +61,6 @@ var configSet = &cobra.Command{
 	Short: "fleex set data in config file",
 	Long:  "fleex set data in config file",
 	Run: func(cmd *cobra.Command, args []string) {
-		// configPath, _ := rootCmd.PersistentFlags().GetString("config")
 		key, _ := cmd.Flags().GetString("key")
 		value, _ := cmd.Flags().GetString("value")
 		viper.SetConfigType("yaml")
