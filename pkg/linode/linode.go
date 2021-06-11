@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -16,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hnakamur/go-scp"
+	"github.com/sirupsen/logrus"
 	"github.com/sw33tLie/fleex/pkg/sshutils"
 	"github.com/sw33tLie/fleex/pkg/utils"
 	"github.com/tidwall/gjson"
@@ -52,40 +52,40 @@ type LinodeTemplate struct {
 	Group           string   `json:"group"`
 }
 
+var log = logrus.New()
+
 // SpawnFleet spawns a Linode fleet
 func SpawnFleet(fleetName string, fleetCount int, image string, region string, token string) {
-	fleetNames := make(chan string, fleetCount)
+	fleet := make(chan string, fleetCount)
 	processGroup := new(sync.WaitGroup)
 	processGroup.Add(fleetCount)
 
 	for i := 0; i < fleetCount; i++ {
 		go func() {
 			for {
+				box := <-fleet
 
-				linodeName := <-fleetNames
-
-				if linodeName == "" {
+				if box == "" {
 					break
 				}
 
-				fmt.Println("SPAWNING " + linodeName)
-				spawnBox(linodeName, image, region, token)
-
+				log.Info("Spawning box ", box)
+				spawnBox(box, image, region, token)
 			}
 			processGroup.Done()
 		}()
 	}
 
 	for i := 0; i < fleetCount; i++ {
-		fleetNames <- fleetName + "-" + strconv.Itoa(i+1)
+		fleet <- fleetName + "-" + strconv.Itoa(i+1)
 	}
 
-	close(fleetNames)
+	close(fleet)
 	processGroup.Wait()
 }
 
+// GetBoxes returns a slice containg all active boxes of a Linode account
 func GetBoxes(token string) (boxes []LinodeBox) {
-	// API Docs: https://developers.linode.com/api/v4/linode-instances
 	req, err := http.NewRequest("GET", "https://api.linode.com/v4/linode/instances", nil)
 	if err != nil {
 		log.Fatal(err)
@@ -115,6 +115,7 @@ func GetBoxes(token string) (boxes []LinodeBox) {
 	return boxes
 }
 
+// GetBoxes returns a slice containg all boxes of a given fleet
 func GetFleet(name string, token string) (fleet []LinodeBox) {
 	boxes := GetBoxes(token)
 
@@ -126,6 +127,7 @@ func GetFleet(name string, token string) (fleet []LinodeBox) {
 	return fleet
 }
 
+// GetImages returns a slice containing all private images of a Linode account
 func GetImages(token string) (images []LinodeImage) {
 	req, err := http.NewRequest("GET", "https://api.linode.com/v4/images", nil)
 	if err != nil {
@@ -158,6 +160,7 @@ func GetImages(token string) (images []LinodeImage) {
 	return images
 }
 
+// ListBoxes prints all active boxes of a Linode account
 func ListBoxes(token string) {
 	linodes := GetBoxes(token)
 	for _, linode := range linodes {
@@ -165,6 +168,7 @@ func ListBoxes(token string) {
 	}
 }
 
+// ListImages prints all private images of a Linode account
 func ListImages(token string) {
 	images := GetImages(token)
 	for _, image := range images {
@@ -174,10 +178,10 @@ func ListImages(token string) {
 
 func DeleteFleetOrBox(name string, token string) {
 	boxes := GetBoxes(token)
-	for _, linode := range boxes {
-		if linode.Label == name {
-			// It's a single box
-			deleteBoxByID(linode.ID, token)
+	for _, box := range boxes {
+		if box.Label == name {
+			// We only have to delete a single box
+			deleteBoxByID(box.ID, token)
 			return
 		}
 	}
@@ -192,12 +196,12 @@ func DeleteFleetOrBox(name string, token string) {
 	for i := 0; i < fleetSize; i++ {
 		go func() {
 			for {
-				l := <-fleet
+				box := <-fleet
 
-				if l == nil {
+				if box == nil {
 					break
 				}
-				deleteBoxByID(l.ID, token)
+				deleteBoxByID(box.ID, token)
 			}
 			processGroup.Done()
 		}()
@@ -215,10 +219,10 @@ func DeleteFleetOrBox(name string, token string) {
 
 func RunCommand(name string, command string, token string) {
 	boxes := GetBoxes(token)
-	for _, linode := range boxes {
-		if linode.Label == name {
+	for _, box := range boxes {
+		if box.Label == name {
 			// It's a single box
-			sshutils.RunCommand(command, linode.IP, 2266, "op", "1337superPass")
+			sshutils.RunCommand(command, box.IP, 2266, "op", "1337superPass")
 			return
 		}
 	}
@@ -233,12 +237,12 @@ func RunCommand(name string, command string, token string) {
 	for i := 0; i < fleetSize; i++ {
 		go func() {
 			for {
-				l := <-fleet
+				box := <-fleet
 
-				if l == nil {
+				if box == nil {
 					break
 				}
-				sshutils.RunCommand(command, l.IP, 2266, "op", "1337superPass")
+				sshutils.RunCommand(command, box.IP, 2266, "op", "1337superPass")
 			}
 			processGroup.Done()
 		}()
@@ -252,13 +256,6 @@ func RunCommand(name string, command string, token string) {
 
 	close(fleet)
 	processGroup.Wait()
-
-	/*
-		for _, linode := range boxes {
-			if strings.HasPrefix(linode.Label, name) {
-				sshutils.RunCommand(command, linode.IP, 2266, "op", "1337superPass")
-			}
-		}*/
 }
 
 func CountFleet(fleetName string, boxes []LinodeBox) (count int) {
