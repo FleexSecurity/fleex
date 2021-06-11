@@ -17,26 +17,12 @@ import (
 	"github.com/hnakamur/go-scp"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"github.com/sw33tLie/fleex/pkg/box"
+
 	"github.com/sw33tLie/fleex/pkg/sshutils"
 	"github.com/sw33tLie/fleex/pkg/utils"
 	"github.com/tidwall/gjson"
 )
-
-type LinodeBox struct {
-	ID     int
-	Label  string
-	Group  string
-	Status string
-	IP     string
-}
-
-type LinodeImage struct {
-	ID      string
-	Label   string
-	Created string
-	Size    int
-	Vendor  string
-}
 
 type LinodeTemplate struct {
 	BackupID        int      `json:"backup_id"`
@@ -86,7 +72,7 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, t
 }
 
 // GetBoxes returns a slice containg all active boxes of a Linode account
-func GetBoxes(token string) (boxes []LinodeBox) {
+func GetBoxes(token string) (boxes []box.Box) {
 	req, err := http.NewRequest("GET", "https://api.linode.com/v4/linode/instances", nil)
 	if err != nil {
 		log.Fatal(err)
@@ -111,17 +97,17 @@ func GetBoxes(token string) (boxes []LinodeBox) {
 	data := gjson.GetMany(string(body), "data.#.id", "data.#.label", "data.#.group", "data.#.status", "data.#.ipv4")
 
 	for i := 0; i < len(data[0].Array()); i++ {
-		boxes = append(boxes, LinodeBox{int(data[0].Array()[i].Int()), data[1].Array()[i].Str, data[2].Array()[i].Str, data[3].Array()[i].Str, data[4].Array()[i].Array()[0].Str})
+		boxes = append(boxes, box.Box{int(data[0].Array()[i].Int()), data[1].Array()[i].Str, data[2].Array()[i].Str, data[3].Array()[i].Str, data[4].Array()[i].Array()[0].Str})
 	}
 	return boxes
 }
 
 // GetBoxes returns a slice containg all boxes of a given fleet
-func GetFleet(name string, token string) (fleet []LinodeBox) {
+func GetFleet(fleetName, token string) (fleet []box.Box) {
 	boxes := GetBoxes(token)
 
 	for _, box := range boxes {
-		if strings.HasPrefix(box.Label, name) {
+		if strings.HasPrefix(box.Label, fleetName) {
 			fleet = append(fleet, box)
 		}
 	}
@@ -129,7 +115,7 @@ func GetFleet(name string, token string) (fleet []LinodeBox) {
 }
 
 // GetImages returns a slice containing all private images of a Linode account
-func GetImages(token string) (images []LinodeImage) {
+func GetImages(token string) (images []box.Image) {
 	req, err := http.NewRequest("GET", "https://api.linode.com/v4/images", nil)
 	if err != nil {
 		log.Fatal(err)
@@ -155,7 +141,7 @@ func GetImages(token string) (images []LinodeImage) {
 	for i := 0; i < len(data[0].Array()); i++ {
 		// Only list custom images
 		if strings.HasPrefix(data[0].Array()[i].Str, "private") {
-			images = append(images, LinodeImage{data[0].Array()[i].Str, data[1].Array()[i].Str, data[2].Array()[i].Str, int(data[3].Array()[i].Int()), data[4].Array()[i].Str})
+			images = append(images, box.Image{data[0].Array()[i].Str, data[1].Array()[i].Str, data[2].Array()[i].Str, int(data[3].Array()[i].Int()), data[4].Array()[i].Str})
 		}
 	}
 	return images
@@ -190,7 +176,7 @@ func DeleteFleet(name string, token string) {
 	// Otherwise, we got a fleet to delete
 	fleetSize := CountFleet(name, boxes)
 
-	fleet := make(chan *LinodeBox, fleetSize)
+	fleet := make(chan *box.Box, fleetSize)
 	processGroup := new(sync.WaitGroup)
 	processGroup.Add(fleetSize)
 
@@ -231,7 +217,7 @@ func RunCommand(name string, command string, token string) {
 	// Otherwise, send command to a fleet
 	fleetSize := CountFleet(name, boxes)
 
-	fleet := make(chan *LinodeBox, fleetSize)
+	fleet := make(chan *box.Box, fleetSize)
 	processGroup := new(sync.WaitGroup)
 	processGroup.Add(fleetSize)
 
@@ -259,7 +245,7 @@ func RunCommand(name string, command string, token string) {
 	processGroup.Wait()
 }
 
-func CountFleet(fleetName string, boxes []LinodeBox) (count int) {
+func CountFleet(fleetName string, boxes []box.Box) (count int) {
 	for _, box := range boxes {
 		if strings.HasPrefix(box.Label, fleetName) {
 			count++
@@ -286,7 +272,7 @@ func Scan(fleetName string, command string, delete bool, input string, output st
 
 	fleet := GetFleet(fleetName, token)
 
-	linesCount := linesCount(inputString)
+	linesCount := utils.LinesCount(inputString)
 	linesPerChunk := linesCount / len(fleet)
 
 	// Iterate over multiline input string
@@ -319,7 +305,7 @@ func Scan(fleetName string, command string, delete bool, input string, output st
 
 	// Send SSH commands to all boxes
 
-	fleetNames := make(chan *LinodeBox, len(fleet))
+	fleetNames := make(chan *box.Box, len(fleet))
 	processGroup := new(sync.WaitGroup)
 	processGroup.Add(len(fleet))
 
@@ -443,12 +429,4 @@ func spawnBox(name string, image string, region string, token string) {
 		}
 		time.Sleep(5 * time.Second)
 	}
-}
-
-func linesCount(s string) int {
-	n := strings.Count(s, "\n")
-	if len(s) > 0 && !strings.HasSuffix(s, "\n") {
-		n++
-	}
-	return n
 }

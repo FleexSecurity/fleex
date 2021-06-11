@@ -8,6 +8,7 @@ import (
 
 	"github.com/digitalocean/godo"
 	"github.com/spf13/viper"
+	"github.com/sw33tLie/fleex/pkg/box"
 )
 
 // SpawnFleet spawns a DigitalOcean fleet
@@ -45,6 +46,11 @@ func SpawnFleet(fleetName string, fleetCount int, region string, size string, sl
 		return
 	}
 
+}
+
+func GetFleet(fleetName, token string) []box.Box {
+	// TODO
+	return nil
 }
 
 func GetBoxes(token string) []godo.Droplet {

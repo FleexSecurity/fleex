@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 )
 
 func FileToString(filePath string) string {
@@ -22,4 +23,12 @@ func StringToFile(filePath, text string) {
 	}
 	file.WriteString(text)
 	file.Close()
+}
+
+func LinesCount(s string) int {
+	n := strings.Count(s, "\n")
+	if len(s) > 0 && !strings.HasSuffix(s, "\n") {
+		n++
+	}
+	return n
 }

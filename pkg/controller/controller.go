@@ -5,6 +5,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/sw33tLie/fleex/pkg/box"
 	"github.com/sw33tLie/fleex/pkg/digitalocean"
 	"github.com/sw33tLie/fleex/pkg/linode"
 )
@@ -14,6 +15,10 @@ type Provider int
 const (
 	PROVIDER_LINODE       = 1
 	PROVIDER_DIGITALOCEAN = 2
+)
+
+const (
+	INVALID_PROVIDER = "Invalid Provider!"
 )
 
 var log = logrus.New()
@@ -39,7 +44,7 @@ func ListBoxes(token string, provider Provider) {
 	case PROVIDER_DIGITALOCEAN:
 		digitalocean.ListBoxes(token)
 	default:
-		log.Fatal("Invalid Provider")
+		log.Fatal(INVALID_PROVIDER)
 	}
 }
 
@@ -51,7 +56,7 @@ func DeleteFleet(name string, token string, provider Provider) {
 	case PROVIDER_DIGITALOCEAN:
 		digitalocean.DeleteFleet(name, token)
 	default:
-		log.Fatal("Invalid Provider")
+		log.Fatal(INVALID_PROVIDER)
 	}
 }
 
@@ -63,6 +68,18 @@ func ListImages(token string, provider Provider) {
 	case PROVIDER_DIGITALOCEAN:
 		digitalocean.ListImages(token)
 	default:
-		log.Fatal("Invalid Provider")
+		log.Fatal(INVALID_PROVIDER)
+	}
+}
+
+func GetFleet(fleetName string, token string, provider Provider) []box.Box {
+	switch provider {
+	case PROVIDER_LINODE:
+		return linode.GetFleet(fleetName, token)
+	case PROVIDER_DIGITALOCEAN:
+		return digitalocean.GetFleet(fleetName, token)
+	default:
+		log.Fatal(INVALID_PROVIDER)
+		return nil
 	}
 }
