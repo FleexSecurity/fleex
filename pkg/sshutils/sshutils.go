@@ -10,7 +10,6 @@ import (
 	"path"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/sw33tLie/fleex/pkg/utils"
 
@@ -29,8 +28,6 @@ func GetLocalPublicSSHKey() string {
 
 	return retString
 }
-
-var mutex = &sync.Mutex{}
 
 func RunCommand(command string, ip string, port int, username string, password string) *Connection {
 	conn, err := Connect(ip+":"+strconv.Itoa(port), username, password)
@@ -54,6 +51,8 @@ func publicKeyFile(file string) ssh.AuthMethod {
 	return ssh.PublicKeys(key)
 }
 
+var termCount int
+
 func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
 	session, err := conn.NewSession()
 	if err != nil {
@@ -65,6 +64,7 @@ func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
 		ssh.ECHO:          0,     // disable echoing
 		ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
 		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
+		ssh.OPOST:         1,
 	}
 
 	term := os.Getenv("TERM")
@@ -73,11 +73,14 @@ func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
 	}
 
 	fd := int(os.Stdin.Fd())
-	state, err := terminal.MakeRaw(fd)
-	if err != nil {
-		log.Fatal("terminal make raw:", err)
+	if termCount == 0 {
+		state, err := terminal.MakeRaw(fd)
+		if err != nil {
+			log.Fatal("terminal make raw:", err)
+		}
+		defer terminal.Restore(fd, state)
+		termCount++
 	}
-	defer terminal.Restore(fd, state)
 
 	terminalWidth, terminalHeight, err := terminal.GetSize(fd)
 	if err != nil {
@@ -99,12 +102,7 @@ func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
 	if err != nil {
 		log.Fatal("Unable to setup stdout for session: ", err)
 	}
-
-	go func() {
-		mutex.Lock()
-		io.Copy(os.Stdout, stdout)
-		mutex.Unlock()
-	}()
+	go io.Copy(os.Stdout, stdout)
 
 	stderr, err := session.StderrPipe()
 	if err != nil {

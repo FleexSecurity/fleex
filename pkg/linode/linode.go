@@ -238,7 +238,7 @@ func Scan(fleetName string, command string, input string, output string, token s
 			utils.StringToFile(chunkPath, chunkContent)
 			inputFiles = append(inputFiles, chunkPath)
 
-			fmt.Println(chunkPath)
+			fmt.Println("" + chunkPath)
 
 			chunkContent = ""
 		}
@@ -300,6 +300,10 @@ func Scan(fleetName string, command string, input string, output string, token s
 
 	close(fleetNames)
 	processGroup.Wait()
+
+	// Scan done, process results
+
+	fmt.Println("SCAN DONE")
 }
 
 func deleteBoxByID(id int, token string) {
