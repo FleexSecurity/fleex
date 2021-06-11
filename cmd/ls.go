@@ -1,12 +1,9 @@
 package cmd
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/sw33tLie/fleex/pkg/linode"
+	"github.com/sw33tLie/fleex/pkg/controller"
 )
 
 // lsCmd represents the ls command
@@ -14,22 +11,20 @@ var lsCmd = &cobra.Command{
 	Use:   "ls",
 	Short: "List running boxes",
 	Run: func(cmd *cobra.Command, args []string) {
-		provider := viper.GetString("provider")
-		linodeToken := viper.GetString("linode-token")
+		var token string
+
+		provider := controller.GetProvider(viper.GetString("provider"))
+
+		switch provider {
+		case controller.PROVIDER_LINODE:
+			token = viper.GetString("linode-token")
+		case controller.PROVIDER_DIGITALOCEAN:
+			token = viper.GetString("digitalocean-token")
+		}
+
 		// digToken := viper.GetString("digitalocean-token")
 
-		if strings.ToLower(provider) == "linode" {
-			linode.ListBoxes(linodeToken)
-			return
-		}
-
-		if strings.ToLower(provider) == "digitalocean" {
-			// todo
-			// digitalocean.ListBoxes(digToken)
-			giacca := viper.GetString("digitalocean.token")
-			fmt.Println(giacca)
-			return
-		}
+		controller.ListBoxes(token, provider)
 	},
 }
 
