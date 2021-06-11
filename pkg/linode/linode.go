@@ -173,8 +173,8 @@ func ListImages(token string) {
 }
 
 func DeleteFleetOrBox(name string, token string) {
-	linodes := GetBoxes(token)
-	for _, linode := range linodes {
+	boxes := GetBoxes(token)
+	for _, linode := range boxes {
 		if linode.Label == name {
 			// It's a single box
 			deleteBoxByID(linode.ID, token)
@@ -183,21 +183,91 @@ func DeleteFleetOrBox(name string, token string) {
 	}
 
 	// Otherwise, we got a fleet to delete
-	for _, linode := range linodes {
-		if strings.HasPrefix(linode.Label, name) {
-			deleteBoxByID(linode.ID, token)
+	fleetSize := CountFleet(name, boxes)
+
+	fleet := make(chan *LinodeBox, fleetSize)
+	processGroup := new(sync.WaitGroup)
+	processGroup.Add(fleetSize)
+
+	for i := 0; i < fleetSize; i++ {
+		go func() {
+			for {
+				l := <-fleet
+
+				if l == nil {
+					break
+				}
+				deleteBoxByID(l.ID, token)
+			}
+			processGroup.Done()
+		}()
+	}
+
+	for i := range boxes {
+		if strings.HasPrefix(boxes[i].Label, name) {
+			fleet <- &boxes[i]
 		}
 	}
+
+	close(fleet)
+	processGroup.Wait()
 }
 
 func RunCommand(name string, command string, token string) {
-	linodes := GetBoxes(token)
-	for _, linode := range linodes {
+	boxes := GetBoxes(token)
+	for _, linode := range boxes {
 		if linode.Label == name {
+			// It's a single box
 			sshutils.RunCommand(command, linode.IP, 2266, "op", "1337superPass")
 			return
 		}
 	}
+
+	// Otherwise, send command to a fleet
+	fleetSize := CountFleet(name, boxes)
+
+	fleet := make(chan *LinodeBox, fleetSize)
+	processGroup := new(sync.WaitGroup)
+	processGroup.Add(fleetSize)
+
+	for i := 0; i < fleetSize; i++ {
+		go func() {
+			for {
+				l := <-fleet
+
+				if l == nil {
+					break
+				}
+				sshutils.RunCommand(command, l.IP, 2266, "op", "1337superPass")
+			}
+			processGroup.Done()
+		}()
+	}
+
+	for i := range boxes {
+		if strings.HasPrefix(boxes[i].Label, name) {
+			fleet <- &boxes[i]
+		}
+	}
+
+	close(fleet)
+	processGroup.Wait()
+
+	/*
+		for _, linode := range boxes {
+			if strings.HasPrefix(linode.Label, name) {
+				sshutils.RunCommand(command, linode.IP, 2266, "op", "1337superPass")
+			}
+		}*/
+}
+
+func CountFleet(fleetName string, boxes []LinodeBox) (count int) {
+	for _, box := range boxes {
+		if strings.HasPrefix(box.Label, fleetName) {
+			count++
+		}
+	}
+	return count
 }
 
 // TODO Polish this code
@@ -248,8 +318,6 @@ func Scan(fleetName string, command string, input string, output string, token s
 	if scanner.Err() != nil {
 		log.Println(scanner.Err())
 	}
-
-	// Replace labels
 
 	// Send SSH commands to all boxes
 
