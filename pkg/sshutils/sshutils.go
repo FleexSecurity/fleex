@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/utils"
 
 	"golang.org/x/crypto/ssh"
@@ -22,7 +23,8 @@ type Connection struct {
 }
 
 func GetLocalPublicSSHKey() string {
-	rawKey := utils.FileToString(path.Join(getHomeDir(), ".ssh", "id_ed25519.pub"))
+	publicSsh := viper.GetString("public-ssh-file")
+	rawKey := utils.FileToString(path.Join(getHomeDir(), ".ssh", publicSsh))
 	retString := strings.ReplaceAll(rawKey, "\r\n", "")
 	retString = strings.ReplaceAll(retString, "\n", "")
 

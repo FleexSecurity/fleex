@@ -16,6 +16,7 @@ import (
 
 	"github.com/hnakamur/go-scp"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/sshutils"
 	"github.com/sw33tLie/fleex/pkg/utils"
 	"github.com/tidwall/gjson"
@@ -411,8 +412,9 @@ func deleteBoxByLabel(label string, token string) {
 }
 
 func spawnBox(name string, image string, region string, token string) {
+	linPasswd := viper.GetString("linode.password")
 	for {
-		newLinode := LinodeTemplate{SwapSize: 512, Image: image, RootPassword: "1337superPass", LinodeType: "g6-nanode-1", Region: region, AuthorizedKeys: []string{sshutils.GetLocalPublicSSHKey()}, Booted: true, Label: name}
+		newLinode := LinodeTemplate{SwapSize: 512, Image: image, RootPassword: linPasswd, LinodeType: "g6-nanode-1", Region: region, AuthorizedKeys: []string{sshutils.GetLocalPublicSSHKey()}, Booted: true, Label: name}
 		postJSON, err := json.Marshal(newLinode)
 		if err != nil {
 			fmt.Println(err)

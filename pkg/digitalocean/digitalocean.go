@@ -12,8 +12,9 @@ import (
 
 // SpawnFleet spawns a DigitalOcean fleet
 func SpawnFleet(fleetName string, fleetCount int, region string, size string, slug string, token string) {
-	// fmt.Println("Digitalocean Spawn")
-	digSsh := viper.GetString("digitalocean-ssh-fingerprint")
+	fmt.Println("Digitalocean Spawn", token)
+	digSsh := viper.GetString("digitalocean.ssh-fingerprint")
+	digTags := viper.GetStringSlice("digitalocean.tags")
 
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
@@ -34,7 +35,7 @@ func SpawnFleet(fleetName string, fleetCount int, region string, size string, sl
 		SSHKeys: []godo.DropletCreateSSHKey{
 			godo.DropletCreateSSHKey{Fingerprint: digSsh},
 		},
-		Tags: []string{},
+		Tags: digTags,
 	}
 
 	_, _, err := client.Droplets.CreateMultiple(ctx, createRequest)

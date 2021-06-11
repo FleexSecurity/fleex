@@ -17,8 +17,8 @@ var deleteCmd = &cobra.Command{
 		boxOrFleetName, _ := cmd.Flags().GetString("name")
 
 		provider := viper.GetString("provider")
-		linodeToken := viper.GetString("linode-token")
-		digToken := viper.GetString("digitalocean-token")
+		linodeToken := viper.GetString("linode.token")
+		digToken := viper.GetString("digitalocean.token")
 
 		if strings.ToLower(provider) == "linode" {
 			linode.DeleteFleetOrBox(boxOrFleetName, linodeToken)

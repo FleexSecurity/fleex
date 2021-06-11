@@ -20,15 +20,15 @@ var spawnCmd = &cobra.Command{
 
 		provider := viper.GetString("provider")
 		// Linode
-		linodeImage := viper.GetString("linode-image")
-		linodeRegion := viper.GetString("linode-region")
-		linodeToken := viper.GetString("linode-token")
+		linodeImage := viper.GetString("linode.image")
+		linodeRegion := viper.GetString("linode.region")
+		linodeToken := viper.GetString("linode.token")
 		// Digitalocean
-		digToken := viper.GetString("digitalocean-token")
+		digToken := viper.GetString("digitalocean.token")
 		// digImage := viper.GetString("digitalocean-image")
-		digRegion := viper.GetString("digitalocean-region")
-		digSize := viper.GetString("digitalocean-size")
-		digSlug := viper.GetString("digitalocean-slug")
+		digRegion := viper.GetString("digitalocean.region")
+		digSize := viper.GetString("digitalocean.size")
+		digSlug := viper.GetString("digitalocean.slug")
 
 		// fmt.Println("IMAGE: ", linodeImage, provider)
 		if strings.ToLower(provider) == "linode" {
