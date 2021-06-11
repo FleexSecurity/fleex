@@ -268,7 +268,7 @@ func CountFleet(fleetName string, boxes []LinodeBox) (count int) {
 }
 
 // TODO Polish this code
-func Scan(fleetName string, command string, input string, output string, token string) {
+func Scan(fleetName string, command string, delete bool, input string, output string, token string) {
 	fmt.Println("Scan started. Input: ", input, " output: ", output)
 
 	// Make local temp folder
@@ -352,6 +352,13 @@ func Scan(fleetName string, command string, input string, output string, token s
 				err = scp.NewSCP(sshutils.GetConnection(l.IP, 2266, "op", "1337superPass").Client).ReceiveFile("chunk-res-"+linodeName, path.Join(tempFolder, "chunk-res-"+linodeName))
 				if err != nil {
 					log.Fatalf("Failed to get file: %s", err)
+				}
+
+				if delete {
+					// TODO: Not the best way to delete a box, if this program crashes/is stopped
+					// before reaching this line the box won't be deleted. It's better to setup
+					// a cron/command on the box directly.
+					deleteBoxByID(l.ID, token)
 				}
 
 			}

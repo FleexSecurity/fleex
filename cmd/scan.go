@@ -13,8 +13,9 @@ var scanCmd = &cobra.Command{
 	Use:   "scan",
 	Short: "Distributed scanning",
 	Run: func(cmd *cobra.Command, args []string) {
-		fleetName, _ := cmd.Flags().GetString("name")
 		command, _ := cmd.Flags().GetString("command")
+		delete, _ := cmd.Flags().GetBool("delete")
+		fleetName, _ := cmd.Flags().GetString("name")
 		input, _ := cmd.Flags().GetString("input")
 		output, _ := cmd.Flags().GetString("output")
 
@@ -22,7 +23,7 @@ var scanCmd = &cobra.Command{
 		linodeToken := viper.GetString("linode-token")
 
 		if strings.ToLower(provider) == "linode" {
-			linode.Scan(fleetName, command, input, output, linodeToken)
+			linode.Scan(fleetName, command, delete, input, output, linodeToken)
 			return
 		}
 
@@ -50,5 +51,6 @@ func init() {
 	scanCmd.Flags().StringP("command", "c", "whoami", "Command to send. Supports {{INPUT}} and {{OUTPUT}}")
 	scanCmd.Flags().StringP("input", "i", "", "Input file")
 	scanCmd.Flags().StringP("output", "o", "scan-results.txt", "Output file path")
+	scanCmd.Flags().BoolP("delete", "d", false, "Delete boxes as soon as they finish their job")
 
 }
