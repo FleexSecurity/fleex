@@ -1,12 +1,112 @@
 package digitalocean
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/digitalocean/godo"
+	"github.com/spf13/viper"
+)
 
 // SpawnFleet spawns a DigitalOcean fleet
-func SpawnFleet(fleetName string, fleetCount int) {
-	fmt.Println("SPAWNING")
+func SpawnFleet(fleetName string, fleetCount int, region string, size string, slug string, token string) {
+	// fmt.Println("Digitalocean Spawn")
+	digSsh := viper.GetString("digitalocean-ssh-fingerprint")
+
+	client := godo.NewFromToken(token)
+	ctx := context.TODO()
+
+	droplets := []string{}
+
+	for i := 0; i < fleetCount; i++ {
+		droplets = append(droplets, fleetName+strconv.Itoa(i+1))
+	}
+
+	createRequest := &godo.DropletMultiCreateRequest{
+		Names:  droplets,
+		Region: region,
+		Size:   size,
+		Image: godo.DropletCreateImage{
+			Slug: slug,
+		},
+		SSHKeys: []godo.DropletCreateSSHKey{
+			godo.DropletCreateSSHKey{Fingerprint: digSsh},
+		},
+		Tags: []string{},
+	}
+
+	_, _, err := client.Droplets.CreateMultiple(ctx, createRequest)
+
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+		return
+	}
+
 }
 
-func spawnBox(name string) {
+func GetBoxes(token string) []godo.Droplet {
+	client := godo.NewFromToken(token)
+	ctx := context.TODO()
+	opt := &godo.ListOptions{
+		Page:    1,
+		PerPage: 9999,
+	}
 
+	droplets, _, err := client.Droplets.List(ctx, opt)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+		return nil
+	}
+
+	return droplets
+}
+
+func ListBoxes(token string) {
+	droplets := GetBoxes(token)
+	for _, drop := range droplets {
+		fmt.Println(drop.ID, "-", drop.Name, "-", drop.Size.Disk, "gb - ", drop.Status, "-", drop.Created)
+	}
+}
+
+func DeleteFleetOrBox(name string, token string) {
+	droplets := GetBoxes(token)
+	for _, droplet := range droplets {
+		if droplet.Name == name {
+			// It's a single box
+			deleteBoxByID(droplet.ID, token)
+			return
+		}
+	}
+
+	// Otherwise, we got a fleet to delete
+	for _, droplet := range droplets {
+		fmt.Println(droplet.Name, name)
+		if strings.HasPrefix(droplet.Name, name) {
+			deleteBoxByID(droplet.ID, token)
+		}
+	}
+}
+
+func deleteBoxByID(ID int, token string) {
+	client := godo.NewFromToken(token)
+	ctx := context.TODO()
+
+	_, err := client.Droplets.Delete(ctx, ID)
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+		return
+	}
+}
+
+func deleteBoxByTag(tag string, token string) {
+	client := godo.NewFromToken(token)
+	ctx := context.TODO()
+
+	_, err := client.Droplets.DeleteByTag(ctx, tag)
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+		return
+	}
 }

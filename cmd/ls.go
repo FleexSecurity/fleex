@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/sw33tLie/fleex/pkg/digitalocean"
 	"github.com/sw33tLie/fleex/pkg/linode"
 )
 
@@ -15,6 +16,7 @@ var lsCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		provider := viper.GetString("provider")
 		linodeToken := viper.GetString("linode-token")
+		digToken := viper.GetString("digitalocean-token")
 
 		if strings.ToLower(provider) == "linode" {
 			linode.ListBoxes(linodeToken)
@@ -23,6 +25,7 @@ var lsCmd = &cobra.Command{
 
 		if strings.ToLower(provider) == "digitalocean" {
 			// todo
+			digitalocean.ListBoxes(digToken)
 			return
 		}
 	},

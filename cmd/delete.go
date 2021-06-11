@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/sw33tLie/fleex/pkg/digitalocean"
 	"github.com/sw33tLie/fleex/pkg/linode"
 )
 
@@ -17,6 +18,7 @@ var deleteCmd = &cobra.Command{
 
 		provider := viper.GetString("provider")
 		linodeToken := viper.GetString("linode-token")
+		digToken := viper.GetString("digitalocean-token")
 
 		if strings.ToLower(provider) == "linode" {
 			linode.DeleteFleetOrBox(boxOrFleetName, linodeToken)
@@ -25,6 +27,8 @@ var deleteCmd = &cobra.Command{
 
 		if strings.ToLower(provider) == "digitalocean" {
 			// todo
+			// digitalocean.DeleteDropletByID(249954031)
+			digitalocean.DeleteFleetOrBox(boxOrFleetName, digToken)
 			return
 		}
 	},
