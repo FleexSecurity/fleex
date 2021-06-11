@@ -54,3 +54,15 @@ func DeleteFleet(name string, token string, provider Provider) {
 		log.Fatal("Invalid Provider")
 	}
 }
+
+// ListImages prints a list of available private images of a provider
+func ListImages(token string, provider Provider) {
+	switch provider {
+	case PROVIDER_LINODE:
+		linode.ListImages(token)
+	case PROVIDER_DIGITALOCEAN:
+		digitalocean.ListImages(token)
+	default:
+		log.Fatal("Invalid Provider")
+	}
+}

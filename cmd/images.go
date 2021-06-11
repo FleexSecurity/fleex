@@ -1,11 +1,9 @@
 package cmd
 
 import (
-	"strings"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/sw33tLie/fleex/pkg/linode"
+	"github.com/sw33tLie/fleex/pkg/controller"
 )
 
 // imagesCmd represents the images command
@@ -13,18 +11,18 @@ var imagesCmd = &cobra.Command{
 	Use:   "images",
 	Short: "List available images",
 	Run: func(cmd *cobra.Command, args []string) {
-		provider := viper.GetString("provider")
-		linodeToken := viper.GetString("linode-token")
+		var token string
 
-		if strings.ToLower(provider) == "linode" {
-			linode.ListImages(linodeToken)
-			return
+		provider := controller.GetProvider(viper.GetString("provider"))
+
+		switch provider {
+		case controller.PROVIDER_LINODE:
+			token = viper.GetString("linode.token")
+		case controller.PROVIDER_DIGITALOCEAN:
+			token = viper.GetString("digitalocean.token")
 		}
 
-		if strings.ToLower(provider) == "digitalocean" {
-			// todo
-			return
-		}
+		controller.ListImages(token, provider)
 	},
 }
 

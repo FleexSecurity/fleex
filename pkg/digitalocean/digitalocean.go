@@ -90,6 +90,10 @@ func DeleteFleet(name string, token string) {
 	}
 }
 
+func ListImages(token string) {
+	// TODO
+}
+
 func deleteBoxByID(ID int, token string) {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
