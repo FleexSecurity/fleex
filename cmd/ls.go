@@ -17,9 +17,9 @@ var lsCmd = &cobra.Command{
 
 		switch provider {
 		case controller.PROVIDER_LINODE:
-			token = viper.GetString("linode-token")
+			token = viper.GetString("linode.token")
 		case controller.PROVIDER_DIGITALOCEAN:
-			token = viper.GetString("digitalocean-token")
+			token = viper.GetString("digitalocean.token")
 		}
 
 		// digToken := viper.GetString("digitalocean-token")
