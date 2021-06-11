@@ -22,8 +22,6 @@ var lsCmd = &cobra.Command{
 			token = viper.GetString("digitalocean.token")
 		}
 
-		// digToken := viper.GetString("digitalocean-token")
-
 		controller.ListBoxes(token, provider)
 	},
 }
