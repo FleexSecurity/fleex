@@ -42,3 +42,15 @@ func ListBoxes(token string, provider Provider) {
 		log.Fatal("Invalid Provider")
 	}
 }
+
+// DeleteFleet deletes a whole fleet or a single box
+func DeleteFleet(name string, token string, provider Provider) {
+	switch provider {
+	case PROVIDER_LINODE:
+		linode.DeleteFleet(name, token)
+	case PROVIDER_DIGITALOCEAN:
+		digitalocean.DeleteFleet(name, token)
+	default:
+		log.Fatal("Invalid Provider")
+	}
+}

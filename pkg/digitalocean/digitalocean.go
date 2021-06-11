@@ -71,7 +71,7 @@ func ListBoxes(token string) {
 	}
 }
 
-func DeleteFleetOrBox(name string, token string) {
+func DeleteFleet(name string, token string) {
 	droplets := GetBoxes(token)
 	for _, droplet := range droplets {
 		if droplet.Name == name {

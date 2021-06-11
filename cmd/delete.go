@@ -1,12 +1,9 @@
 package cmd
 
 import (
-	"strings"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/sw33tLie/fleex/pkg/digitalocean"
-	"github.com/sw33tLie/fleex/pkg/linode"
+	"github.com/sw33tLie/fleex/pkg/controller"
 )
 
 // deleteCmd represents the delete command
@@ -14,23 +11,20 @@ var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "Delete a fleet or a single box",
 	Run: func(cmd *cobra.Command, args []string) {
-		boxOrFleetName, _ := cmd.Flags().GetString("name")
+		var token string
 
-		provider := viper.GetString("provider")
-		linodeToken := viper.GetString("linode.token")
-		digToken := viper.GetString("digitalocean.token")
+		name, _ := cmd.Flags().GetString("name")
+		provider := controller.GetProvider(viper.GetString("provider"))
 
-		if strings.ToLower(provider) == "linode" {
-			linode.DeleteFleetOrBox(boxOrFleetName, linodeToken)
-			return
+		switch provider {
+		case controller.PROVIDER_LINODE:
+			token = viper.GetString("linode.token")
+		case controller.PROVIDER_DIGITALOCEAN:
+			token = viper.GetString("digitalocean.token")
 		}
 
-		if strings.ToLower(provider) == "digitalocean" {
-			// todo
-			// digitalocean.DeleteDropletByID(249954031)
-			digitalocean.DeleteFleetOrBox(boxOrFleetName, digToken)
-			return
-		}
+		controller.DeleteFleet(name, token, provider)
+
 	},
 }
 

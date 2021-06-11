@@ -177,7 +177,7 @@ func ListImages(token string) {
 	}
 }
 
-func DeleteFleetOrBox(name string, token string) {
+func DeleteFleet(name string, token string) {
 	boxes := GetBoxes(token)
 	for _, box := range boxes {
 		if box.Label == name {
