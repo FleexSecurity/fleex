@@ -30,12 +30,12 @@ func SpawnFleet(fleetName string, fleetCount int, region string, size string, sl
 		Names:  droplets,
 		Region: region,
 		Size:   size,
-		Image: godo.DropletCreateImage{
-			ID: 85843938,
-		},
 		/*Image: godo.DropletCreateImage{
-			Slug: slug,
+			ID: IDIMAGE,
 		},*/
+		Image: godo.DropletCreateImage{
+			Slug: slug,
+		},
 		SSHKeys: []godo.DropletCreateSSHKey{
 			godo.DropletCreateSSHKey{Fingerprint: digSsh},
 		},
