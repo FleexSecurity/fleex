@@ -35,7 +35,7 @@ func Start(fleetName string, command string, delete bool, input string, output s
 
 	fleet := controller.GetFleet(fleetName, token, provider)
 
-	linesCount := linesCount(inputString)
+	linesCount := utils.LinesCount(inputString)
 	linesPerChunk := linesCount / len(fleet)
 
 	// Iterate over multiline input string

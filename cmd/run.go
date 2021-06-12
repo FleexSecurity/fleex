@@ -17,7 +17,7 @@ var runCmd = &cobra.Command{
 		command, _ := cmd.Flags().GetString("command")
 
 		provider := viper.GetString("provider")
-		linodeToken := viper.GetString("linode-token")
+		linodeToken := viper.GetString("linode.token")
 
 		if strings.ToLower(provider) == "linode" {
 			linode.RunCommand(boxName, command, linodeToken)
