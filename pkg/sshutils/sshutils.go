@@ -131,11 +131,11 @@ func GetConnection(ip string, port int, username string, password string) *Conne
 }
 
 func Connect(addr, user, password string) (*Connection, error) {
-	publicSsh := viper.GetString("public-ssh-file")
+	privateSSH := viper.GetString("private-ssh-file")
 	sshConfig := &ssh.ClientConfig{
 		User: user,
 		Auth: []ssh.AuthMethod{
-			publicKeyFile(path.Join(getHomeDir(), ".ssh", publicSsh)), // todo replace with rsa
+			publicKeyFile(path.Join(getHomeDir(), ".ssh", privateSSH)), // todo replace with rsa
 		},
 		HostKeyCallback: ssh.HostKeyCallback(func(hostname string, remote net.Addr, key ssh.PublicKey) error { return nil }),
 	}
