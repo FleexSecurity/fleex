@@ -83,3 +83,25 @@ func GetFleet(fleetName string, token string, provider Provider) []box.Box {
 		return nil
 	}
 }
+
+func RunCommand(name string, command string, token string, provider Provider) {
+	switch provider {
+	case PROVIDER_LINODE:
+		linode.RunCommand(name, command, token)
+	case PROVIDER_DIGITALOCEAN:
+		// TODO
+	default:
+		log.Fatal(INVALID_PROVIDER)
+	}
+}
+
+func DeleteBoxByID(id int, token string, provider Provider) {
+	switch provider {
+	case PROVIDER_LINODE:
+		linode.DeleteBoxByID(id, token)
+	case PROVIDER_DIGITALOCEAN:
+		// TODO
+	default:
+		log.Fatal(INVALID_PROVIDER)
+	}
+}

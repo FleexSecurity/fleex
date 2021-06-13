@@ -168,7 +168,7 @@ func DeleteFleet(name string, token string) {
 	for _, box := range boxes {
 		if box.Label == name {
 			// We only have to delete a single box
-			deleteBoxByID(box.ID, token)
+			DeleteBoxByID(box.ID, token)
 			return
 		}
 	}
@@ -188,7 +188,7 @@ func DeleteFleet(name string, token string) {
 				if box == nil {
 					break
 				}
-				deleteBoxByID(box.ID, token)
+				DeleteBoxByID(box.ID, token)
 			}
 			processGroup.Done()
 		}()
@@ -272,6 +272,10 @@ func Scan(fleetName string, command string, delete bool, input string, output st
 
 	fleet := GetFleet(fleetName, token)
 
+	if len(fleet) < 1 {
+		log.Fatal("No fleet found")
+	}
+
 	linesCount := utils.LinesCount(inputString)
 	linesPerChunk := linesCount / len(fleet)
 
@@ -345,7 +349,7 @@ func Scan(fleetName string, command string, delete bool, input string, output st
 					// TODO: Not the best way to delete a box, if this program crashes/is stopped
 					// before reaching this line the box won't be deleted. It's better to setup
 					// a cron/command on the box directly.
-					deleteBoxByID(l.ID, token)
+					DeleteBoxByID(l.ID, token)
 				}
 
 			}
@@ -365,7 +369,7 @@ func Scan(fleetName string, command string, delete bool, input string, output st
 	fmt.Println("SCAN DONE")
 }
 
-func deleteBoxByID(id int, token string) {
+func DeleteBoxByID(id int, token string) {
 	for {
 		req, err := http.NewRequest("DELETE", "https://api.linode.com/v4/linode/instances/"+strconv.Itoa(id), nil)
 		if err != nil {
@@ -392,7 +396,7 @@ func deleteBoxByLabel(label string, token string) {
 	linodes := GetBoxes(token)
 	for _, linode := range linodes {
 		if linode.Label == label && linode.Label != "BugBountyUbuntu" {
-			deleteBoxByID(linode.ID, token)
+			DeleteBoxByID(linode.ID, token)
 		}
 	}
 }

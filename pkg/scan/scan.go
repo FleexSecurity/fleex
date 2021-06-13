@@ -7,11 +7,15 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/hnakamur/go-scp"
 	"github.com/sirupsen/logrus"
 
+	"github.com/sw33tLie/fleex/pkg/box"
 	"github.com/sw33tLie/fleex/pkg/controller"
+	"github.com/sw33tLie/fleex/pkg/sshutils"
 	"github.com/sw33tLie/fleex/pkg/utils"
 )
 
@@ -65,4 +69,63 @@ func Start(fleetName string, command string, delete bool, input string, output s
 	if scanner.Err() != nil {
 		log.Println(scanner.Err())
 	}
+
+	fleetNames := make(chan *box.Box, len(fleet))
+	processGroup := new(sync.WaitGroup)
+	processGroup.Add(len(fleet))
+
+	for i := 0; i < len(fleet); i++ {
+		go func() {
+			for {
+				l := <-fleetNames
+
+				if l == nil {
+					break
+				}
+
+				linodeName := l.Label
+
+				// Send input file via SCP
+				err := scp.NewSCP(sshutils.GetConnection(l.IP, 2266, "op", "1337superPass").Client).SendFile(path.Join(tempFolder, "chunk-"+linodeName), "/home/op")
+				if err != nil {
+					log.Fatalf("Failed to send file: %s", err)
+				}
+
+				// Replace labels and craft final command
+				finalCommand := command
+				finalCommand = strings.ReplaceAll(finalCommand, "{{INPUT}}", path.Join("/home/op", "chunk-"+linodeName))
+				finalCommand = strings.ReplaceAll(finalCommand, "{{OUTPUT}}", "chunk-res-"+linodeName)
+
+				fmt.Println("SCANNING WITH ", path.Join(tempFolder, "chunk-"+linodeName), " ")
+				// TODO: Not optimal, it runs GetBoxes() every time which is dumb, should use a function that does the same but by id
+				controller.RunCommand(linodeName, finalCommand, token, provider)
+
+				// Now download the output file
+				err = scp.NewSCP(sshutils.GetConnection(l.IP, 2266, "op", "1337superPass").Client).ReceiveFile("chunk-res-"+linodeName, path.Join(tempFolder, "chunk-res-"+linodeName))
+				if err != nil {
+					log.Fatalf("Failed to get file: %s", err)
+				}
+
+				if delete {
+					// TODO: Not the best way to delete a box, if this program crashes/is stopped
+					// before reaching this line the box won't be deleted. It's better to setup
+					// a cron/command on the box directly.
+					controller.DeleteBoxByID(l.ID, token, provider)
+				}
+
+			}
+			processGroup.Done()
+		}()
+	}
+
+	for i := range fleet {
+		fleetNames <- &fleet[i]
+	}
+
+	close(fleetNames)
+	processGroup.Wait()
+
+	// Scan done, process results
+
+	fmt.Println("SCAN DONE")
 }
