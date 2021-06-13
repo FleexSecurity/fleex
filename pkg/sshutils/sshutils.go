@@ -131,7 +131,7 @@ func GetConnection(ip string, port int, username string, password string) *Conne
 }
 
 func Connect(addr, user, password string) (*Connection, error) {
-	publicSsh := viper.GetString("public-ssh-file")
+	publicSsh := viper.GetString("private-ssh-file")
 	sshConfig := &ssh.ClientConfig{
 		User: user,
 		Auth: []ssh.AuthMethod{
@@ -144,7 +144,6 @@ func Connect(addr, user, password string) (*Connection, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return &Connection{conn}, nil
 
 }
