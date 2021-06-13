@@ -30,6 +30,9 @@ func SpawnFleet(fleetName string, fleetCount int, region string, size string, sl
 		Names:  droplets,
 		Region: region,
 		Size:   size,
+		/*Image: godo.DropletCreateImage{
+			ID: IDIMAGE,
+		},*/
 		Image: godo.DropletCreateImage{
 			Slug: slug,
 		},
@@ -98,6 +101,21 @@ func DeleteFleet(name string, token string) {
 
 func ListImages(token string) {
 	// TODO
+	client := godo.NewFromToken(token)
+	ctx := context.TODO()
+	opt := &godo.ListOptions{
+		Page:    1,
+		PerPage: 9999,
+	}
+
+	images, _, err := client.Images.ListUser(ctx, opt)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+		return
+	}
+	for _, image := range images {
+		fmt.Println(image.ID, image.Name, image.Status, image.SizeGigaBytes)
+	}
 }
 
 func deleteBoxByID(ID int, token string) {
