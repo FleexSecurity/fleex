@@ -31,8 +31,6 @@ var scanCmd = &cobra.Command{
 			token = viper.GetString("digitalocean.token")
 			// TODO
 		}
-
-		controller.RunCommand(fleetName, command, token, provider)
 	},
 }
 

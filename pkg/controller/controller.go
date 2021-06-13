@@ -105,3 +105,14 @@ func DeleteBoxByID(id int, token string, provider Provider) {
 		log.Fatal(INVALID_PROVIDER)
 	}
 }
+
+func SpawnFleet(fleetName string, fleetCount int, image string, region string, token string, wait bool, provider Provider) {
+	switch provider {
+	case PROVIDER_LINODE:
+		linode.SpawnFleet(fleetName, fleetCount, image, region, token, wait)
+	case PROVIDER_DIGITALOCEAN:
+		// TODO
+	default:
+		log.Fatal(INVALID_PROVIDER)
+	}
+}

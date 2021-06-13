@@ -42,7 +42,7 @@ type LinodeTemplate struct {
 var log = logrus.New()
 
 // SpawnFleet spawns a Linode fleet
-func SpawnFleet(fleetName string, fleetCount int, image string, region string, token string) {
+func SpawnFleet(fleetName string, fleetCount int, image string, region string, token string, wait bool) {
 	fleet := make(chan string, fleetCount)
 	processGroup := new(sync.WaitGroup)
 	processGroup.Add(fleetCount)
@@ -69,6 +69,27 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, t
 
 	close(fleet)
 	processGroup.Wait()
+
+	if wait {
+		for {
+			stillNotReady := false
+			fleet := GetFleet(fleetName, token)
+			if len(fleet) == fleetCount {
+				for i := range fleet {
+					if fleet[i].Status != "running" {
+						stillNotReady = true
+					}
+				}
+			}
+
+			if stillNotReady {
+				time.Sleep(8 * time.Second)
+			} else {
+				break
+			}
+
+		}
+	}
 }
 
 // GetBoxes returns a slice containg all active boxes of a Linode account
