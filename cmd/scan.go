@@ -1,10 +1,9 @@
 package cmd
 
 import (
-	"strings"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/sw33tLie/fleex/pkg/controller"
 	"github.com/sw33tLie/fleex/pkg/linode"
 )
 
@@ -13,24 +12,27 @@ var scanCmd = &cobra.Command{
 	Use:   "scan",
 	Short: "Distributed scanning",
 	Run: func(cmd *cobra.Command, args []string) {
+		var token string
+
 		command, _ := cmd.Flags().GetString("command")
 		delete, _ := cmd.Flags().GetBool("delete")
 		fleetName, _ := cmd.Flags().GetString("name")
 		input, _ := cmd.Flags().GetString("input")
 		output, _ := cmd.Flags().GetString("output")
 
-		provider := viper.GetString("provider")
-		linodeToken := viper.GetString("linode-token")
+		provider := controller.GetProvider(viper.GetString("provider"))
 
-		if strings.ToLower(provider) == "linode" {
-			linode.Scan(fleetName, command, delete, input, output, linodeToken)
-			return
+		switch provider {
+		case controller.PROVIDER_LINODE:
+			token = viper.GetString("linode.token")
+			linode.Scan(fleetName, command, delete, input, output, token)
+
+		case controller.PROVIDER_DIGITALOCEAN:
+			token = viper.GetString("digitalocean.token")
+			// TODO
 		}
 
-		if strings.ToLower(provider) == "digitalocean" {
-			// todo
-			return
-		}
+		controller.RunCommand(fleetName, command, token, provider)
 	},
 }
 
