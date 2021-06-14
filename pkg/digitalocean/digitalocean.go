@@ -163,7 +163,7 @@ func CountFleet(fleetName string, boxes []box.Box) (count int) {
 	return count
 }
 
-func RunCommand(name string, command string, token string, port int, username string, password string) {
+func RunCommand(name, command string, port int, username, password, token string) {
 	doSshUser := viper.GetString("digitalocean.username")
 	doSshPort := viper.GetInt("digitalocean.port")
 	doSshPassword := viper.GetString("digitalocean.password")
@@ -208,4 +208,8 @@ func RunCommand(name string, command string, token string, port int, username st
 
 	close(fleet)
 	processGroup.Wait()
+}
+
+func RunCommandByIP(ip, command string, port int, username, password, token string) {
+	sshutils.RunCommand(command, ip, port, username, password)
 }

@@ -17,7 +17,7 @@ import (
 )
 
 // Start runs a scan
-func Start(fleetName string, command string, delete bool, input string, output string, token string, provider controller.Provider) {
+func Start(fleetName, command string, delete bool, input, output, token string, port int, username, password string, provider controller.Provider) {
 	start := time.Now()
 	// Make local temp folder
 	tempFolder := path.Join("/tmp", strconv.FormatInt(time.Now().UnixNano(), 10))
@@ -78,24 +78,23 @@ func Start(fleetName string, command string, delete bool, input string, output s
 					break
 				}
 
-				linodeName := l.Label
+				boxName := l.Label
 
 				// Send input file via SCP
-				err := scp.NewSCP(sshutils.GetConnection(l.IP, 2266, "op", "1337superPass").Client).SendFile(path.Join(tempFolderInput, "chunk-"+linodeName), "/home/op")
+				err := scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).SendFile(path.Join(tempFolderInput, "chunk-"+boxName), "/home/op")
 				if err != nil {
 					utils.Log.Fatal("Failed to send file: ", err)
 				}
 
 				// Replace labels and craft final command
 				finalCommand := command
-				finalCommand = strings.ReplaceAll(finalCommand, "{{INPUT}}", path.Join("/home/op", "chunk-"+linodeName))
-				finalCommand = strings.ReplaceAll(finalCommand, "{{OUTPUT}}", "chunk-res-"+linodeName)
+				finalCommand = strings.ReplaceAll(finalCommand, "{{INPUT}}", path.Join("/home/op", "chunk-"+boxName))
+				finalCommand = strings.ReplaceAll(finalCommand, "{{OUTPUT}}", "chunk-res-"+boxName)
 
-				// TODO: Not optimal, it runs GetBoxes() every time which is dumb, should use a function that does the same but by id
-				controller.RunCommand(linodeName, finalCommand, token, provider)
+				sshutils.RunCommand(finalCommand, l.IP, port, username, password)
 
 				// Now download the output file
-				err = scp.NewSCP(sshutils.GetConnection(l.IP, 2266, "op", "1337superPass").Client).ReceiveFile("chunk-res-"+linodeName, path.Join(tempFolderOutput, "chunk-res-"+linodeName))
+				err = scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).ReceiveFile("chunk-res-"+boxName, path.Join(tempFolderOutput, "chunk-res-"+boxName))
 				if err != nil {
 					utils.Log.Fatal("Failed to get file: ", err)
 				}

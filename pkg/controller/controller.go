@@ -85,12 +85,12 @@ func GetFleet(fleetName string, token string, provider Provider) []box.Box {
 	}
 }
 
-func RunCommand(name string, command string, token string, provider Provider) {
+func RunCommand(name, command, token string, port int, username, password string, provider Provider) {
 	switch provider {
 	case PROVIDER_LINODE:
-		linode.RunCommand(name, command, token)
+		linode.RunCommand(name, command, port, username, password, token)
 	case PROVIDER_DIGITALOCEAN:
-		// TODO
+		digitalocean.RunCommand(name, command, port, username, password, token)
 	default:
 		utils.Log.Fatal(INVALID_PROVIDER)
 	}

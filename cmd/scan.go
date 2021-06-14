@@ -20,6 +20,10 @@ var scanCmd = &cobra.Command{
 		input, _ := cmd.Flags().GetString("input")
 		output, _ := cmd.Flags().GetString("output")
 
+		port, _ := cmd.Flags().GetInt("port")
+		username, _ := cmd.Flags().GetString("username")
+		password, _ := cmd.Flags().GetString("password")
+
 		provider := controller.GetProvider(viper.GetString("provider"))
 
 		switch provider {
@@ -30,7 +34,7 @@ var scanCmd = &cobra.Command{
 			token = viper.GetString("digitalocean.token")
 		}
 
-		scan.Start(fleetName, command, delete, input, output, token, provider)
+		scan.Start(fleetName, command, delete, input, output, token, port, username, password, provider)
 
 	},
 }
@@ -41,5 +45,8 @@ func init() {
 	scanCmd.Flags().StringP("command", "c", "whoami", "Command to send. Supports {{INPUT}} and {{OUTPUT}}")
 	scanCmd.Flags().StringP("input", "i", "", "Input file")
 	scanCmd.Flags().StringP("output", "o", "scan-results.txt", "Output file path")
+	scanCmd.Flags().IntP("port", "P", 2266, "SSH port")
+	scanCmd.Flags().StringP("username", "u", "op", "SSH username")
+	scanCmd.Flags().StringP("password", "p", "1337superPass", "SSH password")
 	scanCmd.Flags().BoolP("delete", "d", false, "Delete boxes as soon as they finish their job")
 }
