@@ -4,7 +4,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/controller"
-	"github.com/sw33tLie/fleex/pkg/digitalocean"
 	scan "github.com/sw33tLie/fleex/pkg/scan"
 )
 
@@ -26,33 +25,21 @@ var scanCmd = &cobra.Command{
 		switch provider {
 		case controller.PROVIDER_LINODE:
 			token = viper.GetString("linode.token")
-			scan.Start(fleetName, command, delete, input, output, token, provider)
 
 		case controller.PROVIDER_DIGITALOCEAN:
 			token = viper.GetString("digitalocean.token")
-			digitalocean.Scan(fleetName, command, delete, input, output, token)
 		}
+
+		scan.Start(fleetName, command, delete, input, output, token, provider)
 
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(scanCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// scanCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// scanCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
 	scanCmd.Flags().StringP("name", "n", "pwn", "Fleet name")
 	scanCmd.Flags().StringP("command", "c", "whoami", "Command to send. Supports {{INPUT}} and {{OUTPUT}}")
 	scanCmd.Flags().StringP("input", "i", "", "Input file")
 	scanCmd.Flags().StringP("output", "o", "scan-results.txt", "Output file path")
 	scanCmd.Flags().BoolP("delete", "d", false, "Delete boxes as soon as they finish their job")
-
 }

@@ -454,7 +454,7 @@ func spawnBox(name string, image string, region string, token string) {
 		defer resp.Body.Close()
 
 		body, _ := ioutil.ReadAll(resp.Body)
-		fmt.Println(string(body))
+		utils.Log.Debug("API Response: ", string(body))
 		if !strings.Contains(string(body), "Please try again") {
 			break
 		}

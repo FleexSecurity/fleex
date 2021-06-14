@@ -73,9 +73,7 @@ func init() {
 	configCmd.AddCommand(configInit)
 	configCmd.AddCommand(configGet)
 	configCmd.AddCommand(configSet)
-
 	configGet.Flags().StringP("field", "f", "", "field to retrieve, comma separated")
 	configSet.Flags().StringP("key", "k", "", "key")
 	configSet.Flags().StringP("value", "v", "", "value")
-
 }
