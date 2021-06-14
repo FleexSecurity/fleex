@@ -14,6 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/box"
+	"github.com/sw33tLie/fleex/pkg/utils"
 
 	"github.com/sw33tLie/fleex/pkg/sshutils"
 	"github.com/tidwall/gjson"
@@ -51,7 +52,7 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, t
 					break
 				}
 
-				log.Info("Spawning box ", box)
+				utils.Log.Info("Spawning box ", box)
 				spawnBox(box, image, region, token)
 			}
 			processGroup.Done()
@@ -82,7 +83,6 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, t
 			} else {
 				break
 			}
-
 		}
 	}
 }
@@ -91,7 +91,7 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, t
 func GetBoxes(token string) (boxes []box.Box) {
 	req, err := http.NewRequest("GET", "https://api.linode.com/v4/linode/instances", nil)
 	if err != nil {
-		log.Fatal(err)
+		utils.Log.Fatal(err)
 	}
 
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -106,7 +106,7 @@ func GetBoxes(token string) (boxes []box.Box) {
 	body, _ := ioutil.ReadAll(resp.Body)
 
 	if resp.StatusCode != 200 {
-		log.Fatal("Error. HTTP status code: " + resp.Status)
+		utils.Log.Fatal("Error. HTTP status code: " + resp.Status)
 		return nil
 	}
 
@@ -134,7 +134,7 @@ func GetFleet(fleetName, token string) (fleet []box.Box) {
 func GetImages(token string) (images []box.Image) {
 	req, err := http.NewRequest("GET", "https://api.linode.com/v4/images", nil)
 	if err != nil {
-		log.Fatal(err)
+		utils.Log.Fatal(err)
 	}
 
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -148,7 +148,7 @@ func GetImages(token string) (images []box.Image) {
 
 	body, _ := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode != 200 {
-		log.Fatal("Error. HTTP status code: " + resp.Status)
+		utils.Log.Fatal("Error. HTTP status code: " + resp.Status)
 		return nil
 	}
 
@@ -274,7 +274,7 @@ func DeleteBoxByID(id int, token string) {
 	for {
 		req, err := http.NewRequest("DELETE", "https://api.linode.com/v4/linode/instances/"+strconv.Itoa(id), nil)
 		if err != nil {
-			log.Fatal(err)
+			utils.Log.Fatal(err)
 		}
 
 		req.Header.Set("Authorization", "Bearer "+token)
@@ -314,7 +314,7 @@ func spawnBox(name string, image string, region string, token string) {
 		fmt.Println(bytes.NewBuffer(postJSON))
 		req, err := http.NewRequest("POST", "https://api.linode.com/v4/linode/instances", bytes.NewBuffer(postJSON))
 		if err != nil {
-			log.Fatal(err)
+			utils.Log.Fatal(err)
 		}
 
 		req.Header.Set("Authorization", "Bearer "+token)

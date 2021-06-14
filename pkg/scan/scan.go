@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/hnakamur/go-scp"
-	"github.com/sirupsen/logrus"
 
 	"github.com/sw33tLie/fleex/pkg/box"
 	"github.com/sw33tLie/fleex/pkg/controller"
@@ -19,19 +18,16 @@ import (
 	"github.com/sw33tLie/fleex/pkg/utils"
 )
 
-var log = logrus.New()
-
 // Start runs a scan
 func Start(fleetName string, command string, delete bool, input string, output string, token string, provider controller.Provider) {
-	log.Info("Scan started. Input: ", input, " output: ", output)
-
+	utils.Log.Info("Scan started. Input: ", input, " output: ", output)
 	// Make local temp folder
 	tempFolder := path.Join("/tmp", strconv.FormatInt(time.Now().UnixNano(), 10))
 
 	// Create temp folder
 	err := os.Mkdir(tempFolder, 0755)
 	if err != nil {
-		log.Fatal(err)
+		utils.Log.Fatal(err)
 	}
 
 	// Input file to string
@@ -67,7 +63,7 @@ func Start(fleetName string, command string, delete bool, input string, output s
 	}
 
 	if scanner.Err() != nil {
-		log.Println(scanner.Err())
+		utils.Log.Fatal(scanner.Err())
 	}
 
 	fleetNames := make(chan *box.Box, len(fleet))
@@ -88,7 +84,7 @@ func Start(fleetName string, command string, delete bool, input string, output s
 				// Send input file via SCP
 				err := scp.NewSCP(sshutils.GetConnection(l.IP, 2266, "op", "1337superPass").Client).SendFile(path.Join(tempFolder, "chunk-"+linodeName), "/home/op")
 				if err != nil {
-					log.Fatalf("Failed to send file: %s", err)
+					utils.Log.Fatal("Failed to send file: ", err)
 				}
 
 				// Replace labels and craft final command
@@ -103,7 +99,7 @@ func Start(fleetName string, command string, delete bool, input string, output s
 				// Now download the output file
 				err = scp.NewSCP(sshutils.GetConnection(l.IP, 2266, "op", "1337superPass").Client).ReceiveFile("chunk-res-"+linodeName, path.Join(tempFolder, "chunk-res-"+linodeName))
 				if err != nil {
-					log.Fatalf("Failed to get file: %s", err)
+					utils.Log.Fatal("Failed to get file: ", err)
 				}
 
 				if delete {

@@ -8,6 +8,7 @@ import (
 	"github.com/sw33tLie/fleex/pkg/box"
 	"github.com/sw33tLie/fleex/pkg/digitalocean"
 	"github.com/sw33tLie/fleex/pkg/linode"
+	"github.com/sw33tLie/fleex/pkg/utils"
 )
 
 type Provider int
@@ -44,7 +45,7 @@ func ListBoxes(token string, provider Provider) {
 	case PROVIDER_DIGITALOCEAN:
 		digitalocean.ListBoxes(token)
 	default:
-		log.Fatal(INVALID_PROVIDER)
+		utils.Log.Fatal(INVALID_PROVIDER)
 	}
 }
 
@@ -56,7 +57,7 @@ func DeleteFleet(name string, token string, provider Provider) {
 	case PROVIDER_DIGITALOCEAN:
 		digitalocean.DeleteFleet(name, token)
 	default:
-		log.Fatal(INVALID_PROVIDER)
+		utils.Log.Fatal(INVALID_PROVIDER)
 	}
 }
 
@@ -68,7 +69,7 @@ func ListImages(token string, provider Provider) {
 	case PROVIDER_DIGITALOCEAN:
 		digitalocean.ListImages(token)
 	default:
-		log.Fatal(INVALID_PROVIDER)
+		utils.Log.Fatal(INVALID_PROVIDER)
 	}
 }
 
@@ -79,7 +80,7 @@ func GetFleet(fleetName string, token string, provider Provider) []box.Box {
 	case PROVIDER_DIGITALOCEAN:
 		return digitalocean.GetFleet(fleetName, token)
 	default:
-		log.Fatal(INVALID_PROVIDER)
+		utils.Log.Fatal(INVALID_PROVIDER)
 		return nil
 	}
 }
@@ -91,7 +92,7 @@ func RunCommand(name string, command string, token string, provider Provider) {
 	case PROVIDER_DIGITALOCEAN:
 		// TODO
 	default:
-		log.Fatal(INVALID_PROVIDER)
+		utils.Log.Fatal(INVALID_PROVIDER)
 	}
 }
 
@@ -102,7 +103,7 @@ func DeleteBoxByID(id int, token string, provider Provider) {
 	case PROVIDER_DIGITALOCEAN:
 		// TODO
 	default:
-		log.Fatal(INVALID_PROVIDER)
+		utils.Log.Fatal(INVALID_PROVIDER)
 	}
 }
 
@@ -113,6 +114,6 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, t
 	case PROVIDER_DIGITALOCEAN:
 		// TODO
 	default:
-		log.Fatal(INVALID_PROVIDER)
+		utils.Log.Fatal(INVALID_PROVIDER)
 	}
 }
