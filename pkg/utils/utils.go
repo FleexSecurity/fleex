@@ -3,6 +3,7 @@ package utils
 import (
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -59,5 +60,18 @@ func MakeFolder(path string) {
 	err := os.Mkdir(path, 0755)
 	if err != nil {
 		Log.Fatal(err)
+	}
+}
+
+func RunCommand(command string) {
+	cmd := exec.Command("bash", "-c", command)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	err := cmd.Run()
+	if err != nil {
+
+		Log.Fatal("Error running shell command: ", command, "  => ", err.Error())
+
 	}
 }

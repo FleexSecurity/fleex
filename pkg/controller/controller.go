@@ -117,3 +117,14 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, t
 		utils.Log.Fatal(INVALID_PROVIDER)
 	}
 }
+
+func SSH(boxName string, token string, provider Provider) {
+	switch provider {
+	case PROVIDER_LINODE:
+		linode.SSH(boxName, token)
+	case PROVIDER_DIGITALOCEAN:
+		// TODO
+	default:
+		utils.Log.Fatal(INVALID_PROVIDER)
+	}
+}

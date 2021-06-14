@@ -335,3 +335,16 @@ func spawnBox(name string, image string, region string, token string) {
 		time.Sleep(5 * time.Second)
 	}
 }
+
+func SSH(boxName string, token string) {
+	boxes := GetBoxes(token)
+
+	for _, box := range boxes {
+		if box.Label == boxName {
+			utils.RunCommand("ssh op@" + box.IP + " -p 2266 -tt")
+			return
+		}
+	}
+
+	utils.Log.Fatal("Box not found!")
+}
