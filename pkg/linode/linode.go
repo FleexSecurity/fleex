@@ -1,16 +1,20 @@
 package linode
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/hnakamur/go-scp"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/box"
@@ -270,6 +274,122 @@ func CountFleet(fleetName string, boxes []box.Box) (count int) {
 	return count
 }
 
+// TODO Polish this code
+func Scan(fleetName string, command string, delete bool, input string, output string, token string) {
+	fmt.Println("Scan started. Input: ", input, " output: ", output)
+
+	// Make local temp folder
+	tempFolder := path.Join("/tmp", strconv.FormatInt(time.Now().UnixNano(), 10))
+
+	// Create temp folder
+	err := os.Mkdir(tempFolder, 0755)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Input file to string
+	inputString := utils.FileToString(input)
+
+	fleet := GetFleet(fleetName, token)
+
+	if len(fleet) < 1 {
+		log.Fatal("No fleet found")
+	}
+
+	linesCount := utils.LinesCount(inputString)
+	linesPerChunk := linesCount / len(fleet)
+
+	// Iterate over multiline input string
+	scanner := bufio.NewScanner(strings.NewReader(inputString))
+
+	counter := 1
+	chunkContent := ""
+	var inputFiles []string
+	for scanner.Scan() {
+		line := scanner.Text()
+		chunkContent += line + "\n"
+		if counter%linesPerChunk == 0 {
+			// Remove bottom empty line
+			chunkContent = strings.TrimSuffix(chunkContent, "\n")
+			// Save chunk
+			chunkPath := path.Join(tempFolder, "chunk-"+fleetName+"-"+strconv.Itoa(counter/linesPerChunk))
+			utils.StringToFile(chunkPath, chunkContent)
+			inputFiles = append(inputFiles, chunkPath)
+
+			fmt.Println("" + chunkPath)
+
+			chunkContent = ""
+		}
+		counter++
+	}
+
+	if scanner.Err() != nil {
+		log.Println(scanner.Err())
+	}
+
+	// Send SSH commands to all boxes
+
+	fleetNames := make(chan *box.Box, len(fleet))
+	processGroup := new(sync.WaitGroup)
+	processGroup.Add(len(fleet))
+
+	for i := 0; i < len(fleet); i++ {
+		go func() {
+			for {
+				l := <-fleetNames
+
+				if l == nil {
+					break
+				}
+
+				linodeName := l.Label
+
+				// Send input file via SCP
+				err := scp.NewSCP(sshutils.GetConnection(l.IP, 2266, "op", "1337superPass").Client).SendFile(path.Join(tempFolder, "chunk-"+linodeName), "/home/op")
+				if err != nil {
+					log.Fatalf("Failed to send file: %s", err)
+				}
+
+				// Replace labels and craft final command
+				finalCommand := command
+				finalCommand = strings.ReplaceAll(finalCommand, "{{INPUT}}", path.Join("/home/op", "chunk-"+linodeName))
+				finalCommand = strings.ReplaceAll(finalCommand, "{{OUTPUT}}", "chunk-res-"+linodeName)
+
+				fmt.Println("SCANNING WITH ", path.Join(tempFolder, "chunk-"+linodeName), " ")
+				// TODO: Not optimal, it runs GetBoxes() every time which is dumb, should use a function that does the same but by id
+				fmt.Println(finalCommand)
+				RunCommand(linodeName, finalCommand, token)
+
+				// Now download the output file
+				err = scp.NewSCP(sshutils.GetConnection(l.IP, 2266, "op", "1337superPass").Client).ReceiveFile("chunk-res-"+linodeName, path.Join(tempFolder, "chunk-res-"+linodeName))
+				if err != nil {
+					log.Fatalf("Failed to get file: %s", err)
+				}
+
+				if delete {
+					// TODO: Not the best way to delete a box, if this program crashes/is stopped
+					// before reaching this line the box won't be deleted. It's better to setup
+					// a cron/command on the box directly.
+					DeleteBoxByID(l.ID, token)
+				}
+
+			}
+			processGroup.Done()
+		}()
+	}
+
+	for i := range fleet {
+		fleetNames <- &fleet[i]
+	}
+
+	close(fleetNames)
+	processGroup.Wait()
+
+	// Scan done, process results
+
+	fmt.Println("SCAN DONE")
+}
+
 func DeleteBoxByID(id int, token string) {
 	for {
 		req, err := http.NewRequest("DELETE", "https://api.linode.com/v4/linode/instances/"+strconv.Itoa(id), nil)
@@ -311,7 +431,7 @@ func spawnBox(name string, image string, region string, token string) {
 			fmt.Println(err)
 			return
 		}
-		fmt.Println(bytes.NewBuffer(postJSON))
+		// fmt.Println(bytes.NewBuffer(postJSON))
 		req, err := http.NewRequest("POST", "https://api.linode.com/v4/linode/instances", bytes.NewBuffer(postJSON))
 		if err != nil {
 			utils.Log.Fatal(err)

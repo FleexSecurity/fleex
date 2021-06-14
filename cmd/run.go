@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/sw33tLie/fleex/pkg/digitalocean"
 	"github.com/sw33tLie/fleex/pkg/linode"
 )
 
@@ -18,6 +19,10 @@ var runCmd = &cobra.Command{
 
 		provider := viper.GetString("provider")
 		linodeToken := viper.GetString("linode.token")
+		digitaloceanToken := viper.GetString("digitalocean.token")
+		doSshUser := viper.GetString("digitalocean.username")
+		doSshPort := viper.GetInt("digitalocean.port")
+		doSshPassword := viper.GetString("digitalocean.password")
 
 		if strings.ToLower(provider) == "linode" {
 			linode.RunCommand(boxName, command, linodeToken)
@@ -25,7 +30,7 @@ var runCmd = &cobra.Command{
 		}
 
 		if strings.ToLower(provider) == "digitalocean" {
-			// todo
+			digitalocean.RunCommand(boxName, command, digitaloceanToken, doSshPort, doSshUser, doSshPassword)
 			return
 		}
 	},

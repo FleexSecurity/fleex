@@ -33,6 +33,9 @@ func Start(fleetName string, command string, delete bool, input string, output s
 	inputString := utils.FileToString(input)
 
 	fleet := controller.GetFleet(fleetName, token, provider)
+	if len(fleet) < 1 {
+		utils.Log.Fatal("No fleet found")
+	}
 
 	linesCount := utils.LinesCount(inputString)
 	linesPerChunk := linesCount / len(fleet)

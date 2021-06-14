@@ -4,7 +4,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/controller"
-	"github.com/sw33tLie/fleex/pkg/scan"
+	"github.com/sw33tLie/fleex/pkg/digitalocean"
+	scan "github.com/sw33tLie/fleex/pkg/scan"
 )
 
 // scanCmd represents the scan command
@@ -25,13 +26,12 @@ var scanCmd = &cobra.Command{
 		switch provider {
 		case controller.PROVIDER_LINODE:
 			token = viper.GetString("linode.token")
+			scan.Start(fleetName, command, delete, input, output, token, provider)
 
 		case controller.PROVIDER_DIGITALOCEAN:
 			token = viper.GetString("digitalocean.token")
-			// TODO
+			digitalocean.Scan(fleetName, command, delete, input, output, token)
 		}
-
-		scan.Start(fleetName, command, delete, input, output, token, provider)
 
 	},
 }

@@ -36,7 +36,7 @@ var spawnCmd = &cobra.Command{
 		case controller.PROVIDER_DIGITALOCEAN:
 			token = viper.GetString("digitalocean.token")
 			region = viper.GetString("digitalocean.region")
-			image = viper.GetString("digitalocean.image")
+			image = viper.GetString("digitalocean.image-id")
 			size = viper.GetString("digitalocean.size")
 			digSlug = viper.GetString("digitalocean.slug")
 		}
