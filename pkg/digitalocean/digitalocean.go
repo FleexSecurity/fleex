@@ -28,7 +28,7 @@ func SpawnFleet(fleetName string, fleetCount int, region string, token string) {
 	droplets := []string{}
 
 	for i := 0; i < fleetCount; i++ {
-		droplets = append(droplets, fleetName+strconv.Itoa(i+1))
+		droplets = append(droplets, fleetName+"-"+strconv.Itoa(i+1))
 	}
 
 	createRequest := &godo.DropletMultiCreateRequest{
@@ -42,7 +42,7 @@ func SpawnFleet(fleetName string, fleetCount int, region string, token string) {
 			Slug: slug,
 		},*/
 		SSHKeys: []godo.DropletCreateSSHKey{
-			godo.DropletCreateSSHKey{Fingerprint: digSsh},
+			{Fingerprint: digSsh},
 		},
 		Tags: digTags,
 	}

@@ -78,8 +78,7 @@ func GetFleet(fleetName string, token string, provider Provider) []box.Box {
 	case PROVIDER_LINODE:
 		return linode.GetFleet(fleetName, token)
 	case PROVIDER_DIGITALOCEAN:
-		// return digitalocean.GetFleet(fleetName, token)
-		return nil
+		return digitalocean.GetFleet(fleetName, token)
 	default:
 		utils.Log.Fatal(INVALID_PROVIDER)
 		return nil
