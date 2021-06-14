@@ -2,8 +2,6 @@ package scan
 
 import (
 	"bufio"
-	"fmt"
-	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -20,15 +18,16 @@ import (
 
 // Start runs a scan
 func Start(fleetName string, command string, delete bool, input string, output string, token string, provider controller.Provider) {
-	utils.Log.Info("Scan started. Input: ", input, " output: ", output)
+	start := time.Now()
 	// Make local temp folder
 	tempFolder := path.Join("/tmp", strconv.FormatInt(time.Now().UnixNano(), 10))
-
+	tempFolderInput := path.Join(tempFolder, "input")
+	tempFolderOutput := path.Join(tempFolder, "output")
 	// Create temp folder
-	err := os.Mkdir(tempFolder, 0755)
-	if err != nil {
-		utils.Log.Fatal(err)
-	}
+	utils.MakeFolder(tempFolder)
+	utils.MakeFolder(tempFolderInput)
+	utils.MakeFolder(tempFolderOutput)
+	utils.Log.Info("Scan started. Output folder: ", tempFolderOutput)
 
 	// Input file to string
 	inputString := utils.FileToString(input)
@@ -51,12 +50,9 @@ func Start(fleetName string, command string, delete bool, input string, output s
 			// Remove bottom empty line
 			chunkContent = strings.TrimSuffix(chunkContent, "\n")
 			// Save chunk
-			chunkPath := path.Join(tempFolder, "chunk-"+fleetName+"-"+strconv.Itoa(counter/linesPerChunk))
+			chunkPath := path.Join(tempFolderInput, "chunk-"+fleetName+"-"+strconv.Itoa(counter/linesPerChunk))
 			utils.StringToFile(chunkPath, chunkContent)
 			inputFiles = append(inputFiles, chunkPath)
-
-			fmt.Println("" + chunkPath)
-
 			chunkContent = ""
 		}
 		counter++
@@ -82,7 +78,7 @@ func Start(fleetName string, command string, delete bool, input string, output s
 				linodeName := l.Label
 
 				// Send input file via SCP
-				err := scp.NewSCP(sshutils.GetConnection(l.IP, 2266, "op", "1337superPass").Client).SendFile(path.Join(tempFolder, "chunk-"+linodeName), "/home/op")
+				err := scp.NewSCP(sshutils.GetConnection(l.IP, 2266, "op", "1337superPass").Client).SendFile(path.Join(tempFolderInput, "chunk-"+linodeName), "/home/op")
 				if err != nil {
 					utils.Log.Fatal("Failed to send file: ", err)
 				}
@@ -92,12 +88,11 @@ func Start(fleetName string, command string, delete bool, input string, output s
 				finalCommand = strings.ReplaceAll(finalCommand, "{{INPUT}}", path.Join("/home/op", "chunk-"+linodeName))
 				finalCommand = strings.ReplaceAll(finalCommand, "{{OUTPUT}}", "chunk-res-"+linodeName)
 
-				fmt.Println("SCANNING WITH ", path.Join(tempFolder, "chunk-"+linodeName), " ")
 				// TODO: Not optimal, it runs GetBoxes() every time which is dumb, should use a function that does the same but by id
 				controller.RunCommand(linodeName, finalCommand, token, provider)
 
 				// Now download the output file
-				err = scp.NewSCP(sshutils.GetConnection(l.IP, 2266, "op", "1337superPass").Client).ReceiveFile("chunk-res-"+linodeName, path.Join(tempFolder, "chunk-res-"+linodeName))
+				err = scp.NewSCP(sshutils.GetConnection(l.IP, 2266, "op", "1337superPass").Client).ReceiveFile("chunk-res-"+linodeName, path.Join(tempFolderOutput, "chunk-res-"+linodeName))
 				if err != nil {
 					utils.Log.Fatal("Failed to get file: ", err)
 				}
@@ -107,6 +102,7 @@ func Start(fleetName string, command string, delete bool, input string, output s
 					// before reaching this line the box won't be deleted. It's better to setup
 					// a cron/command on the box directly.
 					controller.DeleteBoxByID(l.ID, token, provider)
+					utils.Log.Debug("Killed box ", l.Label)
 				}
 
 			}
@@ -122,6 +118,6 @@ func Start(fleetName string, command string, delete bool, input string, output s
 	processGroup.Wait()
 
 	// Scan done, process results
-
-	fmt.Println("SCAN DONE")
+	duration := time.Since(start)
+	utils.Log.Info("Scan done! Took ", duration, " seconds")
 }

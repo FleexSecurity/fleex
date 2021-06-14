@@ -3,7 +3,6 @@ package sshutils
 import (
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"os/user"
@@ -34,7 +33,7 @@ func GetLocalPublicSSHKey() string {
 func RunCommand(command string, ip string, port int, username string, password string) *Connection {
 	conn, err := Connect(ip+":"+strconv.Itoa(port), username, password)
 	if err != nil {
-		log.Fatal(err)
+		utils.Log.Fatal(err)
 	}
 	conn.sendCommands(command)
 	return conn
@@ -58,7 +57,7 @@ var termCount int
 func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
 	session, err := conn.NewSession()
 	if err != nil {
-		log.Fatal(err)
+		utils.Log.Fatal(err)
 	}
 	defer session.Close()
 
@@ -78,7 +77,7 @@ func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
 	if termCount == 0 {
 		state, err := terminal.MakeRaw(fd)
 		if err != nil {
-			log.Fatal("terminal make raw:", err)
+			utils.Log.Fatal("terminal make raw:", err)
 		}
 		defer terminal.Restore(fd, state)
 		termCount++
@@ -86,7 +85,7 @@ func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
 
 	terminalWidth, terminalHeight, err := terminal.GetSize(fd)
 	if err != nil {
-		log.Fatal("terminal get size:", err)
+		utils.Log.Fatal("terminal get size:", err)
 	}
 
 	err = session.RequestPty(term, terminalWidth, terminalHeight, modes)
@@ -96,19 +95,19 @@ func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
 
 	stdin, err := session.StdinPipe()
 	if err != nil {
-		log.Fatal("Unable to setup stdin for session: ", err)
+		utils.Log.Fatal("Unable to setup stdin for session: ", err)
 	}
 	go io.Copy(stdin, os.Stdin)
 
 	stdout, err := session.StdoutPipe()
 	if err != nil {
-		log.Fatal("Unable to setup stdout for session: ", err)
+		utils.Log.Fatal("Unable to setup stdout for session: ", err)
 	}
 	go io.Copy(os.Stdout, stdout)
 
 	stderr, err := session.StderrPipe()
 	if err != nil {
-		log.Fatal("Unable to setup stderr for session: ", err)
+		utils.Log.Fatal("Unable to setup stderr for session: ", err)
 	}
 	go io.Copy(os.Stderr, stderr)
 
@@ -125,7 +124,7 @@ func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
 func GetConnection(ip string, port int, username string, password string) *Connection {
 	conn, err := Connect(ip+":"+strconv.Itoa(port), username, password)
 	if err != nil {
-		log.Fatal(err)
+		utils.Log.Fatal(err)
 	}
 	return conn
 }
@@ -151,7 +150,7 @@ func Connect(addr, user, password string) (*Connection, error) {
 func getHomeDir() string {
 	usr, err := user.Current()
 	if err != nil {
-		log.Fatal(err)
+		utils.Log.Fatal(err)
 	}
 	return usr.HomeDir
 }

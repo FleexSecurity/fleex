@@ -54,3 +54,10 @@ func LinesCount(s string) int {
 	}
 	return n
 }
+
+func MakeFolder(path string) {
+	err := os.Mkdir(path, 0755)
+	if err != nil {
+		Log.Fatal(err)
+	}
+}
