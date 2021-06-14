@@ -5,20 +5,26 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
+	"os/signal"
 	"path"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
+	"github.com/creack/pty"
 	"github.com/hnakamur/go-scp"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/box"
 	"github.com/sw33tLie/fleex/pkg/utils"
+	"golang.org/x/term"
 
 	"github.com/sw33tLie/fleex/pkg/sshutils"
 	"github.com/tidwall/gjson"
@@ -461,7 +467,43 @@ func SSH(boxName string, token string) {
 
 	for _, box := range boxes {
 		if box.Label == boxName {
-			utils.RunCommand("ssh op@" + box.IP + " -p 2266 -tt")
+			//utils.RunCommand("ssh op@" + box.IP + " -p 2266 -t")
+
+			c := exec.Command("ssh", "op@"+box.IP, "-p", "2266")
+
+			// Start the command with a pty.
+			ptmx, err := pty.Start(c)
+			if err != nil {
+				utils.Log.Fatal(err)
+			}
+			// Make sure to close the pty at the end.
+			defer func() { _ = ptmx.Close() }() // Best effort.
+
+			// Handle pty size.
+			ch := make(chan os.Signal, 1)
+			signal.Notify(ch, syscall.SIGWINCH)
+			go func() {
+				for range ch {
+					if err := pty.InheritSize(os.Stdin, ptmx); err != nil {
+						log.Printf("error resizing pty: %s", err)
+					}
+				}
+			}()
+			ch <- syscall.SIGWINCH                        // Initial resize.
+			defer func() { signal.Stop(ch); close(ch) }() // Cleanup signals when done.
+
+			// Set stdin in raw mode.
+			oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+			if err != nil {
+				panic(err)
+			}
+			defer func() { _ = term.Restore(int(os.Stdin.Fd()), oldState) }() // Best effort.
+
+			// Copy stdin to the pty and the pty to stdout.
+			// NOTE: The goroutine will keep reading until the next keystroke before returning.
+			go func() { _, _ = io.Copy(ptmx, os.Stdin) }()
+			_, _ = io.Copy(os.Stdout, ptmx)
+
 			return
 		}
 	}

@@ -3,6 +3,7 @@ module github.com/sw33tLie/fleex
 go 1.16
 
 require (
+	github.com/creack/pty v1.1.13 // indirect
 	github.com/digitalocean/godo v1.62.0
 	github.com/hnakamur/go-scp v1.0.2
 	github.com/mitchellh/go-homedir v1.1.0
