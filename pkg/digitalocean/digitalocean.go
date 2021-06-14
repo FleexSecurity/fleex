@@ -6,15 +6,17 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/digitalocean/godo"
 	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/box"
 	"github.com/sw33tLie/fleex/pkg/sshutils"
+	"github.com/sw33tLie/fleex/pkg/utils"
 )
 
 // SpawnFleet spawns a DigitalOcean fleet
-func SpawnFleet(fleetName string, fleetCount int, region string, token string) {
+func SpawnFleet(fleetName string, fleetCount int, region string, token string, wait bool) {
 	// fmt.Println("Digitalocean Spawn", token)
 	digSsh := viper.GetString("digitalocean.ssh-fingerprint")
 	digTags := viper.GetStringSlice("digitalocean.tags")
@@ -50,8 +52,27 @@ func SpawnFleet(fleetName string, fleetCount int, region string, token string) {
 	_, _, err := client.Droplets.CreateMultiple(ctx, createRequest)
 
 	if err != nil {
-		fmt.Printf("Error: %s\n", err)
-		return
+		utils.Log.Fatal(err)
+	}
+
+	if wait {
+		for {
+			stillNotReady := false
+			fleet := GetFleet(fleetName, token)
+			if len(fleet) == fleetCount {
+				for i := range fleet {
+					if fleet[i].Status != "active" {
+						stillNotReady = true
+					}
+				}
+			}
+
+			if stillNotReady {
+				time.Sleep(8 * time.Second)
+			} else {
+				break
+			}
+		}
 	}
 
 }
@@ -77,8 +98,7 @@ func GetBoxes(token string) (boxes []box.Box) {
 
 	droplets, _, err := client.Droplets.List(ctx, opt)
 	if err != nil {
-		fmt.Printf("Error: %s\n", err)
-		return nil
+		utils.Log.Fatal(err)
 	}
 
 	for _, d := range droplets {
@@ -124,8 +144,7 @@ func ListImages(token string) {
 
 	images, _, err := client.Images.ListUser(ctx, opt)
 	if err != nil {
-		fmt.Printf("Error: %s\n", err)
-		return
+		utils.Log.Fatal(err)
 	}
 	for _, image := range images {
 		fmt.Println(image.ID, image.Name, image.Status, image.SizeGigaBytes)
@@ -138,8 +157,7 @@ func deleteBoxByID(ID int, token string) {
 
 	_, err := client.Droplets.Delete(ctx, ID)
 	if err != nil {
-		fmt.Printf("Error: %s", err)
-		return
+		utils.Log.Fatal(err)
 	}
 }
 
@@ -149,8 +167,7 @@ func deleteBoxByTag(tag string, token string) {
 
 	_, err := client.Droplets.DeleteByTag(ctx, tag)
 	if err != nil {
-		fmt.Printf("Error: %s", err)
-		return
+		utils.Log.Fatal(err)
 	}
 }
 

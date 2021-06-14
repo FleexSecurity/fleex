@@ -112,7 +112,7 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, t
 	case PROVIDER_LINODE:
 		linode.SpawnFleet(fleetName, fleetCount, image, region, token, wait)
 	case PROVIDER_DIGITALOCEAN:
-		digitalocean.SpawnFleet(fleetName, fleetCount, region, token)
+		digitalocean.SpawnFleet(fleetName, fleetCount, region, token, wait)
 	default:
 		utils.Log.Fatal(INVALID_PROVIDER)
 	}
