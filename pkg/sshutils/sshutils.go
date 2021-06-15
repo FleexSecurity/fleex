@@ -1,7 +1,6 @@
 package sshutils
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -42,10 +41,6 @@ func SSHFingerprintGen(publicSSH string) string {
 
 	// Get the fingerprint
 	f := ssh.FingerprintLegacyMD5(pk)
-
-	// Print the fingerprint
-	fmt.Printf("%s\n", f)
-
 	return f
 }
 
