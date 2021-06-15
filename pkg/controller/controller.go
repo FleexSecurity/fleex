@@ -107,12 +107,12 @@ func DeleteBoxByID(id int, token string, provider Provider) {
 	}
 }
 
-func SpawnFleet(fleetName string, fleetCount int, image string, region string, token string, wait bool, provider Provider) {
+func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string, wait bool, provider Provider) {
 	switch provider {
 	case PROVIDER_LINODE:
-		linode.SpawnFleet(fleetName, fleetCount, image, region, token, wait)
+		linode.SpawnFleet(fleetName, fleetCount, image, region, size, token, wait)
 	case PROVIDER_DIGITALOCEAN:
-		digitalocean.SpawnFleet(fleetName, fleetCount, region, token, wait)
+		digitalocean.SpawnFleet(fleetName, fleetCount, image, region, size, sshFingerprint, tags, token, wait)
 	default:
 		utils.Log.Fatal(INVALID_PROVIDER)
 	}

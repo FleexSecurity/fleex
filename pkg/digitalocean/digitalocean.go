@@ -16,14 +16,7 @@ import (
 )
 
 // SpawnFleet spawns a DigitalOcean fleet
-func SpawnFleet(fleetName string, fleetCount int, region string, token string, wait bool) {
-	// fmt.Println("Digitalocean Spawn", token)
-	digSsh := viper.GetString("digitalocean.ssh-fingerprint")
-	digTags := viper.GetStringSlice("digitalocean.tags")
-	digSize := viper.GetString("digitalocean.size")
-	digImageID := viper.GetInt("digitalocean.image-id")
-	fmt.Println(digImageID)
-
+func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string, wait bool) {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 
@@ -33,20 +26,22 @@ func SpawnFleet(fleetName string, fleetCount int, region string, token string, w
 		droplets = append(droplets, fleetName+"-"+strconv.Itoa(i+1))
 	}
 
+	imageIntID, _ := strconv.Atoi(image)
+
 	createRequest := &godo.DropletMultiCreateRequest{
 		Names:  droplets,
 		Region: region,
-		Size:   digSize,
+		Size:   size,
 		Image: godo.DropletCreateImage{
-			ID: digImageID,
+			ID: imageIntID,
 		},
 		/*Image: godo.DropletCreateImage{
 			Slug: slug,
 		},*/
 		SSHKeys: []godo.DropletCreateSSHKey{
-			{Fingerprint: digSsh},
+			{Fingerprint: sshFingerprint},
 		},
-		Tags: digTags,
+		Tags: tags,
 	}
 
 	_, _, err := client.Droplets.CreateMultiple(ctx, createRequest)
@@ -185,7 +180,7 @@ func RunCommand(name, command string, port int, username, password, token string
 	doSshPort := viper.GetInt("digitalocean.port")
 	doSshPassword := viper.GetString("digitalocean.password")
 	boxes := GetBoxes(token)
-	// fmt.Println(boxes)
+
 	for _, box := range boxes {
 		if box.Label == name {
 			// It's a single box

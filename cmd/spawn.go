@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"fmt"
+	"strconv"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -13,8 +13,8 @@ var spawnCmd = &cobra.Command{
 	Use:   "spawn",
 	Short: "Spawn a fleet",
 	Run: func(cmd *cobra.Command, args []string) {
-		var token, image, region, size string
-		var digSlug string
+		var token, image, region, size, sshFingerprint string
+		var tags []string
 
 		provider := controller.GetProvider(viper.GetString("provider"))
 
@@ -28,17 +28,18 @@ var spawnCmd = &cobra.Command{
 			region = viper.GetString("linode.region")
 			image = viper.GetString("linode.image")
 			size = viper.GetString("linode.size")
+			sshFingerprint = "" // not needed on Linode
 
 		case controller.PROVIDER_DIGITALOCEAN:
 			token = viper.GetString("digitalocean.token")
 			region = viper.GetString("digitalocean.region")
-			image = viper.GetString("digitalocean.image-id")
+			image = strconv.Itoa(viper.GetInt("digitalocean.image-id"))
 			size = viper.GetString("digitalocean.size")
-			digSlug = viper.GetString("digitalocean.slug")
+			sshFingerprint = viper.GetString("digitalocean.ssh-fingerprint")
+			tags = viper.GetStringSlice("digitalocean.tags")
 		}
 
-		fmt.Println(size, digSlug)
-		controller.SpawnFleet(fleetName, fleetCount, image, region, token, waitFlag, provider)
+		controller.SpawnFleet(fleetName, fleetCount, image, region, size, sshFingerprint, tags, token, waitFlag, provider)
 
 	},
 }

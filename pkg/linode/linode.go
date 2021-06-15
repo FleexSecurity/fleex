@@ -45,7 +45,7 @@ type LinodeTemplate struct {
 var log = logrus.New()
 
 // SpawnFleet spawns a Linode fleet
-func SpawnFleet(fleetName string, fleetCount int, image string, region string, token string, wait bool) {
+func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, token string, wait bool) {
 	fleet := make(chan string, fleetCount)
 	processGroup := new(sync.WaitGroup)
 	processGroup.Add(fleetCount)
@@ -60,7 +60,7 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, t
 				}
 
 				utils.Log.Info("Spawning box ", box)
-				spawnBox(box, image, region, token)
+				spawnBox(box, image, region, size, token)
 			}
 			processGroup.Done()
 		}()
@@ -309,16 +309,15 @@ func deleteBoxByLabel(label string, token string) {
 	}
 }
 
-func spawnBox(name string, image string, region string, token string) {
+func spawnBox(name string, image string, region string, size string, token string) {
 	linPasswd := viper.GetString("linode.password")
 	for {
-		newLinode := LinodeTemplate{SwapSize: 512, Image: image, RootPassword: linPasswd, LinodeType: "g6-nanode-1", Region: region, AuthorizedKeys: []string{sshutils.GetLocalPublicSSHKey()}, Booted: true, Label: name}
+		newLinode := LinodeTemplate{SwapSize: 512, Image: image, RootPassword: linPasswd, LinodeType: size, Region: region, AuthorizedKeys: []string{sshutils.GetLocalPublicSSHKey()}, Booted: true, Label: name}
 		postJSON, err := json.Marshal(newLinode)
 		if err != nil {
-			fmt.Println(err)
-			return
+			utils.Log.Fatal(err)
 		}
-		// fmt.Println(bytes.NewBuffer(postJSON))
+
 		req, err := http.NewRequest("POST", "https://api.linode.com/v4/linode/instances", bytes.NewBuffer(postJSON))
 		if err != nil {
 			utils.Log.Fatal(err)
@@ -330,7 +329,7 @@ func spawnBox(name string, image string, region string, token string) {
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		if err != nil {
-			panic(err)
+			utils.Log.Fatal(err)
 		}
 		defer resp.Body.Close()
 
