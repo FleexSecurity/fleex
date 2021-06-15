@@ -1,6 +1,7 @@
 package sshutils
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -28,6 +29,24 @@ func GetLocalPublicSSHKey() string {
 	retString = strings.ReplaceAll(retString, "\n", "")
 
 	return retString
+}
+
+func SSHFingerprintGen(publicSSH string) string {
+	rawKey := utils.FileToString(path.Join(getHomeDir(), ".ssh", publicSSH))
+
+	// Parse the key, other info ignored
+	pk, _, _, _, err := ssh.ParseAuthorizedKey([]byte(rawKey))
+	if err != nil {
+		panic(err)
+	}
+
+	// Get the fingerprint
+	f := ssh.FingerprintLegacyMD5(pk)
+
+	// Print the fingerprint
+	fmt.Printf("%s\n", f)
+
+	return f
 }
 
 func RunCommand(command string, ip string, port int, username string, password string) *Connection {

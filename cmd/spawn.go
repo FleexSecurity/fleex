@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/controller"
+	"github.com/sw33tLie/fleex/pkg/sshutils"
 )
 
 // spawnCmd represents the spawn command
@@ -24,6 +25,7 @@ var spawnCmd = &cobra.Command{
 		}
 		provider := controller.GetProvider(viper.GetString("provider"))
 		providerFlag = viper.GetString("provider")
+		publicSSH := viper.GetString("public-ssh-file")
 
 		fleetCount, _ := cmd.Flags().GetInt("count")
 		fleetName, _ := cmd.Flags().GetString("name")
@@ -52,7 +54,7 @@ var spawnCmd = &cobra.Command{
 			region = viper.GetString("digitalocean.region")
 			image = viper.GetString("digitalocean.image")
 			size = viper.GetString("digitalocean.size")
-			sshFingerprint = viper.GetString("digitalocean.ssh-fingerprint")
+			sshFingerprint = sshutils.SSHFingerprintGen(publicSSH)
 			tags = viper.GetStringSlice("digitalocean.tags")
 		}
 		controller.SpawnFleet(fleetName, fleetCount, image, region, size, sshFingerprint, tags, token, waitFlag, provider)
