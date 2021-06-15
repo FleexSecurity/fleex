@@ -13,6 +13,10 @@ var imagesCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var token string
 
+		providerFlag, _ := cmd.Flags().GetString("provider")
+		if providerFlag != "" {
+			viper.Set("provider", providerFlag)
+		}
 		provider := controller.GetProvider(viper.GetString("provider"))
 
 		switch provider {
@@ -28,4 +32,6 @@ var imagesCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(imagesCmd)
+
+	imagesCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
 }

@@ -12,7 +12,10 @@ var lsCmd = &cobra.Command{
 	Short: "List running boxes",
 	Run: func(cmd *cobra.Command, args []string) {
 		var token string
-
+		providerFlag, _ := cmd.Flags().GetString("provider")
+		if providerFlag != "" {
+			viper.Set("provider", providerFlag)
+		}
 		provider := controller.GetProvider(viper.GetString("provider"))
 
 		switch provider {
@@ -28,4 +31,7 @@ var lsCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(lsCmd)
+
+	lsCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
+
 }

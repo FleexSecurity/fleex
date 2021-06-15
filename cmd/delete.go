@@ -14,6 +14,10 @@ var deleteCmd = &cobra.Command{
 		var token string
 
 		name, _ := cmd.Flags().GetString("name")
+		providerFlag, _ := cmd.Flags().GetString("provider")
+		if providerFlag != "" {
+			viper.Set("provider", providerFlag)
+		}
 		provider := controller.GetProvider(viper.GetString("provider"))
 
 		switch provider {
@@ -31,4 +35,6 @@ var deleteCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(deleteCmd)
 	deleteCmd.Flags().StringP("name", "n", "pwn", "Fleet name. Boxes will be named [name]-[number]")
+	deleteCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
+
 }
