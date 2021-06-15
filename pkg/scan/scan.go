@@ -2,6 +2,11 @@ package scan
 
 import (
 	"bufio"
+	"bytes"
+	"fmt"
+	"io"
+	"log"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -15,6 +20,39 @@ import (
 	"github.com/sw33tLie/fleex/pkg/sshutils"
 	"github.com/sw33tLie/fleex/pkg/utils"
 )
+
+func lineCounter(r io.Reader) (int, error) {
+	buf := make([]byte, 32*1024)
+	count := 0
+	lineSep := []byte{'\n'}
+
+	for {
+		c, err := r.Read(buf)
+		count += bytes.Count(buf[:c], lineSep)
+
+		switch {
+		case err == io.EOF:
+			return count, nil
+
+		case err != nil:
+			return count, err
+		}
+	}
+}
+
+func GetLine(filename string, names chan string, readerr chan error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		names <- scanner.Text()
+	}
+	readerr <- scanner.Err()
+}
 
 // Start runs a scan
 func Start(fleetName, command string, delete bool, input, output, token string, port int, username, password string, provider controller.Provider) {
@@ -30,40 +68,74 @@ func Start(fleetName, command string, delete bool, input, output, token string, 
 	utils.Log.Info("Scan started. Output folder: ", tempFolderOutput)
 
 	// Input file to string
-	inputString := utils.FileToString(input)
 
 	fleet := controller.GetFleet(fleetName, token, provider)
 	if len(fleet) < 1 {
 		utils.Log.Fatal("No fleet found")
 	}
 
-	linesCount := utils.LinesCount(inputString)
-	linesPerChunk := linesCount / len(fleet)
+	/////
 
-	// Iterate over multiline input string
-	scanner := bufio.NewScanner(strings.NewReader(inputString))
+	// First get lines count
+	file, err := os.Open(input)
 
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
+
+	linesCount, err := lineCounter(file)
+
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
+
+	linesPerChunk := linesCount / 3
+	linesPerChunkRest := linesCount % 3
+	fmt.Println("LC: ", linesCount, " LC: ", linesPerChunk, " LCR: ", linesPerChunkRest)
+
+	names := make(chan string)
+	readerr := make(chan error)
+
+	go GetLine(input, names, readerr)
+	//chunkContent := ""
 	counter := 1
-	chunkContent := ""
-	var inputFiles []string
-	for scanner.Scan() {
-		line := scanner.Text()
-		chunkContent += line + "\n"
-		if counter%linesPerChunk == 0 {
-			// Remove bottom empty line
-			chunkContent = strings.TrimSuffix(chunkContent, "\n")
-			// Save chunk
-			chunkPath := path.Join(tempFolderInput, "chunk-"+fleetName+"-"+strconv.Itoa(counter/linesPerChunk))
-			utils.StringToFile(chunkPath, chunkContent)
-			inputFiles = append(inputFiles, chunkPath)
-			chunkContent = ""
+	asd := []string{}
+	/*
+		var inputFiles []string*/
+	x := 1
+loop:
+	for {
+		select {
+		case name := <-names:
+			// Process each line
+			asd = append(asd, name)
+
+			re := 0
+
+			if linesPerChunkRest > 0 {
+				re = 1
+			}
+			if counter%(linesPerChunk+re) == 0 {
+				utils.StringToFile(path.Join(tempFolderInput, "chunk-"+fleetName+"-"+strconv.Itoa(x)), strings.Join(asd[0:counter], "\n")+"\n")
+				asd = nil
+				x++
+				counter = 0
+				linesPerChunkRest--
+
+			}
+			counter++
+
+		case err := <-readerr:
+			if err != nil {
+				utils.Log.Fatal(err)
+			}
+			break loop
 		}
-		counter++
 	}
 
-	if scanner.Err() != nil {
-		utils.Log.Fatal(scanner.Err())
-	}
+	utils.Log.Debug("Generated file chunks")
+
+	/////
 
 	fleetNames := make(chan *box.Box, len(fleet))
 	processGroup := new(sync.WaitGroup)
