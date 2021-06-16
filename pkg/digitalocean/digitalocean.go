@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/digitalocean/godo"
-	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/box"
 	"github.com/sw33tLie/fleex/pkg/sshutils"
 	"github.com/sw33tLie/fleex/pkg/utils"
@@ -26,25 +25,42 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 		droplets = append(droplets, fleetName+"-"+strconv.Itoa(i+1))
 	}
 
-	imageIntID, _ := strconv.Atoi(image)
-
-	createRequest := &godo.DropletMultiCreateRequest{
-		Names:  droplets,
-		Region: region,
-		Size:   size,
-		Image: godo.DropletCreateImage{
-			ID: imageIntID,
-		},
-		/*Image: godo.DropletCreateImage{
-			Slug: slug,
-		},*/
-		SSHKeys: []godo.DropletCreateSSHKey{
-			{Fingerprint: sshFingerprint},
-		},
-		Tags: tags,
+	// my image: 86085763
+	var createRequest *godo.DropletMultiCreateRequest
+	imageIntID, err := strconv.Atoi(image)
+	if err != nil {
+		fmt.Println("err:", image)
+		createRequest = &godo.DropletMultiCreateRequest{
+			Names:    droplets,
+			Region:   region,
+			Size:     size,
+			UserData: "echo 'root:1337superPass' | chpasswd",
+			Image: godo.DropletCreateImage{
+				Slug: image,
+			},
+			SSHKeys: []godo.DropletCreateSSHKey{
+				{Fingerprint: sshFingerprint},
+			},
+			Tags: tags,
+		}
+	} else {
+		fmt.Println("err:", image)
+		createRequest = &godo.DropletMultiCreateRequest{
+			Names:    droplets,
+			Region:   region,
+			Size:     size,
+			UserData: "echo 'root:1337superPass' | chpasswd",
+			Image: godo.DropletCreateImage{
+				ID: imageIntID,
+			},
+			SSHKeys: []godo.DropletCreateSSHKey{
+				{Fingerprint: sshFingerprint},
+			},
+			Tags: tags,
+		}
 	}
 
-	_, _, err := client.Droplets.CreateMultiple(ctx, createRequest)
+	_, _, err = client.Droplets.CreateMultiple(ctx, createRequest)
 
 	if err != nil {
 		utils.Log.Fatal(err)
@@ -176,10 +192,12 @@ func CountFleet(fleetName string, boxes []box.Box) (count int) {
 }
 
 func RunCommand(name, command string, port int, username, password, token string) {
-	doSshUser := viper.GetString("digitalocean.username")
-	doSshPort := viper.GetInt("digitalocean.port")
-	doSshPassword := viper.GetString("digitalocean.password")
+	//doSshUser := viper.GetString("digitalocean.username")
+	//doSshPort := viper.GetInt("digitalocean.port")
+	// doSshPassword := viper.GetString("digitalocean.password")
 	boxes := GetBoxes(token)
+
+	// fmt.Println(port, username, password)
 
 	for _, box := range boxes {
 		if box.Label == name {
@@ -206,7 +224,7 @@ func RunCommand(name, command string, port int, username, password, token string
 					break
 				}
 				boxIP := box.IP
-				sshutils.RunCommand(command, boxIP, doSshPort, doSshUser, doSshPassword)
+				sshutils.RunCommand(command, boxIP, port, username, password)
 			}
 			processGroup.Done()
 		}()
@@ -224,4 +242,15 @@ func RunCommand(name, command string, port int, username, password, token string
 
 func RunCommandByIP(ip, command string, port int, username, password, token string) {
 	sshutils.RunCommand(command, ip, port, username, password)
+}
+
+func CreateImage(token string, diskID int, label string) {
+	client := godo.NewFromToken(token)
+	ctx := context.TODO()
+
+	action, _, err := client.DropletActions.Snapshot(ctx, diskID, label)
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
+	fmt.Println(action)
 }
