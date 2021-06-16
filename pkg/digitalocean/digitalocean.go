@@ -29,7 +29,6 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 	var createRequest *godo.DropletMultiCreateRequest
 	imageIntID, err := strconv.Atoi(image)
 	if err != nil {
-		fmt.Println("err:", image)
 		createRequest = &godo.DropletMultiCreateRequest{
 			Names:    droplets,
 			Region:   region,
@@ -44,7 +43,6 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 			Tags: tags,
 		}
 	} else {
-		fmt.Println("err:", image)
 		createRequest = &godo.DropletMultiCreateRequest{
 			Names:    droplets,
 			Region:   region,
