@@ -62,7 +62,7 @@ func init() {
 	scanCmd.Flags().StringP("name", "n", "pwn", "Fleet name")
 	scanCmd.Flags().StringP("command", "c", "whoami", "Command to send. Supports {{INPUT}} and {{OUTPUT}}")
 	scanCmd.Flags().StringP("input", "i", "", "Input file")
-	scanCmd.Flags().StringP("output", "o", "scan-results.txt", "Output file path")
+	scanCmd.Flags().StringP("output", "o", "", "Output file path. If empty, will use ~/fleex/")
 	scanCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
 	scanCmd.Flags().IntP("port", "", 2266, "SSH port")
 	scanCmd.Flags().StringP("username", "U", "op", "SSH username")

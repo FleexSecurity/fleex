@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/hnakamur/go-scp"
+	"github.com/mitchellh/go-homedir"
 
 	"github.com/sw33tLie/fleex/pkg/box"
 	"github.com/sw33tLie/fleex/pkg/controller"
@@ -57,8 +58,22 @@ func GetLine(filename string, names chan string, readerr chan error) {
 // Start runs a scan
 func Start(fleetName, command string, delete bool, input, output, token string, port int, username, password string, provider controller.Provider) {
 	start := time.Now()
+
+	// Get home dir
+	homeDir, err := homedir.Dir()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	outputFolder := path.Join(homeDir, "fleex")
+
+	if output != "" {
+		outputFolder = output
+	}
+
 	// Make local temp folder
-	tempFolder := path.Join("/tmp", strconv.FormatInt(time.Now().UnixNano(), 10))
+	tempFolder := path.Join(outputFolder, strconv.FormatInt(time.Now().UnixNano(), 10))
 	tempFolderInput := path.Join(tempFolder, "input")
 	tempFolderOutput := path.Join(tempFolder, "output")
 	// Create temp folder
@@ -153,14 +168,14 @@ loop:
 				boxName := l.Label
 
 				// Send input file via SCP
-				err := scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).SendFile(path.Join(tempFolderInput, "chunk-"+boxName), "/home/op")
+				err := scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).SendFile(path.Join(tempFolderInput, "chunk-"+boxName), "/home/"+username)
 				if err != nil {
 					utils.Log.Fatal("Failed to send file: ", err)
 				}
 
 				// Replace labels and craft final command
 				finalCommand := command
-				finalCommand = strings.ReplaceAll(finalCommand, "{{INPUT}}", path.Join("/home/op", "chunk-"+boxName))
+				finalCommand = strings.ReplaceAll(finalCommand, "{{INPUT}}", path.Join("/home/"+username, "chunk-"+boxName))
 				finalCommand = strings.ReplaceAll(finalCommand, "{{OUTPUT}}", "chunk-res-"+boxName)
 
 				sshutils.RunCommand(finalCommand, l.IP, port, username, password)
