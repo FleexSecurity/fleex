@@ -104,9 +104,8 @@ func Start(fleetName, command string, delete bool, input, output, token string, 
 		utils.Log.Fatal(err)
 	}
 
-	linesPerChunk := linesCount / 3
-	linesPerChunkRest := linesCount % 3
-	fmt.Println("LC: ", linesCount, " LC: ", linesPerChunk, " LCR: ", linesPerChunkRest)
+	linesPerChunk := linesCount / len(fleet)
+	linesPerChunkRest := linesCount % len(fleet)
 
 	names := make(chan string)
 	readerr := make(chan error)
