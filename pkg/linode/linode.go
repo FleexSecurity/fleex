@@ -42,6 +42,12 @@ type LinodeTemplate struct {
 	Group           string   `json:"group"`
 }
 
+type LinodeImage struct {
+	DiskID      int    `json:"disk_id"`
+	Description string `json:"description"`
+	Label       string `json:"label"`
+}
+
 var log = logrus.New()
 
 // SpawnFleet spawns a Linode fleet
@@ -389,4 +395,34 @@ func SSH(boxName string, token string) {
 	}
 
 	utils.Log.Fatal("Box not found!")
+}
+
+func CreateImage(token string, diskID int, description string, label string) {
+	fmt.Println("create image")
+
+	newLinode := LinodeImage{DiskID: diskID, Description: description, Label: label}
+	postJSON, err := json.Marshal(newLinode)
+	fmt.Println(bytes.NewBuffer(postJSON))
+
+	req, err := http.NewRequest("POST", "https://api.linode.com/v4/images", bytes.NewBuffer(postJSON))
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	body := resp.Status
+	fmt.Println("API Response: ", string(body), resp.Body)
+
+	if resp.StatusCode == 200 {
+		fmt.Println("Stonks")
+	}
 }
