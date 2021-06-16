@@ -104,6 +104,7 @@ func Start(fleetName, command string, delete bool, input, output, token string, 
 		utils.Log.Fatal(err)
 	}
 
+	fmt.Println("Fleet count: ", len(fleet))
 	linesPerChunk := linesCount / len(fleet)
 	linesPerChunkRest := linesCount % len(fleet)
 
@@ -111,11 +112,9 @@ func Start(fleetName, command string, delete bool, input, output, token string, 
 	readerr := make(chan error)
 
 	go GetLine(input, names, readerr)
-	//chunkContent := ""
 	counter := 1
 	asd := []string{}
-	/*
-		var inputFiles []string*/
+
 	x := 1
 loop:
 	for {
