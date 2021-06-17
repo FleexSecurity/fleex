@@ -21,8 +21,12 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 
 	droplets := []string{}
 
-	for i := 0; i < fleetCount; i++ {
-		droplets = append(droplets, fleetName+"-"+strconv.Itoa(i+1))
+	if fleetCount > 1 {
+		for i := 0; i < fleetCount; i++ {
+			droplets = append(droplets, fleetName+"-"+strconv.Itoa(i+1))
+		}
+	} else {
+		droplets = append(droplets, fleetName)
 	}
 
 	// my image: 86085763
@@ -246,9 +250,8 @@ func CreateImage(token string, diskID int, label string) {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 
-	action, _, err := client.DropletActions.Snapshot(ctx, diskID, label)
+	_, _, err := client.DropletActions.Snapshot(ctx, diskID, label)
 	if err != nil {
 		utils.Log.Fatal(err)
 	}
-	fmt.Println(action)
 }
