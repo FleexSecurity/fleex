@@ -59,6 +59,6 @@ Available Commands:
 
 # Masscan example command: 
 ```
-go run main.go scan -n pwn -i ./test.txt -o out.txt -c "sudo masscan -iL {{INPUT}} -p80,443,8080,8443,8000 --rate 10000 --output-format json --output-filename {{OUTPUT}}"
+go run main.go scan -n pwn -i ./input-ips.txt -c "sudo masscan -iL {{INPUT}} -p80,443,8080,8443,8000 --rate 10000 --output-format json --output-filename {{OUTPUT}}"
 ```
 Results will be saved in a folder in ~/fleex
