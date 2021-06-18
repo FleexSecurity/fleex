@@ -130,8 +130,6 @@ var buildCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		log.Fatal()
-
 		for _, command := range c.Commands {
 			controller.RunCommand(fleetName, command, token, 22, "root", "1337superPass", provider)
 		}
@@ -152,7 +150,7 @@ func init() {
 	buildCmd.Flags().StringP("file", "f", home+"/fleex/build/test.yaml", "Build file")
 	buildCmd.Flags().StringP("region", "R", "", "Region")
 	buildCmd.Flags().StringP("size", "S", "", "Size")
-	buildCmd.Flags().BoolP("delete", "d", true, "Delete box after image creation")
+	buildCmd.Flags().BoolP("delete", "d", false, "Delete box after image creation")
 
 }
 
