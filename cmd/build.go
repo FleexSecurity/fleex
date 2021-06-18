@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hnakamur/go-scp"
@@ -27,7 +28,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/controller"
-	"github.com/sw33tLie/fleex/pkg/digitalocean"
 	"github.com/sw33tLie/fleex/pkg/sshutils"
 	"gopkg.in/yaml.v2"
 )
@@ -64,66 +64,84 @@ var buildCmd = &cobra.Command{
 	Short: "Build image",
 	Long:  "Build image",
 	Run: func(cmd *cobra.Command, args []string) {
+		var token, region, size, sshFingerprint, boxIP string
+		var boxID int
 		timeNow := strconv.FormatInt(time.Now().Unix(), 10)
+		home, _ := homedir.Dir()
 		fleetName := "fleex-" + timeNow
-		boxID := 0
-		boxIP := ""
-		// image := viper.GetString("digitalocean.image")
-		region := viper.GetString("digitalocean.region")
-		size := viper.GetString("digitalocean.size")
+		// boxID := 0
+		// boxIP := ""
 		publicSSH := viper.GetString("public-ssh-file")
-		sshFingerprint := sshutils.SSHFingerprintGen(publicSSH)
 		tags := []string{"snapshot"}
-		token := viper.GetString("digitalocean.token")
 
 		providerFlag, _ := cmd.Flags().GetString("provider")
+		regionFlag, _ := cmd.Flags().GetString("region")
+		sizeFlag, _ := cmd.Flags().GetString("size")
 		fileFlag, _ := cmd.Flags().GetString("file")
+		deleteFlag, _ := cmd.Flags().GetBool("delete")
 
 		if providerFlag != "" {
 			viper.Set("provider", providerFlag)
 		}
 		provider := controller.GetProvider(viper.GetString("provider"))
 
-		// 1 - Spawn
-		// 2 - SendDir
-		// 3 - RunCommands
-		// 4 - Build img
+		if regionFlag != "" {
+			viper.Set(providerFlag+".region", regionFlag)
+		}
+		if sizeFlag != "" {
+			viper.Set(providerFlag+".size", regionFlag)
+		}
+
+		switch provider {
+		case controller.PROVIDER_LINODE:
+			token = viper.GetString("linode.token")
+			region = viper.GetString("linode.region")
+			size = viper.GetString("linode.size")
+		case controller.PROVIDER_DIGITALOCEAN:
+			token = viper.GetString("digitalocean.token")
+			region = viper.GetString("digitalocean.region")
+			size = viper.GetString("digitalocean.size")
+			sshFingerprint = sshutils.SSHFingerprintGen(publicSSH)
+		}
 
 		c, err := readConf(fileFlag)
 		if err != nil {
 			log.Fatal(err)
 		}
-		// 1
 		controller.SpawnFleet(fleetName, 1, "ubuntu-20-04-x64", region, size, sshFingerprint, tags, token, true, provider)
 
-		fleets := digitalocean.GetBoxes(token)
+		fleets := controller.GetFleet(fleetName, token, provider)
 		for _, box := range fleets {
 			if box.Label == fleetName {
 				boxID = box.ID
 				boxIP = box.IP
+				break
 			}
 		}
-		fmt.Println("BOXID", boxID, boxIP, fleetName)
 
-		time.Sleep(8 * time.Second)
+		time.Sleep(20 * time.Second)
 
+		if strings.ContainsAny("~", c.Config.Source) {
+			c.Config.Source = strings.ReplaceAll(c.Config.Source, "~", home)
+		}
+		fmt.Println("SOURCE:", c.Config.Source)
 		err = scp.NewSCP(sshutils.GetConnection(boxIP, 22, "root", "1337superPass").Client).SendDir(c.Config.Source, c.Config.Destination, nil)
 		if err != nil {
 			log.Fatal(err)
 		}
 
+		log.Fatal()
+
 		for _, command := range c.Commands {
-			// fmt.Println("COMMAND", command)
 			controller.RunCommand(fleetName, command, token, 22, "root", "1337superPass", provider)
 		}
 
-		fmt.Println("WAIT A SECOND!")
 		time.Sleep(8 * time.Second)
-
-		digitalocean.CreateImage(token, boxID, "Fleex-build-"+timeNow)
-		time.Sleep(5 * time.Second)
-		fmt.Println("Delete")
-		controller.DeleteFleet(fleetName, token, provider)
+		controller.CreateImage(token, provider, boxID, "Fleex-build-"+timeNow)
+		if deleteFlag {
+			time.Sleep(5 * time.Second)
+			controller.DeleteFleet(fleetName, token, provider)
+		}
 	},
 }
 
@@ -132,6 +150,9 @@ func init() {
 	rootCmd.AddCommand(buildCmd)
 	buildCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
 	buildCmd.Flags().StringP("file", "f", home+"/fleex/build/test.yaml", "Build file")
+	buildCmd.Flags().StringP("region", "R", "", "Region")
+	buildCmd.Flags().StringP("size", "S", "", "Size")
+	buildCmd.Flags().BoolP("delete", "d", true, "Delete box after image creation")
 
 }
 

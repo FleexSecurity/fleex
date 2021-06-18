@@ -35,10 +35,10 @@ var spawnCmd = &cobra.Command{
 			viper.Set(providerFlag+".region", regionFlag)
 		}
 		if sizeFlag != "" {
-			viper.Set(providerFlag+".size", regionFlag)
+			viper.Set(providerFlag+".size", sizeFlag)
 		}
 		if imageFlag != "" {
-			viper.Set(providerFlag+".image", regionFlag)
+			viper.Set(providerFlag+".image", imageFlag)
 		}
 
 		switch provider {
@@ -73,6 +73,7 @@ func init() {
 	// spawnCmd.Flags().IntP("port", "", 2266, "SSH port")
 	spawnCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
 	spawnCmd.Flags().StringP("region", "R", "", "Region")
+	spawnCmd.Flags().StringP("size", "S", "", "Size")
 	spawnCmd.Flags().StringP("image", "I", "", "Image")
 
 	//spawnCmd.Flags().StringP("provider", "p", "linode", "Service provider (Supported: linode, digitalocean)")

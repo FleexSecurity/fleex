@@ -73,6 +73,18 @@ func ListImages(token string, provider Provider) {
 	}
 }
 
+func CreateImage(token string, provider Provider, diskID int, label string) {
+	switch provider {
+	case PROVIDER_LINODE:
+		// TODO
+		//linode.CreateImage(token)
+	case PROVIDER_DIGITALOCEAN:
+		digitalocean.CreateImage(token, diskID, label)
+	default:
+		utils.Log.Fatal(INVALID_PROVIDER)
+	}
+}
+
 func GetFleet(fleetName string, token string, provider Provider) []box.Box {
 	switch provider {
 	case PROVIDER_LINODE:
