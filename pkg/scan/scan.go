@@ -206,5 +206,5 @@ loop:
 
 	// Scan done, process results
 	duration := time.Since(start)
-	utils.Log.Info("Scan done! Took ", duration, " seconds")
+	utils.Log.Info("Scan done! Took ", duration, " seconds. Results folder: ", tempFolderOutput)
 }
