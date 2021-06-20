@@ -397,10 +397,10 @@ func SSH(boxName string, token string) {
 	utils.Log.Fatal("Box not found!")
 }
 
-func CreateImage(token string, diskID int, description string, label string) {
+func CreateImage(token string, diskID int, label string) {
 	fmt.Println("create image")
 
-	newLinode := LinodeImage{DiskID: diskID, Description: description, Label: label}
+	newLinode := LinodeImage{DiskID: diskID, Description: "Fleex build image", Label: label}
 	postJSON, err := json.Marshal(newLinode)
 	fmt.Println(bytes.NewBuffer(postJSON))
 

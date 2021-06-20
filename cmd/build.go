@@ -42,22 +42,6 @@ type BuildConfig struct {
 	Commands []string
 }
 
-type myData struct {
-	Conf struct {
-		Hits      int64
-		Time      int64
-		CamelCase string `yaml:"camelCase"`
-	}
-}
-
-var data = `
-config:
-  source: ./configs
-  destination: /tmp/configs
-commands:
-  - fallocate -l 2G /swap && chmod 600 /swap && mkswap /swap && swapon /swap
-`
-
 // buildCmd represents the build command
 var buildCmd = &cobra.Command{
 	Use:   "build",
@@ -92,6 +76,8 @@ var buildCmd = &cobra.Command{
 			viper.Set(providerFlag+".size", regionFlag)
 		}
 
+		// log.Fatal(deleteFlag, provider, providerFlag)
+
 		switch provider {
 		case controller.PROVIDER_LINODE:
 			token = viper.GetString("linode.token")
@@ -124,11 +110,13 @@ var buildCmd = &cobra.Command{
 		if strings.ContainsAny("~", c.Config.Source) {
 			c.Config.Source = strings.ReplaceAll(c.Config.Source, "~", home)
 		}
-		fmt.Println("SOURCE:", c.Config.Source)
+		//fmt.Println("SOURCE:", c.Config.Source)
 		err = scp.NewSCP(sshutils.GetConnection(boxIP, 22, "root", "1337superPass").Client).SendDir(c.Config.Source, c.Config.Destination, nil)
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		// log.Fatal(1)
 
 		for _, command := range c.Commands {
 			controller.RunCommand(fleetName, command, token, 22, "root", "1337superPass", provider)

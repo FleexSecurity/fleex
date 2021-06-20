@@ -77,7 +77,7 @@ func CreateImage(token string, provider Provider, diskID int, label string) {
 	switch provider {
 	case PROVIDER_LINODE:
 		// TODO
-		//linode.CreateImage(token)
+		linode.CreateImage(token, diskID, label)
 	case PROVIDER_DIGITALOCEAN:
 		digitalocean.CreateImage(token, diskID, label)
 	default:
