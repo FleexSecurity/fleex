@@ -1,9 +1,17 @@
 package controller
 
 import (
+	"io"
+	"os"
+	"os/exec"
+	"os/signal"
+	"strconv"
 	"strings"
+	"syscall"
 
+	"github.com/creack/pty"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/term"
 
 	"github.com/sw33tLie/fleex/pkg/box"
 	"github.com/sw33tLie/fleex/pkg/digitalocean"
@@ -97,6 +105,18 @@ func GetFleet(fleetName string, token string, provider Provider) []box.Box {
 	}
 }
 
+func GetBox(boxName string, token string, provider Provider) box.Box {
+	switch provider {
+	case PROVIDER_LINODE:
+		return linode.GetBox(boxName, token)
+	case PROVIDER_DIGITALOCEAN:
+		return digitalocean.GetBox(boxName, token)
+	default:
+		utils.Log.Fatal(INVALID_PROVIDER)
+		return box.Box{}
+	}
+}
+
 func RunCommand(name, command, token string, port int, username, password string, provider Provider) {
 	switch provider {
 	case PROVIDER_LINODE:
@@ -130,13 +150,45 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 	}
 }
 
-func SSH(boxName string, token string, provider Provider) {
-	switch provider {
-	case PROVIDER_LINODE:
-		linode.SSH(boxName, token)
-	case PROVIDER_DIGITALOCEAN:
-		// TODO
-	default:
-		utils.Log.Fatal(INVALID_PROVIDER)
+func SSH(boxName string, port int, token string, provider Provider) {
+	box := GetBox(boxName, token, provider)
+
+	if box.Label == boxName {
+		c := exec.Command("ssh", "op@"+box.IP, "-p", strconv.Itoa(port))
+
+		// Start the command with a pty.
+		ptmx, err := pty.Start(c)
+		if err != nil {
+			utils.Log.Fatal(err)
+		}
+		// Make sure to close the pty at the end.
+		defer func() { _ = ptmx.Close() }() // Best effort.
+
+		// Handle pty size.
+		ch := make(chan os.Signal, 1)
+		signal.Notify(ch, syscall.SIGWINCH)
+		go func() {
+			for range ch {
+				if err := pty.InheritSize(os.Stdin, ptmx); err != nil {
+					log.Printf("error resizing pty: %s", err)
+				}
+			}
+		}()
+		ch <- syscall.SIGWINCH                        // Initial resize.
+		defer func() { signal.Stop(ch); close(ch) }() // Cleanup signals when done.
+
+		// Set stdin in raw mode.
+		oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+		if err != nil {
+			panic(err)
+		}
+		defer func() { _ = term.Restore(int(os.Stdin.Fd()), oldState) }() // Best effort.
+
+		// Copy stdin to the pty and the pty to stdout.
+		// NOTE: The goroutine will keep reading until the next keystroke before returning.
+		go func() { _, _ = io.Copy(ptmx, os.Stdin) }()
+		_, _ = io.Copy(os.Stdout, ptmx)
+
+		return
 	}
 }

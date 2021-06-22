@@ -101,6 +101,19 @@ func GetFleet(fleetName, token string) (fleet []box.Box) {
 	return fleet
 }
 
+// GetBox returns a single box by its label
+func GetBox(boxName, token string) box.Box {
+	boxes := GetBoxes(token)
+
+	for _, box := range boxes {
+		if box.Label == boxName {
+			return box
+		}
+	}
+	utils.Log.Fatal("Box not found!")
+	return box.Box{}
+}
+
 func GetBoxes(token string) (boxes []box.Box) {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
