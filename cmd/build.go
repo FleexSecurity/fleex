@@ -48,13 +48,12 @@ var buildCmd = &cobra.Command{
 	Short: "Build image",
 	Long:  "Build image",
 	Run: func(cmd *cobra.Command, args []string) {
-		var token, region, size, sshFingerprint, boxIP string
+		var token, region, size, sshFingerprint, boxIP, image string
 		var boxID int
 		timeNow := strconv.FormatInt(time.Now().Unix(), 10)
 		home, _ := homedir.Dir()
 		fleetName := "fleex-" + timeNow
-		// boxID := 0
-		// boxIP := ""
+
 		publicSSH := viper.GetString("public-ssh-file")
 		tags := []string{"snapshot"}
 
@@ -76,28 +75,30 @@ var buildCmd = &cobra.Command{
 			viper.Set(providerFlag+".size", regionFlag)
 		}
 
-		// log.Fatal(deleteFlag, provider, providerFlag)
-
 		switch provider {
 		case controller.PROVIDER_LINODE:
 			token = viper.GetString("linode.token")
 			region = viper.GetString("linode.region")
 			size = viper.GetString("linode.size")
+			image = "linode/ubuntu20.04"
 		case controller.PROVIDER_DIGITALOCEAN:
 			token = viper.GetString("digitalocean.token")
 			region = viper.GetString("digitalocean.region")
 			size = viper.GetString("digitalocean.size")
 			sshFingerprint = sshutils.SSHFingerprintGen(publicSSH)
+			image = "ubuntu-20-04-x64"
 		}
 
 		c, err := readConf(fileFlag)
 		if err != nil {
 			log.Fatal(err)
 		}
-		controller.SpawnFleet(fleetName, 1, "ubuntu-20-04-x64", region, size, sshFingerprint, tags, token, true, provider)
+
+		controller.SpawnFleet(fleetName, 1, image, region, size, sshFingerprint, tags, token, true, provider)
 
 		fleets := controller.GetFleet(fleetName, token, provider)
 		for _, box := range fleets {
+			fmt.Println(box.Label, box.ID)
 			if box.Label == fleetName {
 				boxID = box.ID
 				boxIP = box.IP
@@ -105,7 +106,7 @@ var buildCmd = &cobra.Command{
 			}
 		}
 
-		time.Sleep(20 * time.Second)
+		time.Sleep(1 * time.Minute)
 
 		if strings.ContainsAny("~", c.Config.Source) {
 			c.Config.Source = strings.ReplaceAll(c.Config.Source, "~", home)
@@ -115,8 +116,6 @@ var buildCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		// log.Fatal(1)
 
 		for _, command := range c.Commands {
 			controller.RunCommand(fleetName, command, token, 22, "root", "1337superPass", provider)

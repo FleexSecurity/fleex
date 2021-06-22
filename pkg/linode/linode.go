@@ -48,6 +48,15 @@ type LinodeImage struct {
 	Label       string `json:"label"`
 }
 
+type LinodeDisk struct {
+	Data []struct {
+		ID         int    `json:"id"`
+		Status     string `json:"status"`
+		Label      string `json:"label"`
+		Filesystem string `json:"filesystem"`
+	}
+}
+
 var log = logrus.New()
 
 // SpawnFleet spawns a Linode fleet
@@ -72,8 +81,12 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 		}()
 	}
 
-	for i := 0; i < fleetCount; i++ {
-		fleet <- fleetName + "-" + strconv.Itoa(i+1)
+	if fleetCount > 1 {
+		for i := 0; i < fleetCount; i++ {
+			fleet <- fleetName + "-" + strconv.Itoa(i+1)
+		}
+	} else {
+		fleet <- fleetName
 	}
 
 	close(fleet)
@@ -238,7 +251,7 @@ func RunCommand(name, command string, port int, username, password, token string
 	for _, box := range boxes {
 		if box.Label == name {
 			// It's a single box
-			sshutils.RunCommand(command, box.IP, 2266, "op", "1337superPass")
+			sshutils.RunCommand(command, box.IP, port, username, password)
 			return
 		}
 	}
@@ -258,7 +271,7 @@ func RunCommand(name, command string, port int, username, password, token string
 				if box == nil {
 					break
 				}
-				sshutils.RunCommand(command, box.IP, 2266, "op", "1337superPass")
+				sshutils.RunCommand(command, box.IP, port, username, password)
 			}
 			processGroup.Done()
 		}()
@@ -397,12 +410,11 @@ func SSH(boxName string, token string) {
 	utils.Log.Fatal("Box not found!")
 }
 
-func CreateImage(token string, diskID int, label string) {
-	fmt.Println("create image")
+func CreateImage(token string, linodeID int, label string) {
+	diskID := GetDiskID(token, linodeID)
 
 	newLinode := LinodeImage{DiskID: diskID, Description: "Fleex build image", Label: label}
-	postJSON, err := json.Marshal(newLinode)
-	fmt.Println(bytes.NewBuffer(postJSON))
+	postJSON, _ := json.Marshal(newLinode)
 
 	req, err := http.NewRequest("POST", "https://api.linode.com/v4/images", bytes.NewBuffer(postJSON))
 	if err != nil {
@@ -419,10 +431,36 @@ func CreateImage(token string, diskID int, label string) {
 	}
 	defer resp.Body.Close()
 
-	body := resp.Status
-	fmt.Println("API Response: ", string(body), resp.Body)
+	/*if resp.StatusCode == 200 {
+		fmt.Println("Image created")
+	}*/
+}
 
-	if resp.StatusCode == 200 {
-		fmt.Println("Stonks")
+func GetDiskID(token string, linodeID int) int {
+	req, err := http.NewRequest("GET", "https://api.linode.com/v4/linode/instances/"+strconv.Itoa(linodeID)+"/disks", nil)
+	if err != nil {
+		utils.Log.Fatal(err)
 	}
+
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err.Error())
+	}
+	var data LinodeDisk
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	return data.Data[0].ID
 }
