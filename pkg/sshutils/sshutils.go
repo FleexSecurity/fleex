@@ -143,6 +143,11 @@ func GetConnection(ip string, port int, username string, password string) *Conne
 	return conn
 }
 
+func GetConnectionBuild(ip string, port int, username string, password string) (*Connection, error) {
+	conn, err := Connect(ip+":"+strconv.Itoa(port), username, password)
+	return conn, err
+}
+
 func Connect(addr, user, password string) (*Connection, error) {
 	publicSsh := viper.GetString("private-ssh-file")
 	sshConfig := &ssh.ClientConfig{
