@@ -3,7 +3,6 @@ package scan
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -14,7 +13,6 @@ import (
 	"time"
 
 	"github.com/hnakamur/go-scp"
-	"github.com/mitchellh/go-homedir"
 
 	"github.com/sw33tLie/fleex/pkg/box"
 	"github.com/sw33tLie/fleex/pkg/controller"
@@ -56,25 +54,15 @@ func GetLine(filename string, names chan string, readerr chan error) {
 }
 
 // Start runs a scan
-func Start(fleetName, command string, delete bool, input, output string, concat bool, token string, port int, username, password string, provider controller.Provider) {
+func Start(fleetName, command string, delete bool, input, outputPath, chunksFolder string, token string, port int, username, password string, provider controller.Provider) {
 	start := time.Now()
 
-	// Get home dir
-	homeDir, err := homedir.Dir()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	timeStamp := strconv.FormatInt(time.Now().UnixNano(), 10)
+	// TODO: use a proper temp folder function so that it can run on windows too
+	tempFolder := path.Join("/tmp", timeStamp)
 
-	tempFolder := path.Join(path.Join(homeDir, "fleex"), strconv.FormatInt(time.Now().UnixNano(), 10))
-
-	if output != "" {
-		tempFolder = output
-
-		// If the provided path exists, clear it
-		if _, err := os.Stat(tempFolder); !os.IsNotExist(err) {
-			os.RemoveAll(tempFolder)
-		}
+	if chunksFolder != "" {
+		tempFolder = chunksFolder
 	}
 
 	// Make local temp folder
@@ -82,7 +70,7 @@ func Start(fleetName, command string, delete bool, input, output string, concat 
 	// Create temp folder
 	utils.MakeFolder(tempFolder)
 	utils.MakeFolder(tempFolderInput)
-	utils.Log.Info("Scan started. Output folder: ", tempFolder)
+	utils.Log.Info("Scan started!")
 
 	// Input file to string
 
@@ -208,14 +196,17 @@ loop:
 
 	// Scan done, process results
 	duration := time.Since(start)
-	utils.Log.Info("Scan done! Took ", duration, " seconds. Results folder: ", tempFolder)
+	utils.Log.Info("Scan done! Took ", duration, " seconds. Output file: ", outputPath)
 
 	// Remove input folder when the scan is done
 	os.RemoveAll(tempFolderInput)
 
 	// TODO: Get rid of bash and do this using Go
-	if concat {
-		utils.RunCommand("cat " + path.Join(tempFolder, "*") + " > " + path.Join(tempFolder, "output-all.txt"))
+
+	utils.RunCommand("cat " + path.Join(tempFolder, "*") + " > " + outputPath)
+
+	if chunksFolder == "" {
 		utils.RunCommand("rm -rf " + path.Join(tempFolder, "chunk-out-*"))
 	}
+
 }
