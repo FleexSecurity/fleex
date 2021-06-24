@@ -52,12 +52,13 @@ var buildCmd = &cobra.Command{
 			viper.Set("provider", providerFlag)
 		}
 		provider := controller.GetProvider(viper.GetString("provider"))
+		providerFlag = viper.GetString("provider")
 
 		if regionFlag != "" {
 			viper.Set(providerFlag+".region", regionFlag)
 		}
 		if sizeFlag != "" {
-			viper.Set(providerFlag+".size", regionFlag)
+			viper.Set(providerFlag+".size", sizeFlag)
 		}
 
 		switch provider {
@@ -89,7 +90,6 @@ var buildCmd = &cobra.Command{
 			}
 			for _, box := range fleets {
 				if box.Label == fleetName {
-					fmt.Println(box)
 					boxID = box.ID
 					boxIP = box.IP
 					break
@@ -111,7 +111,6 @@ var buildCmd = &cobra.Command{
 			stillNotReady := false
 			_, err := sshutils.GetConnectionBuild(boxIP, 22, "root", "1337superPass")
 			if err != nil {
-				fmt.Println(err)
 				stillNotReady = true
 			}
 
@@ -122,7 +121,6 @@ var buildCmd = &cobra.Command{
 			}
 		}
 
-		//log.Fatal(1)
 		err = scp.NewSCP(sshutils.GetConnection(boxIP, 22, "root", "1337superPass").Client).SendDir(c.Config.Source, c.Config.Destination, nil)
 		if err != nil {
 			log.Fatal(err)

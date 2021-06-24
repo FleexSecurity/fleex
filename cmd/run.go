@@ -20,6 +20,7 @@ var runCmd = &cobra.Command{
 			viper.Set("provider", providerFlag)
 		}
 		provider := controller.GetProvider(viper.GetString("provider"))
+		providerFlag = viper.GetString("provider")
 
 		portFlag, _ := cmd.Flags().GetInt("port")
 		usernameFlag, _ := cmd.Flags().GetString("username")
