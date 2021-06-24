@@ -56,7 +56,7 @@ func GetLine(filename string, names chan string, readerr chan error) {
 }
 
 // Start runs a scan
-func Start(fleetName, command string, delete bool, input, output, token string, port int, username, password string, provider controller.Provider) {
+func Start(fleetName, command string, delete bool, input, output string, concat bool, token string, port int, username, password string, provider controller.Provider) {
 	start := time.Now()
 
 	// Get home dir
@@ -66,21 +66,23 @@ func Start(fleetName, command string, delete bool, input, output, token string, 
 		os.Exit(1)
 	}
 
-	outputFolder := path.Join(homeDir, "fleex")
+	tempFolder := path.Join(path.Join(homeDir, "fleex"), strconv.FormatInt(time.Now().UnixNano(), 10))
 
 	if output != "" {
-		outputFolder = output
+		tempFolder = output
+
+		// If the provided path exists, clear it
+		if _, err := os.Stat(tempFolder); !os.IsNotExist(err) {
+			os.RemoveAll(tempFolder)
+		}
 	}
 
 	// Make local temp folder
-	tempFolder := path.Join(outputFolder, strconv.FormatInt(time.Now().UnixNano(), 10))
 	tempFolderInput := path.Join(tempFolder, "input")
-	tempFolderOutput := path.Join(tempFolder, "output")
 	// Create temp folder
 	utils.MakeFolder(tempFolder)
 	utils.MakeFolder(tempFolderInput)
-	utils.MakeFolder(tempFolderOutput)
-	utils.Log.Info("Scan started. Output folder: ", tempFolderOutput)
+	utils.Log.Info("Scan started. Output folder: ", tempFolder)
 
 	// Input file to string
 
@@ -104,7 +106,7 @@ func Start(fleetName, command string, delete bool, input, output, token string, 
 		utils.Log.Fatal(err)
 	}
 
-	fmt.Println("Fleet count: ", len(fleet))
+	utils.Log.Debug("Fleet count: ", len(fleet))
 	linesPerChunk := linesCount / len(fleet)
 	linesPerChunkRest := linesCount % len(fleet)
 
@@ -174,12 +176,12 @@ loop:
 				// Replace labels and craft final command
 				finalCommand := command
 				finalCommand = strings.ReplaceAll(finalCommand, "{{INPUT}}", path.Join("/home/"+username, "chunk-"+boxName))
-				finalCommand = strings.ReplaceAll(finalCommand, "{{OUTPUT}}", "chunk-res-"+boxName)
+				finalCommand = strings.ReplaceAll(finalCommand, "{{OUTPUT}}", "chunk-out-"+boxName)
 
 				sshutils.RunCommand(finalCommand, l.IP, port, username, password)
 
 				// Now download the output file
-				err = scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).ReceiveFile("chunk-res-"+boxName, path.Join(tempFolderOutput, "chunk-res-"+boxName))
+				err = scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).ReceiveFile("chunk-out-"+boxName, path.Join(tempFolder, "chunk-out-"+boxName))
 				if err != nil {
 					utils.Log.Fatal("Failed to get file: ", err)
 				}
@@ -206,8 +208,14 @@ loop:
 
 	// Scan done, process results
 	duration := time.Since(start)
-	utils.Log.Info("Scan done! Took ", duration, " seconds. Results folder: ", tempFolderOutput)
+	utils.Log.Info("Scan done! Took ", duration, " seconds. Results folder: ", tempFolder)
 
 	// Remove input folder when the scan is done
 	os.RemoveAll(tempFolderInput)
+
+	// TODO: Get rid of bash and do this using Go
+	if concat {
+		utils.RunCommand("cat " + path.Join(tempFolder, "*") + " > " + path.Join(tempFolder, "output-all.txt"))
+		utils.RunCommand("rm -rf " + path.Join(tempFolder, "chunk-out-*"))
+	}
 }

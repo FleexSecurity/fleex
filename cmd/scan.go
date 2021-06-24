@@ -16,6 +16,7 @@ var scanCmd = &cobra.Command{
 
 		commandFlag, _ := cmd.Flags().GetString("command")
 		deleteFlag, _ := cmd.Flags().GetBool("delete")
+		concat, _ := cmd.Flags().GetBool("concat")
 		fleetNameFlag, _ := cmd.Flags().GetString("name")
 		inputFlag, _ := cmd.Flags().GetString("input")
 		outputFlag, _ := cmd.Flags().GetString("output")
@@ -52,7 +53,7 @@ var scanCmd = &cobra.Command{
 			token = viper.GetString("digitalocean.token")
 		}
 
-		scan.Start(fleetNameFlag, commandFlag, deleteFlag, inputFlag, outputFlag, token, port, username, password, provider)
+		scan.Start(fleetNameFlag, commandFlag, deleteFlag, inputFlag, outputFlag, concat, token, port, username, password, provider)
 
 	},
 }
@@ -62,10 +63,11 @@ func init() {
 	scanCmd.Flags().StringP("name", "n", "pwn", "Fleet name")
 	scanCmd.Flags().StringP("command", "c", "whoami", "Command to send. Supports {{INPUT}} and {{OUTPUT}}")
 	scanCmd.Flags().StringP("input", "i", "", "Input file")
-	scanCmd.Flags().StringP("output", "o", "", "Output file path. If empty, will use ~/fleex/")
-	scanCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
+	scanCmd.Flags().StringP("output", "o", "", "Output file path. If empty, will use ~/fleex/<unix_timestamp>/")
+	scanCmd.Flags().StringP("provider", "p", "", "VPS provider (Supported: linode, digitalocean)")
 	scanCmd.Flags().IntP("port", "", 2266, "SSH port")
 	scanCmd.Flags().StringP("username", "U", "op", "SSH username")
 	scanCmd.Flags().StringP("password", "P", "1337superPass", "SSH password")
 	scanCmd.Flags().BoolP("delete", "d", false, "Delete boxes as soon as they finish their job")
+	scanCmd.Flags().BoolP("concat", "", false, "Store a single file only, made from concatenating all output chunks")
 }
