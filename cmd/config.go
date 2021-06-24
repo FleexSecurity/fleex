@@ -2,10 +2,15 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 	"strings"
+	"time"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/sw33tLie/fleex/pkg/utils"
 )
 
 // initCmd represents the init command
@@ -20,18 +25,26 @@ var configInit = &cobra.Command{
 	Short: "fleex init project",
 	Long:  "fleex init project",
 	Run: func(cmd *cobra.Command, args []string) {
-		configPath, _ := rootCmd.PersistentFlags().GetString("config")
-		fmt.Println(configPath)
-
-		viper.SetConfigType("yaml")
-		viper.SetDefault("provider", []string{"linode", "digitalocean"})
-		viper.SetDefault("linode-image", "{YOUR LINODE IMAGE}")
-		viper.SetDefault("linode-region", "{YOUR REGION}")
-		viper.SetDefault("linode-token", "{YOUR TOKEN}")
-		err := viper.SafeWriteConfigAs(configPath)
-		if err != nil {
-			fmt.Println(err)
+		var fileUrl string
+		linkFlag, _ := cmd.Flags().GetString("url")
+		home, _ := homedir.Dir()
+		timeNow := strconv.FormatInt(time.Now().Unix(), 10)
+		if linkFlag == "" {
+			fileUrl = "OUR RELEASE CONFIG"
+		} else {
+			fileUrl = linkFlag
 		}
+		err := utils.DownloadFile("/tmp/fleex-config-"+timeNow+".zip", fileUrl)
+		if err != nil {
+			panic(err)
+		}
+		utils.Unzip("/tmp/fleex-config-"+timeNow+".zip", home+"/fleex")
+		err = os.Remove("/tmp/fleex-config-" + timeNow + ".zip")
+		if err != nil {
+			utils.Log.Fatal(err)
+		}
+
+		utils.Log.Info("Init completed, your config files are in ~/fleex/")
 	},
 }
 
@@ -56,24 +69,11 @@ var configGet = &cobra.Command{
 	},
 }
 
-var configSet = &cobra.Command{
-	Use:   "set",
-	Short: "fleex set data in config file",
-	Long:  "fleex set data in config file",
-	Run: func(cmd *cobra.Command, args []string) {
-		key, _ := cmd.Flags().GetString("key")
-		value, _ := cmd.Flags().GetString("value")
-		viper.SetConfigType("yaml")
-		viper.Set(key, value)
-	},
-}
-
 func init() {
 	rootCmd.AddCommand(configCmd)
 	configCmd.AddCommand(configInit)
 	configCmd.AddCommand(configGet)
-	configCmd.AddCommand(configSet)
+
+	configInit.Flags().StringP("url", "u", "", "Config folder url")
 	configGet.Flags().StringP("field", "f", "", "field to retrieve, comma separated")
-	configSet.Flags().StringP("key", "k", "", "key")
-	configSet.Flags().StringP("value", "v", "", "value")
 }

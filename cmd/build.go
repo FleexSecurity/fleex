@@ -81,22 +81,48 @@ var buildCmd = &cobra.Command{
 
 		controller.SpawnFleet(fleetName, 1, image, region, size, sshFingerprint, tags, token, true, provider)
 
-		fleets := controller.GetFleet(fleetName, token, provider)
-		for _, box := range fleets {
-			fmt.Println(box.Label, box.ID)
-			if box.Label == fleetName {
-				boxID = box.ID
-				boxIP = box.IP
+		for {
+			stillNotReady := false
+			fleets := controller.GetFleet(fleetName, token, provider)
+			if len(fleets) == 0 {
+				stillNotReady = true
+			}
+			for _, box := range fleets {
+				if box.Label == fleetName {
+					fmt.Println(box)
+					boxID = box.ID
+					boxIP = box.IP
+					break
+				}
+			}
+
+			if stillNotReady {
+				time.Sleep(3 * time.Second)
+			} else {
 				break
 			}
 		}
 
-		time.Sleep(1 * time.Minute)
-
 		if strings.ContainsAny("~", c.Config.Source) {
 			c.Config.Source = strings.ReplaceAll(c.Config.Source, "~", home)
 		}
-		//fmt.Println("SOURCE:", c.Config.Source)
+
+		for {
+			stillNotReady := false
+			_, err := sshutils.GetConnectionBuild(boxIP, 22, "root", "1337superPass")
+			if err != nil {
+				fmt.Println(err)
+				stillNotReady = true
+			}
+
+			if stillNotReady {
+				time.Sleep(5 * time.Second)
+			} else {
+				break
+			}
+		}
+
+		//log.Fatal(1)
 		err = scp.NewSCP(sshutils.GetConnection(boxIP, 22, "root", "1337superPass").Client).SendDir(c.Config.Source, c.Config.Destination, nil)
 		if err != nil {
 			log.Fatal(err)
