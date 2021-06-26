@@ -25,7 +25,9 @@ var sshCmd = &cobra.Command{
 		providerFlag = viper.GetString("provider")
 
 		if portFlag != 2266 {
-			viper.Set(viper.GetString("provider")+".port", portFlag)
+			viper.Set(providerFlag+".port", portFlag)
+		} else {
+			viper.Set(providerFlag+".port", 2266)
 		}
 
 		switch provider {
@@ -36,6 +38,7 @@ var sshCmd = &cobra.Command{
 			token = viper.GetString("digitalocean.token")
 			port = viper.GetInt("digitalocean.port")
 		}
+
 		controller.SSH(boxName, port, token, provider)
 	},
 }

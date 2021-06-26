@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/digitalocean/godo"
+	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/box"
 	"github.com/sw33tLie/fleex/pkg/sshutils"
 	"github.com/sw33tLie/fleex/pkg/utils"
@@ -18,6 +19,10 @@ import (
 func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string, wait bool) {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
+	digitaloceanPasswd := viper.GetString("digitalocean.password")
+	if digitaloceanPasswd == "" {
+		digitaloceanPasswd = "1337rootPass"
+	}
 
 	droplets := []string{}
 
@@ -37,7 +42,7 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 			Names:    droplets,
 			Region:   region,
 			Size:     size,
-			UserData: "echo 'root:1337superPass' | chpasswd",
+			UserData: "echo 'root:" + digitaloceanPasswd + "' | chpasswd",
 			Image: godo.DropletCreateImage{
 				Slug: image,
 			},
@@ -51,7 +56,7 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 			Names:    droplets,
 			Region:   region,
 			Size:     size,
-			UserData: "echo 'root:1337superPass' | chpasswd",
+			UserData: "echo 'root:" + digitaloceanPasswd + "' | chpasswd",
 			Image: godo.DropletCreateImage{
 				ID: imageIntID,
 			},
