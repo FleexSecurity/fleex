@@ -17,6 +17,8 @@ import (
 
 // SpawnFleet spawns a DigitalOcean fleet
 func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string, wait bool) {
+	existingFleet := GetFleet(fleetName, token)
+
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 	digitaloceanPasswd := viper.GetString("digitalocean.password")
@@ -26,12 +28,8 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 
 	droplets := []string{}
 
-	if fleetCount > 1 {
-		for i := 0; i < fleetCount; i++ {
-			droplets = append(droplets, fleetName+"-"+strconv.Itoa(i+1))
-		}
-	} else {
-		droplets = append(droplets, fleetName)
+	for i := 0; i < fleetCount; i++ {
+		droplets = append(droplets, fleetName+"-"+strconv.Itoa(i+1+len(existingFleet)))
 	}
 
 	// my image: 86085763

@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/controller"
 	scan "github.com/sw33tLie/fleex/pkg/scan"
+	"github.com/sw33tLie/fleex/pkg/utils"
 )
 
 // scanCmd represents the scan command
@@ -18,8 +19,13 @@ var scanCmd = &cobra.Command{
 		deleteFlag, _ := cmd.Flags().GetBool("delete")
 		fleetNameFlag, _ := cmd.Flags().GetString("name")
 		inputFlag, _ := cmd.Flags().GetString("input")
-		outputFlag, _ := cmd.Flags().GetString("output")
+		output, _ := cmd.Flags().GetString("output")
 
+		if output == "" {
+			utils.Log.Fatal("Please provide an output path using the -o flag")
+		}
+
+		chunksFolder, _ := cmd.Flags().GetString("chunks-folder")
 		providerFlag, _ := cmd.Flags().GetString("provider")
 		if providerFlag != "" {
 			viper.Set("provider", providerFlag)
@@ -52,7 +58,7 @@ var scanCmd = &cobra.Command{
 			token = viper.GetString("digitalocean.token")
 		}
 
-		scan.Start(fleetNameFlag, commandFlag, deleteFlag, inputFlag, outputFlag, token, port, username, password, provider)
+		scan.Start(fleetNameFlag, commandFlag, deleteFlag, inputFlag, output, chunksFolder, token, port, username, password, provider)
 
 	},
 }
@@ -62,8 +68,9 @@ func init() {
 	scanCmd.Flags().StringP("name", "n", "pwn", "Fleet name")
 	scanCmd.Flags().StringP("command", "c", "whoami", "Command to send. Supports {{INPUT}} and {{OUTPUT}}")
 	scanCmd.Flags().StringP("input", "i", "", "Input file")
-	scanCmd.Flags().StringP("output", "o", "", "Output file path. If empty, will use ~/fleex/")
-	scanCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
+	scanCmd.Flags().StringP("output", "o", "", "Output file path. Made from concatenating all output chunks from all boxes")
+	scanCmd.Flags().StringP("chunks-folder", "", "", "Output folder containing output chunks. If empty it will use /tmp/<unix_timestamp>")
+	scanCmd.Flags().StringP("provider", "p", "", "VPS provider (Supported: linode, digitalocean)")
 	scanCmd.Flags().IntP("port", "", 2266, "SSH port")
 	scanCmd.Flags().StringP("username", "U", "op", "SSH username")
 	scanCmd.Flags().StringP("password", "P", "1337superPass", "SSH password")

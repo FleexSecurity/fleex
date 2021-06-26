@@ -54,6 +54,8 @@ var log = logrus.New()
 
 // SpawnFleet spawns a Linode fleet
 func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, token string, wait bool) {
+	existingFleet := GetFleet(fleetName, token)
+
 	fleet := make(chan string, fleetCount)
 	processGroup := new(sync.WaitGroup)
 	processGroup.Add(fleetCount)
@@ -74,12 +76,8 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 		}()
 	}
 
-	if fleetCount > 1 {
-		for i := 0; i < fleetCount; i++ {
-			fleet <- fleetName + "-" + strconv.Itoa(i+1)
-		}
-	} else {
-		fleet <- fleetName
+	for i := 0; i < fleetCount; i++ {
+		fleet <- fleetName + "-" + strconv.Itoa(i+1+len(existingFleet))
 	}
 
 	close(fleet)
