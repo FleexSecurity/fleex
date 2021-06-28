@@ -76,8 +76,12 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 		}()
 	}
 
-	for i := 0; i < fleetCount; i++ {
-		fleet <- fleetName + "-" + strconv.Itoa(i+1+len(existingFleet))
+	if fleetCount > 1 {
+		for i := 0; i < fleetCount; i++ {
+			fleet <- fleetName + "-" + strconv.Itoa(i+1+len(existingFleet))
+		}
+	} else {
+		fleet <- fleetName
 	}
 
 	close(fleet)

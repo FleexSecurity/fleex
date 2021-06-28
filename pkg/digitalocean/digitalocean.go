@@ -28,8 +28,12 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 
 	droplets := []string{}
 
-	for i := 0; i < fleetCount; i++ {
-		droplets = append(droplets, fleetName+"-"+strconv.Itoa(i+1+len(existingFleet)))
+	if fleetCount > 1 {
+		for i := 0; i < fleetCount; i++ {
+			droplets = append(droplets, fleetName+"-"+strconv.Itoa(i+1+len(existingFleet)))
+		}
+	} else {
+		droplets = append(droplets, fleetName)
 	}
 
 	// my image: 86085763
@@ -37,10 +41,10 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 	imageIntID, err := strconv.Atoi(image)
 	if err != nil {
 		createRequest = &godo.DropletMultiCreateRequest{
-			Names:    droplets,
-			Region:   region,
-			Size:     size,
-			UserData: "echo 'root:" + digitaloceanPasswd + "' | chpasswd",
+			Names:  droplets,
+			Region: region,
+			Size:   size,
+			// UserData: "echo 'root:" + digitaloceanPasswd + "' | chpasswd",
 			Image: godo.DropletCreateImage{
 				Slug: image,
 			},
@@ -51,10 +55,10 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 		}
 	} else {
 		createRequest = &godo.DropletMultiCreateRequest{
-			Names:    droplets,
-			Region:   region,
-			Size:     size,
-			UserData: "echo 'root:" + digitaloceanPasswd + "' | chpasswd",
+			Names:  droplets,
+			Region: region,
+			Size:   size,
+			// UserData: "echo 'root:" + digitaloceanPasswd + "' | chpasswd",
 			Image: godo.DropletCreateImage{
 				ID: imageIntID,
 			},
