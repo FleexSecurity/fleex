@@ -24,7 +24,9 @@ var sshCmd = &cobra.Command{
 		}
 
 		if portFlag != 2266 {
-			viper.Set(viper.GetString("provider")+".port", portFlag)
+			viper.Set(providerFlag+".port", portFlag)
+		} else {
+			viper.Set(providerFlag+".port", 2266)
 		}
 
 		if username != "" {

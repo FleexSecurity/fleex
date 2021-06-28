@@ -52,6 +52,7 @@ Available Commands:
   ls          List running boxes
   run         Run a command
   scan        Distributed scanning
+  scp         SCP client
   spawn       Spawn a fleet
   ssh         Start SSH
 
