@@ -29,7 +29,7 @@ var spawnCmd = &cobra.Command{
 
 		fleetCount, _ := cmd.Flags().GetInt("count")
 		fleetName, _ := cmd.Flags().GetString("name")
-		skipWait, _ := cmd.Flags().GetBool("skipWait")
+		skipWait, _ := cmd.Flags().GetBool("skipwait")
 
 		if regionFlag != "" {
 			viper.Set(providerFlag+".region", regionFlag)
