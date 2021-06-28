@@ -150,11 +150,11 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 	}
 }
 
-func SSH(boxName string, port int, token string, provider Provider) {
+func SSH(boxName, username string, port int, sshKey string, token string, provider Provider) {
 	box := GetBox(boxName, token, provider)
 
 	if box.Label == boxName {
-		c := exec.Command("ssh", "op@"+box.IP, "-p", strconv.Itoa(port))
+		c := exec.Command("ssh", "-i", "~/.ssh/"+sshKey, username+"@"+box.IP, "-p", strconv.Itoa(port))
 
 		// Start the command with a pty.
 		ptmx, err := pty.Start(c)
@@ -174,6 +174,7 @@ func SSH(boxName string, port int, token string, provider Provider) {
 				}
 			}
 		}()
+
 		ch <- syscall.SIGWINCH                        // Initial resize.
 		defer func() { signal.Stop(ch); close(ch) }() // Cleanup signals when done.
 

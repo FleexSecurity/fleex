@@ -27,7 +27,6 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 		droplets = append(droplets, fleetName+"-"+strconv.Itoa(i+1+len(existingFleet)))
 	}
 
-	// my image: 86085763
 	var createRequest *godo.DropletMultiCreateRequest
 	imageIntID, err := strconv.Atoi(image)
 	if err != nil {

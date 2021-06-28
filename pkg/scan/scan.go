@@ -196,7 +196,7 @@ loop:
 
 	// Scan done, process results
 	duration := time.Since(start)
-	utils.Log.Info("Scan done! Took ", duration, " seconds. Output file: ", outputPath)
+	utils.Log.Info("Scan done! Took ", duration, ". Output file: ", outputPath)
 
 	// Remove input folder when the scan is done
 	os.RemoveAll(tempFolderInput)

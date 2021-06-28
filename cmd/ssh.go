@@ -14,19 +14,28 @@ var sshCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var token string
 		var port int
+
 		providerFlag, _ := cmd.Flags().GetString("provider")
 		portFlag, _ := cmd.Flags().GetInt("port")
-		boxName, _ := cmd.Flags().GetString("name")
+		username, _ := cmd.Flags().GetString("username")
 
 		if providerFlag != "" {
 			viper.Set("provider", providerFlag)
 		}
-		provider := controller.GetProvider(viper.GetString("provider"))
-		providerFlag = viper.GetString("provider")
 
 		if portFlag != 2266 {
 			viper.Set(viper.GetString("provider")+".port", portFlag)
 		}
+
+		if username != "" {
+			viper.Set(providerFlag+".username", username)
+		}
+
+		boxName, _ := cmd.Flags().GetString("name")
+
+		provider := controller.GetProvider(viper.GetString("provider"))
+		providerFlag = viper.GetString("provider")
+		sshKey := viper.GetString("private-ssh-file")
 
 		switch provider {
 		case controller.PROVIDER_LINODE:
@@ -36,13 +45,14 @@ var sshCmd = &cobra.Command{
 			token = viper.GetString("digitalocean.token")
 			port = viper.GetInt("digitalocean.port")
 		}
-		controller.SSH(boxName, port, token, provider)
+		controller.SSH(boxName, username, port, sshKey, token, provider)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(sshCmd)
 	sshCmd.Flags().StringP("name", "n", "pwn", "Box name")
+	sshCmd.Flags().StringP("username", "u", "op", "SSH username")
 	sshCmd.Flags().IntP("port", "", 2266, "SSH port")
 	sshCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
 
