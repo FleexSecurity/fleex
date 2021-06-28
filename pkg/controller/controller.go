@@ -170,6 +170,9 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 				break
 			}
 		}
+
+		utils.Log.Info("All boxes ready!")
+
 	}
 }
 
