@@ -140,7 +140,7 @@ func DeleteBoxByID(id int, token string, provider Provider) {
 	}
 }
 
-func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string, wait bool, provider Provider) {
+func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string, skipWait bool, provider Provider) {
 	switch provider {
 	case PROVIDER_LINODE:
 		linode.SpawnFleet(fleetName, fleetCount, image, region, size, token)
@@ -150,7 +150,7 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 		utils.Log.Fatal(INVALID_PROVIDER)
 	}
 
-	if wait {
+	if !skipWait {
 		for {
 			stillNotReady := false
 			fleet := GetFleet(fleetName, token, provider)

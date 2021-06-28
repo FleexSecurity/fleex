@@ -29,7 +29,7 @@ var spawnCmd = &cobra.Command{
 
 		fleetCount, _ := cmd.Flags().GetInt("count")
 		fleetName, _ := cmd.Flags().GetString("name")
-		waitFlag, _ := cmd.Flags().GetBool("wait")
+		skipWait, _ := cmd.Flags().GetBool("skipWait")
 
 		if regionFlag != "" {
 			viper.Set(providerFlag+".region", regionFlag)
@@ -57,7 +57,7 @@ var spawnCmd = &cobra.Command{
 			sshFingerprint = sshutils.SSHFingerprintGen(publicSSH)
 			tags = viper.GetStringSlice("digitalocean.tags")
 		}
-		controller.SpawnFleet(fleetName, fleetCount, image, region, size, sshFingerprint, tags, token, waitFlag, provider)
+		controller.SpawnFleet(fleetName, fleetCount, image, region, size, sshFingerprint, tags, token, skipWait, provider)
 
 	},
 }
@@ -66,7 +66,7 @@ func init() {
 	rootCmd.AddCommand(spawnCmd)
 	spawnCmd.Flags().IntP("count", "c", 2, "How many box to spawn")
 	spawnCmd.Flags().StringP("name", "n", "pwn", "Fleet name. Boxes will be named [name]-[number]")
-	spawnCmd.Flags().BoolP("wait", "w", false, "Wait until all boxes are running")
+	spawnCmd.Flags().BoolP("skipwait", "", false, "Skip waiting until all boxes are running")
 
 	// spawnCmd.Flags().StringP("username", "U", "op", "Username")
 	// spawnCmd.Flags().StringP("password", "P", "1337superPass", "Password")
