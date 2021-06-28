@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/digitalocean/godo"
 	"github.com/spf13/viper"
@@ -16,7 +15,7 @@ import (
 )
 
 // SpawnFleet spawns a DigitalOcean fleet
-func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string, wait bool) {
+func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string) {
 	existingFleet := GetFleet(fleetName, token)
 
 	client := godo.NewFromToken(token)
@@ -68,26 +67,6 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 
 	if err != nil {
 		utils.Log.Fatal(err)
-	}
-
-	if wait {
-		for {
-			stillNotReady := false
-			fleet := GetFleet(fleetName, token)
-			if len(fleet) == fleetCount {
-				for i := range fleet {
-					if fleet[i].Status != "active" {
-						stillNotReady = true
-					}
-				}
-			}
-
-			if stillNotReady {
-				time.Sleep(8 * time.Second)
-			} else {
-				break
-			}
-		}
 	}
 
 }

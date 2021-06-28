@@ -53,7 +53,7 @@ type LinodeDisk struct {
 var log = logrus.New()
 
 // SpawnFleet spawns a Linode fleet
-func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, token string, wait bool) {
+func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, token string) {
 	existingFleet := GetFleet(fleetName, token)
 
 	fleet := make(chan string, fleetCount)
@@ -82,26 +82,6 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 
 	close(fleet)
 	processGroup.Wait()
-
-	if wait {
-		for {
-			stillNotReady := false
-			fleet := GetFleet(fleetName, token)
-			if len(fleet) == fleetCount {
-				for i := range fleet {
-					if fleet[i].Status != "running" {
-						stillNotReady = true
-					}
-				}
-			}
-
-			if stillNotReady {
-				time.Sleep(8 * time.Second)
-			} else {
-				break
-			}
-		}
-	}
 }
 
 // GetBoxes returns a slice containg all active boxes of a Linode account

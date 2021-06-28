@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/creack/pty"
 	"github.com/sirupsen/logrus"
@@ -144,9 +145,29 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 	case PROVIDER_LINODE:
 		linode.SpawnFleet(fleetName, fleetCount, image, region, size, token, wait)
 	case PROVIDER_DIGITALOCEAN:
-		digitalocean.SpawnFleet(fleetName, fleetCount, image, region, size, sshFingerprint, tags, token, wait)
+		digitalocean.SpawnFleet(fleetName, fleetCount, image, region, size, sshFingerprint, tags, token)
 	default:
 		utils.Log.Fatal(INVALID_PROVIDER)
+	}
+
+	if wait {
+		for {
+			stillNotReady := false
+			fleet := GetFleet(fleetName, token, provider)
+			if len(fleet) == fleetCount {
+				for i := range fleet {
+					if fleet[i].Status != "active" || fleet[i].Status != "running" {
+						stillNotReady = true
+					}
+				}
+			}
+
+			if stillNotReady {
+				time.Sleep(8 * time.Second)
+			} else {
+				break
+			}
+		}
 	}
 }
 
