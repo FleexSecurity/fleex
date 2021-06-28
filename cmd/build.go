@@ -84,12 +84,12 @@ var buildCmd = &cobra.Command{
 
 		for {
 			stillNotReady := false
-			fleets := controller.GetFleet(fleetName, token, provider)
+			fleets := controller.GetFleet(fleetName+"-1", token, provider)
 			if len(fleets) == 0 {
 				stillNotReady = true
 			}
 			for _, box := range fleets {
-				if box.Label == fleetName {
+				if box.Label == fleetName+"-1" {
 					boxID = box.ID
 					boxIP = box.IP
 					break
@@ -127,14 +127,14 @@ var buildCmd = &cobra.Command{
 		}
 
 		for _, command := range c.Commands {
-			controller.RunCommand(fleetName, command, token, 22, "root", "1337superPass", provider)
+			controller.RunCommand(fleetName+"-1", command, token, 22, "root", "1337superPass", provider)
 		}
 
 		time.Sleep(8 * time.Second)
 		controller.CreateImage(token, provider, boxID, "Fleex-build-"+timeNow)
 		if deleteFlag {
 			time.Sleep(5 * time.Second)
-			controller.DeleteFleet(fleetName, token, provider)
+			controller.DeleteFleet(fleetName+"-1", token, provider)
 		}
 	},
 }
