@@ -68,6 +68,7 @@ func DeleteFleet(name string, token string, provider Provider) {
 	default:
 		utils.Log.Fatal(INVALID_PROVIDER)
 	}
+
 }
 
 // ListImages prints a list of available private images of a provider
@@ -151,12 +152,13 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 	}
 
 	if !skipWait {
+		utils.Log.Info("All spawn requests sent! Now waiting for all boxes to become ready")
 		for {
 			stillNotReady := false
 			fleet := GetFleet(fleetName, token, provider)
 			if len(fleet) == fleetCount {
 				for i := range fleet {
-					if fleet[i].Status != "active" || fleet[i].Status != "running" {
+					if (provider == PROVIDER_DIGITALOCEAN && fleet[i].Status != "active") || (provider == PROVIDER_LINODE && fleet[i].Status != "running") {
 						stillNotReady = true
 					}
 				}
