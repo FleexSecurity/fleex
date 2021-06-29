@@ -79,8 +79,7 @@ var buildCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		controller.SpawnFleet(fleetName, 1, image, region, size, sshFingerprint, tags, token, true, provider)
+		controller.SpawnFleet(fleetName, 1, image, region, size, sshFingerprint, tags, token, false, provider)
 
 		for {
 			stillNotReady := false
