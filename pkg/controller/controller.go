@@ -68,7 +68,6 @@ func DeleteFleet(name string, token string, provider Provider) {
 	default:
 		utils.Log.Fatal(INVALID_PROVIDER)
 	}
-
 }
 
 // ListImages prints a list of available private images of a provider
@@ -142,6 +141,13 @@ func DeleteBoxByID(id int, token string, provider Provider) {
 }
 
 func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string, skipWait bool, provider Provider) {
+	startFleet := GetFleet(fleetName, token, provider)
+	finalFleetSize := len(startFleet) + fleetCount
+
+	if len(startFleet) > 0 {
+		utils.Log.Info("Increasing fleet ", fleetName, " from size ", len(startFleet), " to ", finalFleetSize)
+	}
+
 	switch provider {
 	case PROVIDER_LINODE:
 		linode.SpawnFleet(fleetName, fleetCount, image, region, size, token)
@@ -156,19 +162,20 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 		for {
 			stillNotReady := false
 			fleet := GetFleet(fleetName, token, provider)
-			if len(fleet) == fleetCount {
+			if len(fleet) == finalFleetSize {
 				for i := range fleet {
 					if (provider == PROVIDER_DIGITALOCEAN && fleet[i].Status != "active") || (provider == PROVIDER_LINODE && fleet[i].Status != "running") {
 						stillNotReady = true
 					}
 				}
+
+				if stillNotReady {
+					time.Sleep(8 * time.Second)
+				} else {
+					break
+				}
 			}
 
-			if stillNotReady {
-				time.Sleep(8 * time.Second)
-			} else {
-				break
-			}
 		}
 
 		utils.Log.Info("All boxes ready!")
