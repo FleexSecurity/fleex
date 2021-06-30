@@ -156,20 +156,20 @@ loop:
 				boxName := l.Label
 
 				// Send input file via SCP
-				err := scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).SendFile(path.Join(tempFolderInput, "chunk-"+boxName), "/home/"+username)
+				err := scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).SendFile(path.Join(tempFolderInput, "chunk-"+boxName), "/tmp/fleex-"+timeStamp+"-chunk-"+boxName)
 				if err != nil {
 					utils.Log.Fatal("Failed to send file: ", err)
 				}
 
 				// Replace labels and craft final command
 				finalCommand := command
-				finalCommand = strings.ReplaceAll(finalCommand, "{{INPUT}}", path.Join("/home/"+username, "chunk-"+boxName))
-				finalCommand = strings.ReplaceAll(finalCommand, "{{OUTPUT}}", "chunk-out-"+boxName)
+				finalCommand = strings.ReplaceAll(finalCommand, "{{INPUT}}", "/tmp/fleex-"+timeStamp+"-chunk-"+boxName)
+				finalCommand = strings.ReplaceAll(finalCommand, "{{OUTPUT}}", "/tmp/fleex-"+timeStamp+"-chunk-out-"+boxName)
 
 				sshutils.RunCommand(finalCommand, l.IP, port, username, password)
 
 				// Now download the output file
-				err = scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).ReceiveFile("chunk-out-"+boxName, path.Join(tempFolder, "chunk-out-"+boxName))
+				err = scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).ReceiveFile("/tmp/fleex-"+timeStamp+"-chunk-out-"+boxName, path.Join(tempFolder, "chunk-out-"+boxName))
 				if err != nil {
 					utils.Log.Fatal("Failed to get file: ", err)
 				}
