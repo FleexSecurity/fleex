@@ -45,26 +45,25 @@ Available Commands:
 # Config file (~/fleex/config.yaml)
 
 ```
-provider: "digitalocean"
-#provider: "linode"
-public-ssh-file: "id_rsa.pub"
-private-ssh-file: "id_rsa"
+provider: digitalocean or linode
+public-ssh-file: id_rsa.pub
+private-ssh-file: id_rsa
 linode:
-  token: "YOUR_LINODE_TOKEN"
-  region: "eu-central"
-  size: "g6-nanode-1" 
-  image: "private/11147382" # put your image id here (./fleex images to get it)
+  token: YOUR_LINODE_TOKEN
+  region: eu-central
+  size: g6-nanode-1
+  image: private/12345678 : put your image id here (./fleex images to get it)
   port: 2266
-  username: "op"
-  password: "USER_PASSWORD"
+  username: op
+  password: USER_PASSWORD
 digitalocean:
-  token: "YOUR_DIGITALOCEAN_TOKEN"
+  token: YOUR_DIGITALOCEAN_TOKEN
   region: fra1
   size: s-1vcpu-1gb
-  image: 85963266 # put your image id here
+  image: 12345678 # put your image id here
   port: 2266
-  username: "op"
-  password: "USER_PASSWORD"
+  username: op
+  password: USER_PASSWORD
   tags:
     - vps
     - fleex
