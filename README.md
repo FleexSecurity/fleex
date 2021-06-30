@@ -9,6 +9,7 @@ Fleex allows you to create multiple VPS on cloud providers and use them to distr
 <p align="center">
 <a href="https://github.com/sw33tLie/fleex/issues"><img src="https://img.shields.io/badge/contributions-welcome-blue.svg?style=flat"></a>
 <img alt="AUR license badge" src="https://img.shields.io/badge/license-Apache-blue">
+<a href="https://github.com/sw33tLie/fleex/releases"><img src="https://img.shields.io/github/release/sw33tLie/fleex"></a>
 <br>
 <a href="https://twitter.com/sw33tLie"><img src="https://img.shields.io/twitter/follow/sw33tLie.svg?logo=twitter"></a>
 <a href="https://twitter.com/xm1k3_"><img src="https://img.shields.io/twitter/follow/xm1k3_.svg?logo=twitter"></a>
