@@ -64,7 +64,7 @@ digitalocean:
   image: 85963266 # put your image id here
   port: 2266
   username: "op"
-  password: "USER_PASSWORD" # if using an axiom image you can find this in axiom.json
+  password: "USER_PASSWORD"
   tags:
     - vps
     - fleex
