@@ -79,8 +79,6 @@ var buildCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(fileFlag)
-		log.Fatal(1)
 		controller.SpawnFleet(fleetName, 1, image, region, size, sshFingerprint, tags, token, false, provider)
 
 		for {
