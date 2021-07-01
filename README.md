@@ -22,7 +22,7 @@ GO111MODULE=on go get -v github.com/sw33tLie/fleex
 
 # Documentation
 
-See the documentation [here](https://github.com/sw33tLie/fleex-docs)
+See the documentation [here](https://sw33tlie.github.io/fleex-docs/)
 
 # Examples
 ## Masscan example command: 
