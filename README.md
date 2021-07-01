@@ -20,57 +20,6 @@ Fleex allows you to create multiple VPS on cloud providers and use them to distr
 GO111MODULE=on go get -v github.com/sw33tLie/fleex
 ```
 
-# Supported providers
-- Linode
-- Digitalocean
-
-# Available commands
-```
-./fleex -h
-
-Available Commands:
-  build       Build image
-  config      fleex config setup
-  delete      Delete a fleet or a single box
-  help        Help about any command
-  images      List available images
-  ls          List running boxes
-  run         Run a command
-  scan        Distributed scanning
-  scp         SCP client
-  spawn       Spawn a fleet
-  ssh         Start SSH
-
-```
-
-# Config file (~/fleex/config.yaml)
-
-```
-provider: digitalocean or linode
-public-ssh-file: id_rsa.pub
-private-ssh-file: id_rsa
-linode:
-  token: YOUR_LINODE_TOKEN
-  region: eu-central
-  size: g6-nanode-1
-  image: private/12345678 : put your image id here (./fleex images to get it)
-  port: 2266
-  username: op
-  password: USER_PASSWORD
-digitalocean:
-  token: YOUR_DIGITALOCEAN_TOKEN
-  region: fra1
-  size: s-1vcpu-1gb
-  image: 12345678 # put your image id here
-  port: 2266
-  username: op
-  password: USER_PASSWORD
-  tags:
-    - vps
-    - fleex
-
-```
-
 # Documentation
 
 See the documentation [here]()
