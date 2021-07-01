@@ -24,17 +24,6 @@ GO111MODULE=on go get -v github.com/sw33tLie/fleex
 
 See the documentation [here](https://sw33tlie.github.io/fleex-docs/)
 
-# Examples
-## Masscan example command: 
-```
-fleex scan -n pwn -i ./input-ips.txt -o scan-results.txt -c "sudo masscan -iL {{INPUT}} -p80,443,8080,8443,8000 --rate 10000 --output-format json --output-filename {{OUTPUT}}"
-```
-
-## Massdns example command:
-```
-fleex scan -n pwn -i /tmp/testdns -o scan-results.txt -c "sudo /usr/bin/massdns -r /home/op/lists/resolvers.txt -t A -o S {{INPUT}} -w {{OUTPUT}}"
-```
-
 # Main contributors
 <a href="https://github.com/sw33tLie"><img width="75px;" src="https://avatars.githubusercontent.com/u/47645560?v=4"></a>
 <a href="https://github.com/xm1k3"><img  width="75px;" src="https://avatars.githubusercontent.com/u/73166077?v=4?s=100"></a>
