@@ -71,15 +71,15 @@ digitalocean:
 
 ```
 
+# Documentation
+
+See the documentation [here]()
+
 # Examples
 ## Masscan example command: 
 ```
 fleex scan -n pwn -i ./input-ips.txt -o scan-results.txt -c "sudo masscan -iL {{INPUT}} -p80,443,8080,8443,8000 --rate 10000 --output-format json --output-filename {{OUTPUT}}"
 ```
-
-# Documentation
-
-See the documentation [here]()
 
 ## Massdns example command:
 ```
