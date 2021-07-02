@@ -166,7 +166,7 @@ loop:
 				finalCommand = strings.ReplaceAll(finalCommand, "{{INPUT}}", "/tmp/fleex-"+timeStamp+"-chunk-"+boxName)
 				finalCommand = strings.ReplaceAll(finalCommand, "{{OUTPUT}}", "/tmp/fleex-"+timeStamp+"-chunk-out-"+boxName)
 
-				sshutils.RunCommand(finalCommand, l.IP, port, username, password)
+				sshutils.RunCommand(finalCommand+"; rm -rf /tmp/fleex-"+timeStamp+"-chunk-"+boxName, l.IP, port, username, password)
 
 				// Now download the output file
 				err = scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).ReceiveFile("/tmp/fleex-"+timeStamp+"-chunk-out-"+boxName, path.Join(tempFolder, "chunk-out-"+boxName))
