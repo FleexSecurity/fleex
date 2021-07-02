@@ -142,7 +142,7 @@ func init() {
 	home, _ := homedir.Dir()
 	rootCmd.AddCommand(buildCmd)
 	buildCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
-	buildCmd.Flags().StringP("file", "f", home+"/fleex/build/test.yaml", "Build file")
+	buildCmd.Flags().StringP("file", "f", home+"/fleex/build/common.yaml", "Build file")
 	buildCmd.Flags().StringP("region", "R", "", "Region")
 	buildCmd.Flags().StringP("size", "S", "", "Size")
 	buildCmd.Flags().BoolP("delete", "d", false, "Delete box after image creation")
