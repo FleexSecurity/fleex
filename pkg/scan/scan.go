@@ -6,7 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
-	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -59,14 +59,14 @@ func Start(fleetName, command string, delete bool, input, outputPath, chunksFold
 
 	timeStamp := strconv.FormatInt(time.Now().UnixNano(), 10)
 	// TODO: use a proper temp folder function so that it can run on windows too
-	tempFolder := path.Join("/tmp", timeStamp)
+	tempFolder := filepath.Join("/tmp", timeStamp)
 
 	if chunksFolder != "" {
 		tempFolder = chunksFolder
 	}
 
 	// Make local temp folder
-	tempFolderInput := path.Join(tempFolder, "input")
+	tempFolderInput := filepath.Join(tempFolder, "input")
 	// Create temp folder
 	utils.MakeFolder(tempFolder)
 	utils.MakeFolder(tempFolderInput)
@@ -119,7 +119,7 @@ loop:
 				re = 1
 			}
 			if counter%(linesPerChunk+re) == 0 {
-				utils.StringToFile(path.Join(tempFolderInput, "chunk-"+fleetName+"-"+strconv.Itoa(x)), strings.Join(asd[0:counter], "\n")+"\n")
+				utils.StringToFile(filepath.Join(tempFolderInput, "chunk-"+fleetName+"-"+strconv.Itoa(x)), strings.Join(asd[0:counter], "\n")+"\n")
 				asd = nil
 				x++
 				counter = 0
@@ -156,7 +156,7 @@ loop:
 				boxName := l.Label
 
 				// Send input file via SCP
-				err := scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).SendFile(path.Join(tempFolderInput, "chunk-"+boxName), "/tmp/fleex-"+timeStamp+"-chunk-"+boxName)
+				err := scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).SendFile(filepath.Join(tempFolderInput, "chunk-"+boxName), "/tmp/fleex-"+timeStamp+"-chunk-"+boxName)
 				if err != nil {
 					utils.Log.Fatal("Failed to send file: ", err)
 				}
@@ -169,7 +169,7 @@ loop:
 				sshutils.RunCommand(finalCommand+"; rm -rf /tmp/fleex-"+timeStamp+"-chunk-"+boxName, l.IP, port, username, password)
 
 				// Now download the output file
-				err = scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).ReceiveFile("/tmp/fleex-"+timeStamp+"-chunk-out-"+boxName, path.Join(tempFolder, "chunk-out-"+boxName))
+				err = scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).ReceiveFile("/tmp/fleex-"+timeStamp+"-chunk-out-"+boxName, filepath.Join(tempFolder, "chunk-out-"+boxName))
 				if err != nil {
 					utils.Log.Fatal("Failed to get file: ", err)
 				}
@@ -203,10 +203,10 @@ loop:
 
 	// TODO: Get rid of bash and do this using Go
 
-	utils.RunCommand("cat " + path.Join(tempFolder, "*") + " > " + outputPath)
+	utils.RunCommand("cat " + filepath.Join(tempFolder, "*") + " > " + outputPath)
 
 	if chunksFolder == "" {
-		utils.RunCommand("rm -rf " + path.Join(tempFolder, "chunk-out-*"))
+		utils.RunCommand("rm -rf " + filepath.Join(tempFolder, "chunk-out-*"))
 	}
 
 }

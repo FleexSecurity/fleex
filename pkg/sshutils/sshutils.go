@@ -6,7 +6,7 @@ import (
 	"net"
 	"os"
 	"os/user"
-	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -23,7 +23,7 @@ type Connection struct {
 
 func GetLocalPublicSSHKey() string {
 	publicSsh := viper.GetString("public-ssh-file")
-	rawKey := utils.FileToString(path.Join(getHomeDir(), ".ssh", publicSsh))
+	rawKey := utils.FileToString(filepath.Join(getHomeDir(), ".ssh", publicSsh))
 	retString := strings.ReplaceAll(rawKey, "\r\n", "")
 	retString = strings.ReplaceAll(retString, "\n", "")
 
@@ -31,7 +31,7 @@ func GetLocalPublicSSHKey() string {
 }
 
 func SSHFingerprintGen(publicSSH string) string {
-	rawKey := utils.FileToString(path.Join(getHomeDir(), ".ssh", publicSSH))
+	rawKey := utils.FileToString(filepath.Join(getHomeDir(), ".ssh", publicSSH))
 
 	// Parse the key, other info ignored
 	pk, _, _, _, err := ssh.ParseAuthorizedKey([]byte(rawKey))
@@ -153,7 +153,7 @@ func Connect(addr, user, password string) (*Connection, error) {
 	sshConfig := &ssh.ClientConfig{
 		User: user,
 		Auth: []ssh.AuthMethod{
-			publicKeyFile(path.Join(getHomeDir(), ".ssh", privateSsh)), // todo replace with rsa
+			publicKeyFile(filepath.Join(getHomeDir(), ".ssh", privateSsh)), // todo replace with rsa
 		},
 		HostKeyCallback: ssh.HostKeyCallback(func(hostname string, remote net.Addr, key ssh.PublicKey) error { return nil }),
 	}
