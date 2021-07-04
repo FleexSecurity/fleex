@@ -86,6 +86,7 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 
 // GetBoxes returns a slice containg all active boxes of a Linode account
 func GetBoxes(token string) (boxes []box.Box) {
+retry:
 	req, err := http.NewRequest("GET", "https://api.linode.com/v4/linode/instances", nil)
 	if err != nil {
 		utils.Log.Fatal(err)
@@ -101,6 +102,11 @@ func GetBoxes(token string) (boxes []box.Box) {
 	defer resp.Body.Close()
 
 	body, _ := ioutil.ReadAll(resp.Body)
+
+	if resp.StatusCode == 429 {
+		time.Sleep(1 * time.Second)
+		goto retry
+	}
 
 	if resp.StatusCode != 200 {
 		utils.Log.Fatal("Error. HTTP status code: " + resp.Status)
@@ -300,6 +306,7 @@ func DeleteBoxByID(id int, token string) {
 			break
 		}
 
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -336,6 +343,11 @@ func spawnBox(name string, image string, region string, size string, token strin
 		}
 		defer resp.Body.Close()
 
+		if resp.StatusCode == 429 {
+			time.Sleep(1 * time.Second)
+			continue
+		}
+
 		body, _ := ioutil.ReadAll(resp.Body)
 		utils.Log.Debug("API Response: ", string(body))
 		if !strings.Contains(string(body), "Please try again") {
@@ -361,6 +373,7 @@ func CreateImage(token string, linodeID int, label string) {
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
+
 	if err != nil {
 		utils.Log.Fatal(err)
 	}
