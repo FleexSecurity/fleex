@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -54,7 +54,7 @@ func initConfig() {
 			os.Exit(1)
 		}
 
-		viper.AddConfigPath(path.Join(home, "fleex"))
+		viper.AddConfigPath(filepath.Join(home, "fleex"))
 		viper.SetConfigName("config")
 	}
 

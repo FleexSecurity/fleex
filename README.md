@@ -20,6 +20,24 @@ Fleex allows you to create multiple VPS on cloud providers and use them to distr
 GO111MODULE=on go get -v github.com/sw33tLie/fleex
 ```
 
+# Available commands
+```
+./fleex -h
+
+Available Commands:
+  build       Build image
+  config      fleex config setup
+  delete      Delete a fleet or a single box
+  help        Help about any command
+  images      List available images
+  ls          List running boxes
+  run         Run a command
+  scan        Distributed scanning
+  scp         SCP client
+  spawn       Spawn a fleet
+  ssh         Start SSH
+```
+
 # Documentation
 
 See the documentation [here](https://sw33tlie.github.io/fleex-docs/)
