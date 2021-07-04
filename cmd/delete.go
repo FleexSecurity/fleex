@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/controller"
+	"github.com/sw33tLie/fleex/pkg/utils"
 )
 
 // deleteCmd represents the delete command
@@ -12,6 +13,9 @@ var deleteCmd = &cobra.Command{
 	Short: "Delete a fleet or a single box",
 	Run: func(cmd *cobra.Command, args []string) {
 		var token string
+
+		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
+		utils.SetProxy(proxy)
 
 		name, _ := cmd.Flags().GetString("name")
 		providerFlag, _ := cmd.Flags().GetString("provider")

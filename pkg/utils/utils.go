@@ -2,10 +2,12 @@ package utils
 
 import (
 	"archive/zip"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -167,4 +169,16 @@ func Unzip(src, dest string) error {
 	}
 
 	return nil
+}
+
+func SetProxy(proxyURL string) {
+	if proxyURL != "" {
+		proxyURL, err := url.Parse(proxyURL)
+		if err != nil {
+			log.Fatal("Invalid Proxy String")
+		}
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		http.DefaultTransport.(*http.Transport).Proxy = http.ProxyURL(proxyURL)
+	}
+
 }

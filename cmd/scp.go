@@ -33,6 +33,10 @@ var scpCmd = &cobra.Command{
 	Long:  "SCP client",
 	Run: func(cmd *cobra.Command, args []string) {
 		var boxIP, token string
+
+		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
+		utils.SetProxy(proxy)
+
 		providerFlag, _ := cmd.Flags().GetString("provider")
 		usernameFlag, _ := cmd.Flags().GetString("username")
 		passwordFlag, _ := cmd.Flags().GetString("password")

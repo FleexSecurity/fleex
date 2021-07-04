@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/controller"
 	"github.com/sw33tLie/fleex/pkg/sshutils"
+	"github.com/sw33tLie/fleex/pkg/utils"
 	"gopkg.in/yaml.v2"
 )
 
@@ -35,6 +36,10 @@ var buildCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var token, region, size, sshFingerprint, boxIP, image string
 		var boxID int
+
+		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
+		utils.SetProxy(proxy)
+
 		timeNow := strconv.FormatInt(time.Now().Unix(), 10)
 		home, _ := homedir.Dir()
 		fleetName := "fleex-" + timeNow

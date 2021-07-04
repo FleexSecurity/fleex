@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/controller"
+	"github.com/sw33tLie/fleex/pkg/utils"
 )
 
 // runCmd represents the run command
@@ -12,6 +13,10 @@ var runCmd = &cobra.Command{
 	Short: "Run a command",
 	Run: func(cmd *cobra.Command, args []string) {
 		var token string
+
+		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
+		utils.SetProxy(proxy)
+
 		fleetName, _ := cmd.Flags().GetString("name")
 		command, _ := cmd.Flags().GetString("command")
 

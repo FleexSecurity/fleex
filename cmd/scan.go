@@ -15,6 +15,9 @@ var scanCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var token string
 
+		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
+		utils.SetProxy(proxy)
+
 		commandFlag, _ := cmd.Flags().GetString("command")
 		deleteFlag, _ := cmd.Flags().GetBool("delete")
 		fleetNameFlag, _ := cmd.Flags().GetString("name")

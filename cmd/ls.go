@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/controller"
+	"github.com/sw33tLie/fleex/pkg/utils"
 )
 
 // lsCmd represents the ls command
@@ -12,6 +13,10 @@ var lsCmd = &cobra.Command{
 	Short: "List running boxes",
 	Run: func(cmd *cobra.Command, args []string) {
 		var token string
+
+		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
+		utils.SetProxy(proxy)
+
 		providerFlag, _ := cmd.Flags().GetString("provider")
 		if providerFlag != "" {
 			viper.Set("provider", providerFlag)

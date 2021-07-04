@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/controller"
 	"github.com/sw33tLie/fleex/pkg/sshutils"
+	"github.com/sw33tLie/fleex/pkg/utils"
 )
 
 // spawnCmd represents the spawn command
@@ -14,6 +15,9 @@ var spawnCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var token, image, region, size, sshFingerprint string
 		var tags []string
+
+		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
+		utils.SetProxy(proxy)
 
 		providerFlag, _ := cmd.Flags().GetString("provider")
 		regionFlag, _ := cmd.Flags().GetString("region")
