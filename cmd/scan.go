@@ -28,6 +28,10 @@ var scanCmd = &cobra.Command{
 			utils.Log.Fatal("Please provide an output path using the -o flag")
 		}
 
+		if commandFlag == "" {
+			utils.Log.Fatal("Missing command (-c flag)")
+		}
+
 		chunksFolder, _ := cmd.Flags().GetString("chunks-folder")
 		providerFlag, _ := cmd.Flags().GetString("provider")
 		if providerFlag != "" {
@@ -69,7 +73,7 @@ var scanCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(scanCmd)
 	scanCmd.Flags().StringP("name", "n", "pwn", "Fleet name")
-	scanCmd.Flags().StringP("command", "c", "whoami", "Command to send. Supports {{INPUT}} and {{OUTPUT}}")
+	scanCmd.Flags().StringP("command", "c", "", "Command to send. Supports {{INPUT}} and {{OUTPUT}}")
 	scanCmd.Flags().StringP("input", "i", "", "Input file")
 	scanCmd.Flags().StringP("output", "o", "", "Output file path. Made from concatenating all output chunks from all boxes")
 	scanCmd.Flags().StringP("chunks-folder", "", "", "Output folder containing output chunks. If empty it will use /tmp/<unix_timestamp>")
