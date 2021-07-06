@@ -343,16 +343,22 @@ func spawnBox(name string, image string, region string, size string, token strin
 		}
 		defer resp.Body.Close()
 
+		body, _ := ioutil.ReadAll(resp.Body)
+		utils.Log.Debug("API Response: ", string(body))
+
+		if resp.StatusCode == 400 {
+			log.Fatal(gjson.Get(string(body), "errors.#.reason"))
+		}
+
 		if resp.StatusCode == 429 {
 			time.Sleep(1 * time.Second)
 			continue
 		}
 
-		body, _ := ioutil.ReadAll(resp.Body)
-		utils.Log.Debug("API Response: ", string(body))
-		if !strings.Contains(string(body), "Please try again") {
+		if resp.StatusCode == 200 {
 			break
 		}
+
 		time.Sleep(5 * time.Second)
 	}
 }
