@@ -161,18 +161,24 @@ loop:
 					utils.Log.Fatal("Failed to send file: ", err)
 				}
 
+				chunkInputFile := "/tmp/fleex-" + timeStamp + "-chunk-" + boxName
+				chunkOutputFile := "/tmp/fleex-" + timeStamp + "-chunk-out-" + boxName
+
 				// Replace labels and craft final command
 				finalCommand := command
-				finalCommand = strings.ReplaceAll(finalCommand, "{{INPUT}}", "/tmp/fleex-"+timeStamp+"-chunk-"+boxName)
-				finalCommand = strings.ReplaceAll(finalCommand, "{{OUTPUT}}", "/tmp/fleex-"+timeStamp+"-chunk-out-"+boxName)
+				finalCommand = strings.ReplaceAll(finalCommand, "{{INPUT}}", chunkInputFile)
+				finalCommand = strings.ReplaceAll(finalCommand, "{{OUTPUT}}", chunkOutputFile)
 
-				sshutils.RunCommand(finalCommand+"; rm -rf /tmp/fleex-"+timeStamp+"-chunk-"+boxName, l.IP, port, username, password)
+				sshutils.RunCommand(finalCommand, l.IP, port, username, password)
 
 				// Now download the output file
-				err = scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).ReceiveFile("/tmp/fleex-"+timeStamp+"-chunk-out-"+boxName, filepath.Join(tempFolder, "chunk-out-"+boxName))
+				err = scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).ReceiveFile(chunkOutputFile, filepath.Join(tempFolder, "chunk-out-"+boxName))
 				if err != nil {
 					utils.Log.Fatal("Failed to get file: ", err)
 				}
+
+				// Remove input chunk file from remote box to save space
+				sshutils.RunCommand("sudo rm -rf "+chunkInputFile+" "+chunkOutputFile, l.IP, port, username, password)
 
 				if delete {
 					// TODO: Not the best way to delete a box, if this program crashes/is stopped
@@ -206,7 +212,8 @@ loop:
 	utils.RunCommand("cat " + filepath.Join(tempFolder, "*") + " > " + outputPath)
 
 	if chunksFolder == "" {
-		utils.RunCommand("rm -rf " + filepath.Join(tempFolder, "chunk-out-*"))
+		//utils.RunCommand("rm -rf " + filepath.Join(tempFolder, "chunk-out-*"))
+		os.RemoveAll(tempFolder)
 	}
 
 }
