@@ -30,7 +30,7 @@ var configInit = &cobra.Command{
 		home, _ := homedir.Dir()
 		timeNow := strconv.FormatInt(time.Now().Unix(), 10)
 		if linkFlag == "" {
-			fileUrl = "https://github.com/sw33tLie/fleex/releases/download/v1.0/config.zip"
+			fileUrl = "https://github.com/sw33tLie/fleex/tree/main/configs/config.zip"
 		} else {
 			fileUrl = linkFlag
 		}
