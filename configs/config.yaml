@@ -1,0 +1,22 @@
+provider: digitalocean or linode
+public-ssh-file: id_rsa.pub
+private-ssh-file: id_rsa
+linode:
+  token: YOUR_LINODE_TOKEN
+  region: eu-central
+  size: g6-nanode-1
+  image: private/12345678 # put your image id here (./fleex images to get it)
+  port: 2266
+  username: op
+  password: USER_PASSWORD
+digitalocean:
+  token: YOUR_DIGITALOCEAN_TOKEN
+  region: fra1
+  size: s-1vcpu-1gb
+  image: 12345678 # put your image id here
+  port: 2266
+  username: op
+  password: USER_PASSWORD
+  tags:
+    - vps
+    - fleex
