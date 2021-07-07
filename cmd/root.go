@@ -43,9 +43,15 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+
 	if cfgFile != "" {
 		// Use config file from the flag.
+		if !utils.FileExists(cfgFile) {
+			utils.Log.Fatal("Invalid config file path")
+		}
+
 		viper.SetConfigFile(cfgFile)
+
 	} else {
 		// Find home directory.
 		home, err := homedir.Dir()
