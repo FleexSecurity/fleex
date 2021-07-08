@@ -13,13 +13,13 @@ jobs:
     - name: Archive Release
       uses: thedoctor0/zip-release@master
       with:
-        filename: 'configs.zip'
+        filename: 'config.zip'
         directory: "configs/"
         # exclusions: '*.git*'
     - name: Upload Release
       uses: ncipollo/release-action@v1
       with:
-        artifacts: "configs/configs.zip"
+        artifacts: "configs/config.zip"
         tag: "v1.0"
         allowUpdates: true
         token: ${{ secrets.GITHUB_TOKEN }}
