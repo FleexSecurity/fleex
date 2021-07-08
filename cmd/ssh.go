@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"log"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/controller"
@@ -53,9 +50,6 @@ var sshCmd = &cobra.Command{
 			port = viper.GetInt("digitalocean.port")
 			username = viper.GetString("digitalocean.username")
 		}
-
-		fmt.Println("port", port, "username", username, providerFlag)
-		log.Fatal(1)
 
 		controller.SSH(boxName, username, port, sshKey, token, provider)
 	},
