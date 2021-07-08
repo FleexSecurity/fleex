@@ -28,23 +28,22 @@ commands:
   - cp /tmp/configs/sudoers /etc/sudoers
   - chattr +i /etc/resolv.conf
   - chown -R op:users /home/op
-  - cd /tmp && wget -O /tmp/gobuster.7z https://github.com/OJ/gobuster/releases/download/v3.1.0/gobuster-linux-amd64.7z && p7zip -d /tmp/gobuster.7z && sudo mv /tmp/gobuster-linux-amd64/gobuster /usr/bin/gobuster && sudo chmod +x /usr/bin/gobuster
   - wget -O /tmp/findomain https://github.com/Edu4rdSHL/findomain/releases/latest/download/findomain-linux && mv /tmp/findomain /usr/bin/findomain && chmod +x /usr/bin/findomain
-  - cd /tmp && wget -O /tmp/gobuster.7z https://github.com/OJ/gobuster/releases/download/v3.1.0/gobuster-linux-amd64.7z && p7zip -d /tmp/gobuster.7z && sudo mv /tmp/gobuster-linux-amd64/gobuster /usr/bin/gobuster && sudo chmod +x /usr/bin/gobuster
   - git clone https://github.com/projectdiscovery/nuclei-templates /home/op/recon/nuclei
   - "git clone https://github.com/blechschmidt/massdns.git /tmp/massdns; cd /tmp/massdns; sudo make; sudo mv bin/massdns /usr/bin/massdns"
   - /bin/su -l op -c 'source /home/op/.bashrc'
   - /bin/su -l op -c 'GO111MODULE=on go get -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei'
-  - /bin/su -l op -c 'go get -u github.com/tomnomnom/httprobe'
-  - /bin/su -l op -c 'go get -u github.com/ffuf/ffuf'
+  - /bin/su -l op -c 'GO111MODULE=on go get -u github.com/tomnomnom/httprobe'
+  - /bin/su -l op -c 'GO111MODULE=on go get -u github.com/ffuf/ffuf'
   - /bin/su -l op -c 'GO111MODULE=on go get -v github.com/projectdiscovery/httpx/cmd/httpx'
   - /bin/su -l op -c 'GO111MODULE=on go get -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder'
   - /bin/su -l op -c 'GO111MODULE=on go get github.com/d3mondev/puredns/v2'
   - /bin/su -l op -c 'GO111MODULE=on go get -u github.com/lc/gau'
-  - /bin/su -l op -c 'go get -v github.com/tomnomnom/hacks/waybackurls'
+  - /bin/su -l op -c 'GO111MODULE=on go get -v github.com/tomnomnom/hacks/waybackurls'
   - /bin/su -l op -c 'GO111MODULE=on go get -v github.com/projectdiscovery/mapcidr/cmd/mapcidr'
+  - /bin/su -l op -c 'GO111MODULE=on go get -v github.com/OWASP/Amass/v3/...'
+  - /bin/su -l op -c 'GO111MODULE=on go install github.com/OJ/gobuster/v3@latest'
   - /bin/su -l root -c 'curl -sL https://raw.githubusercontent.com/epi052/feroxbuster/master/install-nix.sh | bash && mv feroxbuster /usr/bin/'
-  - wget -O /tmp/amass.zip https://github.com/OWASP/Amass/releases/download/v3.11.1/amass_linux_amd64.zip && cd /tmp/ && unzip /tmp/amass.zip && mv /tmp/amass_linux_amd64/amass /usr/bin/amass
   - chown -R op:users /home/op
   - touch /home/op/.profile
   - chown -R op:users /home/op
