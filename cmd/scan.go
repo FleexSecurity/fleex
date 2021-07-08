@@ -18,53 +18,45 @@ var scanCmd = &cobra.Command{
 		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
 		utils.SetProxy(proxy)
 
+		providerFlag, _ := cmd.Flags().GetString("provider")
 		commandFlag, _ := cmd.Flags().GetString("command")
 		deleteFlag, _ := cmd.Flags().GetBool("delete")
 		fleetNameFlag, _ := cmd.Flags().GetString("name")
 		inputFlag, _ := cmd.Flags().GetString("input")
 		output, _ := cmd.Flags().GetString("output")
 
-		if output == "" {
-			utils.Log.Fatal("Please provide an output path using the -o flag")
-		}
-
-		if commandFlag == "" {
-			utils.Log.Fatal("Missing command (-c flag)")
-		}
-
 		chunksFolder, _ := cmd.Flags().GetString("chunks-folder")
-		providerFlag, _ := cmd.Flags().GetString("provider")
 		if providerFlag != "" {
 			viper.Set("provider", providerFlag)
 		}
 		provider := controller.GetProvider(viper.GetString("provider"))
 		providerFlag = viper.GetString("provider")
 
-		portFlag, _ := cmd.Flags().GetInt("port")
-		usernameFlag, _ := cmd.Flags().GetString("username")
-		passwordFlag, _ := cmd.Flags().GetString("password")
-		if portFlag != 0 {
-			viper.Set(providerFlag+".port", portFlag)
+		port, _ := cmd.Flags().GetInt("port")
+		username, _ := cmd.Flags().GetString("username")
+		password, _ := cmd.Flags().GetString("password")
+		if port != -1 {
+			viper.Set(providerFlag+".port", port)
 		}
-		if usernameFlag != "" {
-			viper.Set(providerFlag+".username", usernameFlag)
+		if username != "" {
+			viper.Set(providerFlag+".username", username)
 		}
-		if passwordFlag != "" {
-			viper.Set(providerFlag+".password", passwordFlag)
+		if password != "" {
+			viper.Set(providerFlag+".password", password)
 		}
-
-		port := viper.GetInt(providerFlag + ".port")
-		username := viper.GetString(providerFlag + ".username")
-		password := viper.GetString(providerFlag + ".password")
 
 		switch provider {
 		case controller.PROVIDER_LINODE:
 			token = viper.GetString("linode.token")
-
+			port = viper.GetInt("linode.port")
+			username = viper.GetString("linode.username")
+			password = viper.GetString("linode.password")
 		case controller.PROVIDER_DIGITALOCEAN:
 			token = viper.GetString("digitalocean.token")
+			port = viper.GetInt("digitalocean.port")
+			username = viper.GetString("digitalocean.username")
+			password = viper.GetString("digitalocean.password")
 		}
-
 		scan.Start(fleetNameFlag, commandFlag, deleteFlag, inputFlag, output, chunksFolder, token, port, username, password, provider)
 
 	},
@@ -78,8 +70,11 @@ func init() {
 	scanCmd.Flags().StringP("output", "o", "", "Output file path. Made from concatenating all output chunks from all boxes")
 	scanCmd.Flags().StringP("chunks-folder", "", "", "Output folder containing output chunks. If empty it will use /tmp/<unix_timestamp>")
 	scanCmd.Flags().StringP("provider", "p", "", "VPS provider (Supported: linode, digitalocean)")
-	scanCmd.Flags().IntP("port", "", 2266, "SSH port")
-	scanCmd.Flags().StringP("username", "U", "op", "SSH username")
-	scanCmd.Flags().StringP("password", "P", "1337superPass", "SSH password")
+	scanCmd.Flags().IntP("port", "", -1, "SSH port")
+	scanCmd.Flags().StringP("username", "U", "", "SSH username")
+	scanCmd.Flags().StringP("password", "P", "", "SSH password")
 	scanCmd.Flags().BoolP("delete", "d", false, "Delete boxes as soon as they finish their job")
+
+	scanCmd.MarkFlagRequired("output")
+	scanCmd.MarkFlagRequired("command")
 }

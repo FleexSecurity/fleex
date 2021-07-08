@@ -27,30 +27,31 @@ var runCmd = &cobra.Command{
 		provider := controller.GetProvider(viper.GetString("provider"))
 		providerFlag = viper.GetString("provider")
 
-		portFlag, _ := cmd.Flags().GetInt("port")
-		usernameFlag, _ := cmd.Flags().GetString("username")
-		passwordFlag, _ := cmd.Flags().GetString("password")
-		if portFlag != 0 {
-			viper.Set(providerFlag+".port", portFlag)
+		port, _ := cmd.Flags().GetInt("port")
+		username, _ := cmd.Flags().GetString("username")
+		password, _ := cmd.Flags().GetString("password")
+		if port != -1 {
+			viper.Set(providerFlag+".port", port)
 		}
-		if usernameFlag != "" {
-			viper.Set(providerFlag+".username", usernameFlag)
+		if username != "" {
+			viper.Set(providerFlag+".username", username)
 		}
-		if passwordFlag != "" {
-			viper.Set(providerFlag+".password", passwordFlag)
+		if password != "" {
+			viper.Set(providerFlag+".password", password)
 		}
-
-		port := viper.GetInt(providerFlag + ".port")
-		username := viper.GetString(providerFlag + ".username")
-		password := viper.GetString(providerFlag + ".password")
 
 		switch provider {
 		case controller.PROVIDER_LINODE:
 			token = viper.GetString("linode.token")
+			port = viper.GetInt("linode.port")
+			username = viper.GetString("linode.username")
+			password = viper.GetString("linode.password")
 		case controller.PROVIDER_DIGITALOCEAN:
 			token = viper.GetString("digitalocean.token")
+			port = viper.GetInt("digitalocean.port")
+			username = viper.GetString("digitalocean.username")
+			password = viper.GetString("digitalocean.password")
 		}
-
 		// log.Fatalln(fleetName, command, token, port, username, password, provider)
 		controller.RunCommand(fleetName, command, token, port, username, password, provider)
 
@@ -60,11 +61,11 @@ var runCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(runCmd)
 	runCmd.Flags().StringP("name", "n", "pwn", "Box name")
-	runCmd.Flags().StringP("command", "c", "whoami", "Command to send")
-	// TODO: cli override for yaml settings
-	runCmd.Flags().IntP("port", "", 2266, "SSH port")
-	runCmd.Flags().StringP("username", "U", "op", "SSH username")
-	runCmd.Flags().StringP("password", "P", "1337superPass", "SSH password")
+	runCmd.Flags().StringP("command", "c", "", "Command to send")
+	runCmd.Flags().IntP("port", "", -1, "SSH port")
+	runCmd.Flags().StringP("username", "U", "", "SSH username")
+	runCmd.Flags().StringP("password", "P", "", "SSH password")
 	runCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
 
+	runCmd.MarkFlagRequired("command")
 }

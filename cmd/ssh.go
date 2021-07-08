@@ -50,7 +50,6 @@ var sshCmd = &cobra.Command{
 			port = viper.GetInt("digitalocean.port")
 			username = viper.GetString("digitalocean.username")
 		}
-
 		controller.SSH(boxName, username, port, sshKey, token, provider)
 	},
 }
@@ -58,7 +57,7 @@ var sshCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(sshCmd)
 	sshCmd.Flags().StringP("name", "n", "pwn", "Box name")
-	sshCmd.Flags().StringP("username", "u", "", "SSH username")
+	sshCmd.Flags().StringP("username", "U", "", "SSH username")
 	sshCmd.Flags().IntP("port", "", -1, "SSH port")
 	sshCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
 
