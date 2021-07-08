@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+	"log"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/controller"
@@ -29,12 +32,9 @@ var sshCmd = &cobra.Command{
 		provider := controller.GetProvider(viper.GetString("provider"))
 		providerFlag = viper.GetString("provider")
 
-		if portFlag != 2266 {
+		if portFlag != -1 {
 			viper.Set(providerFlag+".port", portFlag)
-		} else {
-			viper.Set(providerFlag+".port", 2266)
 		}
-
 		if username != "" {
 			viper.Set(providerFlag+".username", username)
 		}
@@ -54,6 +54,9 @@ var sshCmd = &cobra.Command{
 			username = viper.GetString("digitalocean.username")
 		}
 
+		fmt.Println("port", port, "username", username, providerFlag)
+		log.Fatal(1)
+
 		controller.SSH(boxName, username, port, sshKey, token, provider)
 	},
 }
@@ -62,7 +65,7 @@ func init() {
 	rootCmd.AddCommand(sshCmd)
 	sshCmd.Flags().StringP("name", "n", "pwn", "Box name")
 	sshCmd.Flags().StringP("username", "u", "", "SSH username")
-	sshCmd.Flags().IntP("port", "", 2266, "SSH port")
+	sshCmd.Flags().IntP("port", "", -1, "SSH port")
 	sshCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
 
 }
