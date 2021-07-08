@@ -1,22 +1,42 @@
+# Supported providers
 provider: digitalocean or linode
+# SSH keys in $HOME/.ssh/
 public-ssh-file: id_rsa.pub
 private-ssh-file: id_rsa
+
+# Settings for linode provider
 linode:
+  # Token: My profile > API Tokens > Create Personal Access Token
   token: YOUR_LINODE_TOKEN
+  # Region & Size, see fleex-docs for more info
   region: eu-central
   size: g6-nanode-1
-  image: private/12345678 # put your image id here (./fleex images to get it)
+  # Put your image id here
+  # Run "fleex images" to get it
+  image: private/12345678
+  # Settings for SSH command
   port: 2266
   username: op
+  # You can set custom passwords for creating vps 
   password: USER_PASSWORD
+
+# Settings for Digitalocean provider
 digitalocean:
+  # Token: API > Tokens/Keys > Generate New Token
   token: YOUR_DIGITALOCEAN_TOKEN
+  # Region & Size, see fleex-docs for more info
   region: fra1
   size: s-1vcpu-1gb
-  image: 12345678 # put your image id here
+  # Put your image id here
+  # Run "fleex images" to get it
+  # You can also insert a Slug here, like "ubuntu-20-04-x64"
+  image: 12345678
+  # Settings for SSH command
   port: 2266
   username: op
+  # You can set custom passwords for creating vps 
   password: USER_PASSWORD
+  # Optional
   tags:
     - vps
     - fleex

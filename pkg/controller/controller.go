@@ -28,7 +28,7 @@ const (
 )
 
 const (
-	INVALID_PROVIDER = "Invalid Provider!"
+	INVALID_PROVIDER = `Something went wrong, check that the data in the config.yaml is correct.`
 )
 
 var log = logrus.New()
@@ -85,7 +85,6 @@ func ListImages(token string, provider Provider) {
 func CreateImage(token string, provider Provider, diskID int, label string) {
 	switch provider {
 	case PROVIDER_LINODE:
-		// TODO
 		linode.CreateImage(token, diskID, label)
 	case PROVIDER_DIGITALOCEAN:
 		digitalocean.CreateImage(token, diskID, label)
