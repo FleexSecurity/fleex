@@ -29,6 +29,13 @@ var configInit = &cobra.Command{
 		linkFlag, _ := cmd.Flags().GetString("url")
 		home, _ := homedir.Dir()
 		timeNow := strconv.FormatInt(time.Now().Unix(), 10)
+		overwrite, _ := cmd.Flags().GetBool("overwrite")
+
+		if _, err := os.Stat(home + "/fleex"); !os.IsNotExist(err) {
+			if !overwrite {
+				utils.Log.Fatal("Fleex folder already exists, if you want to overwrite it use the --overwrite flag ")
+			}
+		}
 
 		if linkFlag == "" {
 			fileUrl = "https://github.com/sw33tLie/fleex/releases/download/v1.0/config.zip"
@@ -85,5 +92,6 @@ func init() {
 	configCmd.AddCommand(configGet)
 
 	configInit.Flags().StringP("url", "u", "", "Config folder url")
+	configInit.Flags().BoolP("overwrite", "o", false, "If the fleex folder exists overwrite it")
 	configGet.Flags().StringP("field", "f", "", "field to retrieve, comma separated")
 }
