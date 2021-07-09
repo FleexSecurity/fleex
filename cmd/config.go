@@ -29,6 +29,7 @@ var configInit = &cobra.Command{
 		linkFlag, _ := cmd.Flags().GetString("url")
 		home, _ := homedir.Dir()
 		timeNow := strconv.FormatInt(time.Now().Unix(), 10)
+
 		if linkFlag == "" {
 			fileUrl = "https://github.com/sw33tLie/fleex/releases/download/v1.0/config.zip"
 		} else {
@@ -43,6 +44,15 @@ var configInit = &cobra.Command{
 		if err != nil {
 			utils.Log.Fatal(err)
 		}
+
+		viper.SetConfigType("yaml")
+		viper.ReadInConfig()
+		pubSSH := viper.GetString("public-ssh-file")
+		if pubSSH == "" {
+			utils.Log.Fatal("You need to create a Key Pair for SSH")
+		}
+
+		utils.Copy(home+"/.ssh/"+pubSSH, home+"/fleex/configs/authorized_keys")
 
 		utils.Log.Info("Init completed, your config files are in ~/fleex/")
 	},
