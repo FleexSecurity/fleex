@@ -80,6 +80,14 @@ var buildCmd = &cobra.Command{
 			image = "ubuntu-20-04-x64"
 		}
 
+		// Check for authorization_keys
+		pubSSH := viper.GetString("public-ssh-file")
+		if pubSSH == "" {
+			utils.Log.Fatal("You need to create a Key Pair for SSH")
+		}
+
+		utils.Copy(home+"/.ssh/"+pubSSH, home+"/fleex/configs/authorized_keys")
+
 		c, err := readConf(fileFlag)
 		if err != nil {
 			log.Fatal(err)
