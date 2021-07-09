@@ -47,6 +47,7 @@ commands:
   - chown -R op:users /home/op
   - touch /home/op/.profile
   - chown -R op:users /home/op
-  - /bin/su -l op -c 'cat ~/install.sh'
-  - /bin/su -l op -c 'chmod +x ~/install.sh'
-  - /bin/su -l op -c '~/install.sh'
+  - /bin/su -l op -c "curl http://169.254.169.254/metadata/v1/user-data > /home/op/install.sh"
+  - /bin/su -l op -c 'cat /home/op/install.sh'
+  - /bin/su -l op -c 'chmod +x /home/op/install.sh'
+  - /bin/su -l op -c '/home/op/install.sh'
