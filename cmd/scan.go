@@ -1,12 +1,24 @@
 package cmd
 
 import (
+	"io/ioutil"
+	"log"
+
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/controller"
 	scan "github.com/sw33tLie/fleex/pkg/scan"
 	"github.com/sw33tLie/fleex/pkg/utils"
+	"gopkg.in/yaml.v2"
 )
+
+type Module struct {
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
+	Author      string `yaml:"author"`
+	Command     string `yaml:"command"`
+}
 
 // scanCmd represents the scan command
 var scanCmd = &cobra.Command{
@@ -24,6 +36,7 @@ var scanCmd = &cobra.Command{
 		fleetNameFlag, _ := cmd.Flags().GetString("name")
 		inputFlag, _ := cmd.Flags().GetString("input")
 		output, _ := cmd.Flags().GetString("output")
+		moduleFlag, _ := cmd.Flags().GetString("module")
 
 		chunksFolder, _ := cmd.Flags().GetString("chunks-folder")
 		if providerFlag != "" {
@@ -57,6 +70,22 @@ var scanCmd = &cobra.Command{
 			username = viper.GetString("digitalocean.username")
 			password = viper.GetString("digitalocean.password")
 		}
+
+		var module Module
+		// module.getModule()
+
+		if moduleFlag != "" {
+			selectedModule := module.getModule(moduleFlag)
+			commandFlag = selectedModule.Command
+			utils.Log.Info(selectedModule.Name, ": ", selectedModule.Description)
+			utils.Log.Info("Created by: ", selectedModule.Author)
+		}
+
+		if commandFlag == "" {
+			utils.Log.Fatal("Command not found, insert a command or module")
+		}
+
+		log.Fatal(1)
 		scan.Start(fleetNameFlag, commandFlag, deleteFlag, inputFlag, output, chunksFolder, token, port, username, password, provider)
 
 	},
@@ -74,7 +103,21 @@ func init() {
 	scanCmd.Flags().StringP("username", "U", "", "SSH username")
 	scanCmd.Flags().StringP("password", "P", "", "SSH password")
 	scanCmd.Flags().BoolP("delete", "d", false, "Delete boxes as soon as they finish their job")
+	scanCmd.Flags().StringP("module", "m", "", "Scan modules")
 
 	scanCmd.MarkFlagRequired("output")
-	scanCmd.MarkFlagRequired("command")
+	// scanCmd.MarkFlagRequired("command")
+}
+
+func (m *Module) getModule(modulename string) *Module {
+	home, _ := homedir.Dir()
+	yamlFile, err := ioutil.ReadFile(home + "/fleex/modules/" + modulename + ".yaml")
+	if err != nil {
+		utils.Log.Fatal("yamlFile.Get:", err)
+	}
+	err = yaml.Unmarshal(yamlFile, m)
+	if err != nil {
+		utils.Log.Fatal("Unmarshal:", err)
+	}
+	return m
 }
