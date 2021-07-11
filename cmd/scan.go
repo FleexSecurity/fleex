@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"io/ioutil"
-	"log"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -85,7 +84,6 @@ var scanCmd = &cobra.Command{
 			utils.Log.Fatal("Command not found, insert a command or module")
 		}
 
-		log.Fatal(1)
 		scan.Start(fleetNameFlag, commandFlag, deleteFlag, inputFlag, output, chunksFolder, token, port, username, password, provider)
 
 	},
