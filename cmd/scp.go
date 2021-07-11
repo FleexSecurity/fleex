@@ -17,8 +17,10 @@ package cmd
 
 import (
 	"os"
+	"strings"
 
 	"github.com/hnakamur/go-scp"
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/controller"
@@ -32,7 +34,7 @@ var scpCmd = &cobra.Command{
 	Short: "SCP client",
 	Long:  "SCP client",
 	Run: func(cmd *cobra.Command, args []string) {
-		var boxIP, token string
+		var token string
 
 		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
 		utils.SetProxy(proxy)
@@ -44,6 +46,8 @@ var scpCmd = &cobra.Command{
 		portFlag, _ := cmd.Flags().GetInt("port")
 		destinationFlag, _ := cmd.Flags().GetString("destination")
 		nameFlag, _ := cmd.Flags().GetString("name")
+
+		home, _ := homedir.Dir()
 
 		if providerFlag != "" {
 			viper.Set("provider", providerFlag)
@@ -57,7 +61,7 @@ var scpCmd = &cobra.Command{
 		if passwordFlag != "" {
 			viper.Set(providerFlag+".password", passwordFlag)
 		}
-		if passwordFlag != "" {
+		if portFlag != -1 {
 			viper.Set(providerFlag+".port", portFlag)
 		}
 
@@ -74,8 +78,9 @@ var scpCmd = &cobra.Command{
 			portFlag = viper.GetInt("digitalocean.port")
 		}
 
-		// fmt.Println(usernameFlag, passwordFlag, portFlag, provider, providerFlag)
-		// log.Fatal(1)
+		if strings.Contains(destinationFlag, home) {
+			destinationFlag = strings.ReplaceAll(destinationFlag, home, "/home/"+usernameFlag)
+		}
 
 		fleets := controller.GetFleet(nameFlag, token, provider)
 		if len(fleets) == 0 {
@@ -83,26 +88,18 @@ var scpCmd = &cobra.Command{
 		}
 		for _, box := range fleets {
 			if box.Label == nameFlag {
-				boxIP = box.IP
-				break
+				SendSCP(sourceFlag, destinationFlag, box.IP, portFlag, usernameFlag, passwordFlag)
+				return
 			}
 		}
 
-		checkDir, err := IsDirectory(sourceFlag)
-		if err != nil {
-			utils.Log.Fatal(err)
-		}
-		if checkDir {
-			err := scp.NewSCP(sshutils.GetConnection(boxIP, portFlag, usernameFlag, passwordFlag).Client).SendDir(sourceFlag, destinationFlag, nil)
-			if err != nil {
-				utils.Log.Fatal(err)
-			}
-		} else {
-			err := scp.NewSCP(sshutils.GetConnection(boxIP, portFlag, usernameFlag, passwordFlag).Client).SendFile(sourceFlag, destinationFlag)
-			if err != nil {
-				utils.Log.Fatal(err)
+		for _, box := range fleets {
+			if strings.HasPrefix(box.Label, nameFlag) {
+				SendSCP(sourceFlag, destinationFlag, box.IP, portFlag, usernameFlag, passwordFlag)
 			}
 		}
+
+		utils.Log.Info("SCP completed, you can find your files in " + destinationFlag)
 	},
 }
 
@@ -113,13 +110,31 @@ func init() {
 	scpCmd.Flags().StringP("name", "n", "pwn", "Fleet name")
 	scpCmd.Flags().StringP("username", "U", "", "Username")
 	scpCmd.Flags().StringP("password", "P", "", "Password")
-	scpCmd.Flags().IntP("port", "", 22, "Port")
+	scpCmd.Flags().IntP("port", "", -1, "SSH port")
 	scpCmd.Flags().StringP("source", "s", "", "Source file / folder")
 	scpCmd.Flags().StringP("destination", "d", "", "Destination file / folder")
 
 	scpCmd.MarkFlagRequired("source")
 	scpCmd.MarkFlagRequired("destination")
 
+}
+
+func SendSCP(source string, destination string, IP string, PORT int, username string, password string) {
+	checkDir, err := IsDirectory(source)
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
+	if checkDir {
+		err := scp.NewSCP(sshutils.GetConnection(IP, PORT, username, password).Client).SendDir(source, destination, nil)
+		if err != nil {
+			utils.Log.Fatal(err)
+		}
+	} else {
+		err := scp.NewSCP(sshutils.GetConnection(IP, PORT, username, password).Client).SendFile(source, destination)
+		if err != nil {
+			utils.Log.Fatal(err)
+		}
+	}
 }
 
 func IsDirectory(path string) (bool, error) {
