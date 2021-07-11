@@ -133,7 +133,7 @@ func DeleteBoxByID(id int, token string, provider Provider) {
 	case PROVIDER_LINODE:
 		linode.DeleteBoxByID(id, token)
 	case PROVIDER_DIGITALOCEAN:
-		// TODO
+		digitalocean.DeleteBoxByID(id, token)
 	default:
 		utils.Log.Fatal(INVALID_PROVIDER)
 	}

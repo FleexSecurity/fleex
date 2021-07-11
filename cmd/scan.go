@@ -71,7 +71,6 @@ var scanCmd = &cobra.Command{
 		}
 
 		var module Module
-		// module.getModule()
 
 		if moduleFlag != "" {
 			selectedModule := module.getModule(moduleFlag)

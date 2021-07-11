@@ -133,7 +133,7 @@ func DeleteFleet(name string, token string) {
 	for _, droplet := range droplets {
 		if droplet.Label == name {
 			// It's a single box
-			deleteBoxByID(droplet.ID, token)
+			DeleteBoxByID(droplet.ID, token)
 			return
 		}
 	}
@@ -141,7 +141,7 @@ func DeleteFleet(name string, token string) {
 	// Otherwise, we got a fleet to delete
 	for _, droplet := range droplets {
 		if strings.HasPrefix(droplet.Label, name) {
-			deleteBoxByID(droplet.ID, token)
+			DeleteBoxByID(droplet.ID, token)
 		}
 	}
 }
@@ -164,7 +164,7 @@ func ListImages(token string) {
 	}
 }
 
-func deleteBoxByID(ID int, token string) {
+func DeleteBoxByID(ID int, token string) {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 
