@@ -1,7 +1,4 @@
-<h1 align="center">
-  <br>
-  Fleex
-</h1>
+![Fleex](https://sw33tlie.github.io/fleex-docs/img/Fleex_banner.png)
 
 
 Fleex allows you to create multiple VPS on cloud providers and use them to distribute your workload. Run tools like masscan, puredns, ffuf, httpx or anything you need and get results quickly!
