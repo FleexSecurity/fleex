@@ -138,6 +138,12 @@ var buildCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
+		if provider == controller.PROVIDER_DIGITALOCEAN {
+			c.Commands = append(c.Commands, `/bin/su -l op -c "curl http://169.254.169.254/metadata/v1/user-data > /home/op/install.sh"`)
+			c.Commands = append(c.Commands, `/bin/su -l op -c "chmod +x /home/op/install.sh"`)
+			c.Commands = append(c.Commands, `/bin/su -l op -c "/home/op/install.sh"`)
+		}
+
 		for _, command := range c.Commands {
 			controller.RunCommand(fleetName+"-1", command, token, 22, "root", "1337superPass", provider)
 		}
@@ -148,6 +154,7 @@ var buildCmd = &cobra.Command{
 			time.Sleep(5 * time.Second)
 			controller.DeleteFleet(fleetName+"-1", token, provider)
 		}
+		utils.Log.Info("\nImage done!")
 	},
 }
 

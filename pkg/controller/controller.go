@@ -68,6 +68,12 @@ func DeleteFleet(name string, token string, provider Provider) {
 	default:
 		utils.Log.Fatal(INVALID_PROVIDER)
 	}
+
+	time.Sleep(1 * time.Second)
+	for len(GetFleet(name, token, provider)) > 0 {
+		time.Sleep(1 * time.Second)
+	}
+	utils.Log.Info("Fleet/Box deleted!")
 }
 
 // ListImages prints a list of available private images of a provider
