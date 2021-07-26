@@ -55,6 +55,7 @@ func GetLine(filename string, names chan string, readerr chan error) {
 
 // Start runs a scan
 func Start(fleetName, command string, delete bool, input, outputPath, chunksFolder string, token string, port int, username, password string, provider controller.Provider) {
+	var isFolderOut bool
 	start := time.Now()
 
 	timeStamp := strconv.FormatInt(time.Now().UnixNano(), 10)
@@ -145,7 +146,10 @@ loop:
 	processGroup.Add(len(fleet))
 
 	for i := 0; i < len(fleet); i++ {
-		go func() {
+		go func() { // fmt.Println(IP)
+			// fmt.Println(PORT)
+			// fmt.Println(username)
+			// fmt.Println(password)
 			for {
 				l := <-fleetNames
 
@@ -172,10 +176,13 @@ loop:
 				sshutils.RunCommand(finalCommand, l.IP, port, username, password)
 
 				// Now download the output file
-				err = scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).ReceiveFile(chunkOutputFile, filepath.Join(tempFolder, "chunk-out-"+boxName))
-				if err != nil {
-					utils.Log.Fatal("Failed to get file: ", err)
-				}
+				//utils.MakeFolder(filepath.Join(tempFolder, "chunk-out-"+boxName))
+				isFolderOut = SendSCP(chunkOutputFile, filepath.Join(tempFolder, "chunk-out-"+boxName), l.IP, port, username, password)
+
+				// err = scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).ReceiveFile(chunkOutputFile, filepath.Join(tempFolder, "chunk-out-"+boxName))
+				// if err != nil {
+				// 	utils.Log.Fatal("Failed to get file: ", err)
+				// }
 
 				// Remove input chunk file from remote box to save space
 				sshutils.RunCommand("sudo rm -rf "+chunkInputFile+" "+chunkOutputFile, l.IP, port, username, password)
@@ -205,15 +212,57 @@ loop:
 	utils.Log.Info("Scan done! Took ", duration, ". Output file: ", outputPath)
 
 	// Remove input folder when the scan is done
-	os.RemoveAll(tempFolderInput)
+	// os.RemoveAll(tempFolderInput)
 
 	// TODO: Get rid of bash and do this using Go
 
-	utils.RunCommand("cat " + filepath.Join(tempFolder, "*") + " > " + outputPath)
+	if isFolderOut {
+		SaveInFolder(tempFolder, outputPath)
+	} else {
+		utils.RunCommand("cat " + filepath.Join(tempFolder, "chunk-out-*") + " > " + outputPath)
+	}
 
 	if chunksFolder == "" {
 		//utils.RunCommand("rm -rf " + filepath.Join(tempFolder, "chunk-out-*"))
 		os.RemoveAll(tempFolder)
 	}
 
+}
+
+func SendSCP(source string, destination string, IP string, PORT int, username string, password string) bool {
+	err := scp.NewSCP(sshutils.GetConnection(IP, PORT, username, password).Client).ReceiveFile(source, destination)
+	if err != nil {
+		os.Remove(destination)
+		err := scp.NewSCP(sshutils.GetConnection(IP, PORT, username, password).Client).ReceiveDir(source, destination, nil)
+		if err != nil {
+			utils.Log.Fatal("SEND DIR ERROR: ", err)
+		}
+		return true
+	}
+	return false
+}
+
+func SaveInFolder(inputPath string, outputPath string) {
+	utils.MakeFolder(outputPath)
+
+	filepath.Walk(inputPath,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if !info.IsDir() {
+				if !strings.Contains(info.Name(), "chunk-") {
+					utils.RunCommand("cp " + path + " " + outputPath)
+				}
+			}
+			return nil
+		})
+}
+
+func IsDirectory(path string) (bool, error) {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+	return fileInfo.IsDir(), err
 }
