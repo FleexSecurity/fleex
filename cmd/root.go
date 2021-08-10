@@ -15,8 +15,18 @@ var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "fleex",
-	Short: "Distributed computing",
+	Use: "fleex",
+	//Short: "Distributed computing",
+	Short: `
+███████╗██╗     ███████╗███████╗██╗  ██╗
+██╔════╝██║     ██╔════╝██╔════╝╚██╗██╔╝
+█████╗  ██║     █████╗  █████╗   ╚███╔╝ 
+██╔══╝  ██║     ██╔══╝  ██╔══╝   ██╔██╗ 
+██║     ███████╗███████╗███████╗██╔╝ ██╗
+╚═╝     ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝
+
+Distributed computing
+`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	/*Run: func(cmd *cobra.Command, args []string) {
