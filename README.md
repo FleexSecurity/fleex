@@ -1,4 +1,4 @@
-![Fleex](https://sw33tlie.github.io/fleex-docs/img/Fleex_banner.png)
+![Fleex](static/Fleex-Banner.png)
 
 
 Fleex allows you to create multiple VPS on cloud providers and use them to distribute your workload. Run tools like masscan, puredns, ffuf, httpx or anything you need and get results quickly!
@@ -27,10 +27,11 @@ GO111MODULE=on go get -v github.com/sw33tLie/fleex
 
 Available Commands:
   build       Build image
-  config      fleex config setup
+  config      Config setup
   delete      Delete a fleet or a single box
   help        Help about any command
   images      List available images
+  init        This command initializes fleex
   ls          List running boxes
   run         Run a command
   scan        Distributed scanning
@@ -41,7 +42,12 @@ Available Commands:
 
 # Documentation
 
-See the documentation [here](https://sw33tlie.github.io/fleex-docs/)
+<a href="https://sw33tlie.github.io/fleex-docs/"><img src="static/Fleex-docs.png" alt="Fleex-docs"></a>
+
+# Referrals
+
+<a href="https://www.linode.com/?r=172cb6708bc78a41c5014cc2da0f2ab0d7abbe7b"><img src="static/Referrals/Linode-referral.png" alt="Fleex-docs"></a>
+<a href="https://m.do.co/c/91982e64054b"><img src="static/Referrals/Digitalocean-referral.png" alt="Fleex-docs"></a>
 
 # Main contributors
 <table>
