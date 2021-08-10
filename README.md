@@ -47,6 +47,7 @@ Available Commands:
 # Referrals
 
 <a href="https://www.linode.com/?r=172cb6708bc78a41c5014cc2da0f2ab0d7abbe7b"><img src="static/Referrals/Linode-referral.png" alt="Fleex-docs"></a>
+
 <a href="https://m.do.co/c/91982e64054b"><img src="static/Referrals/Digitalocean-referral.png" alt="Fleex-docs"></a>
 
 # Main contributors
