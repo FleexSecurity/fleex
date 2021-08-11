@@ -94,6 +94,16 @@ Available Commands:
         <b>ProjectDiscovery</b>
         </a>
     </td>
+     <td align="center">
+      <a href="https://twitter.com/bsysop">
+      <img
+          width="75px;"
+          src="https://avatars.githubusercontent.com/u/9998303?v=4"
+          alt="bsysop"/>
+        <br />
+        <b>bsysop</b>
+        </a>
+    </td>
   </tr>
 </table>
 
