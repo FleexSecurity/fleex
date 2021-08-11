@@ -10,6 +10,10 @@ Fleex allows you to create multiple VPS on cloud providers and use them to distr
 <br>
 <a href="https://twitter.com/sw33tLie"><img src="https://img.shields.io/twitter/follow/sw33tLie.svg?logo=twitter"></a>
 <a href="https://twitter.com/xm1k3_"><img src="https://img.shields.io/twitter/follow/xm1k3_.svg?logo=twitter"></a>
+<br>
+<br>
+<a href="https://www.buymeacoffee.com/xm1k3"><img src="https://www.buymeacoffee.com/assets/img/custom_images/purple_img.png"></a>
+<br>
 </p>
 
 # Install 
