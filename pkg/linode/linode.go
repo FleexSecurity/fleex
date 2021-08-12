@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/linode/linodego"
 	"github.com/sirupsen/logrus"
@@ -175,7 +174,8 @@ func GetImages(token string) (images []box.Image) {
 // ListBoxes prints all active boxes of a Linode account
 func ListBoxes(token string) {
 	for _, linode := range GetBoxes(token) {
-		fmt.Println(linode.ID, linode.Label, linode.Group, linode.Status, linode.IP)
+		// fmt.Println(linode.ID, linode.Label, linode.Group, linode.Status, linode.IP)
+		fmt.Printf("%12v %12v %12v %12v %12v\n", linode.ID, linode.Label, linode.Group, linode.Status, linode.IP)
 	}
 }
 
@@ -279,26 +279,10 @@ func CountFleet(fleetName string, boxes []box.Box) (count int) {
 }
 
 func DeleteBoxByID(id int, token string) {
-	for {
-		req, err := http.NewRequest("DELETE", "https://api.linode.com/v4/linode/instances/"+strconv.Itoa(id), nil)
-		if err != nil {
-			utils.Log.Fatal(err)
-		}
-
-		req.Header.Set("Authorization", "Bearer "+token)
-
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			panic(err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode == 200 {
-			break
-		}
-
-		time.Sleep(1 * time.Second)
+	linodeClient := GetClient(token)
+	err := linodeClient.DeleteInstance(context.Background(), id)
+	if err != nil {
+		log.Fatal(err)
 	}
 }
 
