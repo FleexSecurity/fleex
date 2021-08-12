@@ -175,7 +175,7 @@ func GetImages(token string) (images []box.Image) {
 func ListBoxes(token string) {
 	for _, linode := range GetBoxes(token) {
 		// fmt.Println(linode.ID, linode.Label, linode.Group, linode.Status, linode.IP)
-		fmt.Printf("%12v %12v %12v %12v %12v\n", linode.ID, linode.Label, linode.Group, linode.Status, linode.IP)
+		fmt.Printf("%-10v %-16v %-10v %-20v %-15v\n", linode.ID, linode.Label, linode.Group, linode.Status, linode.IP)
 	}
 }
 
