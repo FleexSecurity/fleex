@@ -149,32 +149,24 @@ func GetBox(boxName, token string) box.Box {
 
 // GetImages returns a slice containing all private images of a Linode account
 func GetImages(token string) (images []box.Image) {
-	req, err := http.NewRequest("GET", "https://api.linode.com/v4/images", nil)
+	linodeClient := GetClient(token)
+
+	linodeImages, err := linodeClient.ListImages(context.Background(), nil)
+
 	if err != nil {
 		utils.Log.Fatal(err)
 	}
 
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
-
-	body, _ := ioutil.ReadAll(resp.Body)
-	if resp.StatusCode != 200 {
-		utils.Log.Fatal("Error. HTTP status code: " + resp.Status)
-		return nil
-	}
-
-	data := gjson.GetMany(string(body), "data.#.id", "data.#.label", "data.#.created", "data.#.size", "data.#.vendor")
-
-	for i := 0; i < len(data[0].Array()); i++ {
+	for _, image := range linodeImages {
 		// Only list custom images
-		if strings.HasPrefix(data[0].Array()[i].Str, "private") {
-			images = append(images, box.Image{data[0].Array()[i].Str, data[1].Array()[i].Str, data[2].Array()[i].Str, int(data[3].Array()[i].Int()), data[4].Array()[i].Str})
+		if strings.HasPrefix(image.ID, "private") {
+			images = append(images, box.Image{
+				ID:      image.ID,
+				Label:   image.Label,
+				Created: image.Created.String(),
+				Size:    image.Size,
+				Vendor:  image.Vendor,
+			})
 		}
 	}
 	return images
