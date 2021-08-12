@@ -50,7 +50,7 @@ func RunCommand(command string, ip string, port int, username string, password s
 	for retries := 0; retries < 3; retries++ {
 		conn, err = Connect(ip+":"+strconv.Itoa(port), username, password)
 		if err != nil {
-			if strings.Contains(err.Error(), "connection refused") {
+			if strings.Contains(err.Error(), "connection refused") && retries < 3 {
 				continue
 			}
 			utils.Log.Fatal(err)
