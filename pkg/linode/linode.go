@@ -104,37 +104,20 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 
 // GetBoxes returns a slice containg all active boxes of a Linode account
 func GetBoxes(token string) (boxes []box.Box) {
-retry:
-	req, err := http.NewRequest("GET", "https://api.linode.com/v4/linode/instances", nil)
+	linodeClient := GetClient(token)
+	linodes, err := linodeClient.ListInstances(context.Background(), nil)
 	if err != nil {
-		utils.Log.Fatal(err)
+		log.Fatal(err)
 	}
 
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
-
-	body, _ := ioutil.ReadAll(resp.Body)
-
-	if resp.StatusCode == 429 {
-		time.Sleep(1 * time.Second)
-		goto retry
-	}
-
-	if resp.StatusCode != 200 {
-		utils.Log.Fatal("Error. HTTP status code: " + resp.Status)
-		return nil
-	}
-
-	data := gjson.GetMany(string(body), "data.#.id", "data.#.label", "data.#.group", "data.#.status", "data.#.ipv4")
-
-	for i := 0; i < len(data[0].Array()); i++ {
-		boxes = append(boxes, box.Box{int(data[0].Array()[i].Int()), data[1].Array()[i].Str, data[2].Array()[i].Str, data[3].Array()[i].Str, data[4].Array()[i].Array()[0].Str})
+	for _, linode := range linodes {
+		boxes = append(boxes, box.Box{
+			ID:     linode.ID,
+			Label:  linode.Label,
+			Group:  linode.Group,
+			Status: string(linode.Status),
+			IP:     linode.IPv4[0].String(),
+		})
 	}
 	return boxes
 }
@@ -199,13 +182,8 @@ func GetImages(token string) (images []box.Image) {
 
 // ListBoxes prints all active boxes of a Linode account
 func ListBoxes(token string) {
-	linodeClient := GetClient(token)
-	linodes, err := linodeClient.ListInstances(context.Background(), nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	for _, linode := range linodes {
-		fmt.Println(linode.ID, linode.Label, linode.Group, linode.Status, linode.IPv4)
+	for _, linode := range GetBoxes(token) {
+		fmt.Println(linode.ID, linode.Label, linode.Group, linode.Status, linode.IP)
 	}
 }
 
