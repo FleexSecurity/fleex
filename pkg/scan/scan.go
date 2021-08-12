@@ -60,7 +60,7 @@ func Start(fleetName, command string, delete bool, input, outputPath, chunksFold
 
 	timeStamp := strconv.FormatInt(time.Now().UnixNano(), 10)
 	// TODO: use a proper temp folder function so that it can run on windows too
-	tempFolder := filepath.Join("/tmp", timeStamp)
+	tempFolder := filepath.Join("/tmp", "fleex-"+timeStamp)
 
 	if chunksFolder != "" {
 		tempFolder = chunksFolder
