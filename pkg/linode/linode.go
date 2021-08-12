@@ -20,7 +20,6 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/sw33tLie/fleex/pkg/sshutils"
-	"github.com/tidwall/gjson"
 )
 
 type LinodeTemplate struct {
@@ -153,6 +152,7 @@ func GetImages(token string) (images []box.Image) {
 
 	linodeImages, err := linodeClient.ListImages(context.Background(), nil)
 
+	fmt.Println(err)
 	if err != nil {
 		utils.Log.Fatal(err)
 	}
@@ -313,46 +313,20 @@ func deleteBoxByLabel(label string, token string) {
 
 func spawnBox(name string, image string, region string, size string, token string) {
 	linPasswd := viper.GetString("linode.password")
-	for {
-		newLinode := LinodeTemplate{SwapSize: 512, Image: image, RootPassword: linPasswd, LinodeType: size, Region: region, AuthorizedKeys: []string{sshutils.GetLocalPublicSSHKey()}, Booted: true, Label: name}
-		postJSON, err := json.Marshal(newLinode)
-		if err != nil {
-			utils.Log.Fatal(err)
-		}
 
-		req, err := http.NewRequest("POST", "https://api.linode.com/v4/linode/instances", bytes.NewBuffer(postJSON))
-		if err != nil {
-			utils.Log.Fatal(err)
-		}
-
-		req.Header.Set("Authorization", "Bearer "+token)
-		req.Header.Set("Content-Type", "application/json")
-
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			utils.Log.Fatal(err)
-		}
-		defer resp.Body.Close()
-
-		body, _ := ioutil.ReadAll(resp.Body)
-		utils.Log.Debug("API Response: ", string(body))
-
-		if resp.StatusCode == 400 {
-			log.Fatal(gjson.Get(string(body), "errors.#.reason"))
-		}
-
-		if resp.StatusCode == 429 {
-			time.Sleep(1 * time.Second)
-			continue
-		}
-
-		if resp.StatusCode == 200 {
-			break
-		}
-
-		time.Sleep(5 * time.Second)
-	}
+	linodeClient := GetClient(token)
+	swapSize := 512
+	booted := true
+	linodeClient.CreateInstance(context.Background(), linodego.InstanceCreateOptions{
+		SwapSize:       &swapSize,
+		Image:          image,
+		RootPass:       linPasswd,
+		Type:           size,
+		Region:         region,
+		AuthorizedKeys: []string{sshutils.GetLocalPublicSSHKey()},
+		Booted:         &booted,
+		Label:          name,
+	})
 }
 
 func CreateImage(token string, linodeID int, label string) {
