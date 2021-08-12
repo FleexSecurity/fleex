@@ -71,11 +71,12 @@ func GetClient(token string) linodego.Client {
 func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, token string) {
 	existingFleet := GetFleet(fleetName, token)
 
-	fleet := make(chan string, fleetCount)
+	threads := 10
+	fleet := make(chan string, threads)
 	processGroup := new(sync.WaitGroup)
-	processGroup.Add(fleetCount)
+	processGroup.Add(threads)
 
-	for i := 0; i < fleetCount; i++ {
+	for i := 0; i < threads; i++ {
 		go func() {
 			for {
 				box := <-fleet
@@ -294,24 +295,30 @@ func deleteBoxByLabel(label string, token string) {
 }
 
 func spawnBox(name string, image string, region string, size string, token string) {
-	linPasswd := viper.GetString("linode.password")
+	for {
+		linPasswd := viper.GetString("linode.password")
 
-	linodeClient := GetClient(token)
-	swapSize := 512
-	booted := true
-	_, err := linodeClient.CreateInstance(context.Background(), linodego.InstanceCreateOptions{
-		SwapSize:       &swapSize,
-		Image:          image,
-		RootPass:       linPasswd,
-		Type:           size,
-		Region:         region,
-		AuthorizedKeys: []string{sshutils.GetLocalPublicSSHKey()},
-		Booted:         &booted,
-		Label:          name,
-	})
+		linodeClient := GetClient(token)
+		swapSize := 512
+		booted := true
+		_, err := linodeClient.CreateInstance(context.Background(), linodego.InstanceCreateOptions{
+			SwapSize:       &swapSize,
+			Image:          image,
+			RootPass:       linPasswd,
+			Type:           size,
+			Region:         region,
+			AuthorizedKeys: []string{sshutils.GetLocalPublicSSHKey()},
+			Booted:         &booted,
+			Label:          name,
+		})
 
-	if err != nil {
-		utils.Log.Fatal(err)
+		if err != nil {
+			if strings.Contains(err.Error(), "Please try again") {
+				continue
+			}
+			utils.Log.Fatal(err)
+		}
+		break
 	}
 }
 

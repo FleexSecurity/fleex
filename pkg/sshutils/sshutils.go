@@ -45,11 +45,20 @@ func SSHFingerprintGen(publicSSH string) string {
 }
 
 func RunCommand(command string, ip string, port int, username string, password string) *Connection {
-	conn, err := Connect(ip+":"+strconv.Itoa(port), username, password)
-	if err != nil {
-		utils.Log.Fatal(err)
+	var conn *Connection
+	var err error
+	for retries := 0; retries < 3; retries++ {
+		conn, err = Connect(ip+":"+strconv.Itoa(port), username, password)
+		if err != nil {
+			if strings.Contains(err.Error(), "connection refused") && retries < 3 {
+				continue
+			}
+			utils.Log.Fatal(err)
+		}
+		break
 	}
 	conn.sendCommands(command)
+
 	return conn
 }
 
