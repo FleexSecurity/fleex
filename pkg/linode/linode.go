@@ -2,6 +2,7 @@ package linode
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -11,10 +12,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/linode/linodego"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/sw33tLie/fleex/pkg/box"
 	"github.com/sw33tLie/fleex/pkg/utils"
+	"golang.org/x/oauth2"
 
 	"github.com/sw33tLie/fleex/pkg/sshutils"
 	"github.com/tidwall/gjson"
@@ -51,6 +54,21 @@ type LinodeDisk struct {
 }
 
 var log = logrus.New()
+
+func GetClient(token string) linodego.Client {
+	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
+
+	oauth2Client := &http.Client{
+		Transport: &oauth2.Transport{
+			Source: tokenSource,
+		},
+	}
+
+	linodeClient := linodego.NewClient(oauth2Client)
+	linodeClient.SetDebug(false)
+
+	return linodeClient
+}
 
 // SpawnFleet spawns a Linode fleet
 func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, token string) {
@@ -181,9 +199,13 @@ func GetImages(token string) (images []box.Image) {
 
 // ListBoxes prints all active boxes of a Linode account
 func ListBoxes(token string) {
-	linodes := GetBoxes(token)
+	linodeClient := GetClient(token)
+	linodes, err := linodeClient.ListInstances(context.Background(), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
 	for _, linode := range linodes {
-		fmt.Println(linode.ID, linode.Label, linode.Group, linode.Status, linode.IP)
+		fmt.Println(linode.ID, linode.Label, linode.Group, linode.Status, linode.IPv4)
 	}
 }
 

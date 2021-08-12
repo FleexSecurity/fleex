@@ -16,6 +16,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/hnakamur/go-scp v1.0.2
 	github.com/jonboulle/clockwork v0.1.0 // indirect
+	github.com/linode/linodego v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/prometheus/client_golang v0.9.3 // indirect
