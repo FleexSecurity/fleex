@@ -1,7 +1,6 @@
 package linode
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -174,7 +173,6 @@ func GetImages(token string) (images []box.Image) {
 // ListBoxes prints all active boxes of a Linode account
 func ListBoxes(token string) {
 	for _, linode := range GetBoxes(token) {
-		// fmt.Println(linode.ID, linode.Label, linode.Group, linode.Status, linode.IP)
 		fmt.Printf("%-10v %-16v %-10v %-20v %-15v\n", linode.ID, linode.Label, linode.Group, linode.Status, linode.IP)
 	}
 }
@@ -183,7 +181,7 @@ func ListBoxes(token string) {
 func ListImages(token string) {
 	images := GetImages(token)
 	for _, image := range images {
-		fmt.Println(image.ID, image.Label, image.Size, image.Created, image.Vendor)
+		fmt.Printf("%-18v %-48v %-6v %-29v %-15v\n", image.ID, image.Label, image.Size, image.Created, image.Vendor)
 	}
 }
 
@@ -318,30 +316,16 @@ func spawnBox(name string, image string, region string, size string, token strin
 }
 
 func CreateImage(token string, linodeID int, label string) {
+	linodeClient := GetClient(token)
 	diskID := GetDiskID(token, linodeID)
-
-	newLinode := LinodeImage{DiskID: diskID, Description: "Fleex build image", Label: label}
-	postJSON, _ := json.Marshal(newLinode)
-
-	req, err := http.NewRequest("POST", "https://api.linode.com/v4/images", bytes.NewBuffer(postJSON))
+	_, err := linodeClient.CreateImage(context.Background(), linodego.ImageCreateOptions{
+		DiskID:      diskID,
+		Description: "Fleex build image",
+		Label:       label,
+	})
 	if err != nil {
-		utils.Log.Fatal(err)
+		log.Fatal(err)
 	}
-
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-
-	if err != nil {
-		utils.Log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	/*if resp.StatusCode == 200 {
-		fmt.Println("Image created")
-	}*/
 }
 
 func GetDiskID(token string, linodeID int) int {
@@ -371,4 +355,14 @@ func GetDiskID(token string, linodeID int) int {
 	}
 
 	return data.Data[0].ID
+}
+
+func GetDiskID_test(token string, linodeID int) int {
+	linodeClient := GetClient(token)
+	// diskID := GetDiskID(token, linodeID)
+	diskID, err := linodeClient.GetInstanceDisk(context.Background(), linodeID, 1)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return diskID.ID
 }
