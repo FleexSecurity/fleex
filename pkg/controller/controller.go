@@ -153,6 +153,17 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 		utils.Log.Info("Increasing fleet ", fleetName, " from size ", len(startFleet), " to ", finalFleetSize)
 	}
 
+	// Handle CTRL+C SIGINT
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for range c {
+			utils.Log.Info("Spawn interrupted. Killing boxes...")
+			DeleteFleet(fleetName, token, provider)
+			os.Exit(0)
+		}
+	}()
+
 	switch provider {
 	case PROVIDER_LINODE:
 		linode.SpawnFleet(fleetName, fleetCount, image, region, size, token)
