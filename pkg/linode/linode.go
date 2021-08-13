@@ -119,7 +119,6 @@ func GetImages(token string) (images []box.Image) {
 
 	linodeImages, err := linodeClient.ListImages(context.Background(), nil)
 
-	fmt.Println(err)
 	if err != nil {
 		utils.Log.Fatal(err)
 	}
