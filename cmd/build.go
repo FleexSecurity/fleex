@@ -165,7 +165,7 @@ func init() {
 	buildCmd.Flags().StringP("file", "f", home+"/fleex/build/common.yaml", "Build file")
 	buildCmd.Flags().StringP("region", "R", "", "Region")
 	buildCmd.Flags().StringP("size", "S", "", "Size")
-	buildCmd.Flags().BoolP("delete", "d", false, "Delete box after image creation")
+	buildCmd.Flags().BoolP("delete", "d", true, "Doesn't delete the box after image creation")
 
 }
 

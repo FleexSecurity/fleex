@@ -2,9 +2,7 @@ package linode
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -19,36 +17,6 @@ import (
 
 	"github.com/sw33tLie/fleex/pkg/sshutils"
 )
-
-type LinodeTemplate struct {
-	BackupID        int      `json:"backup_id"`
-	BackupsEnabled  bool     `json:"backups_enabled"`
-	SwapSize        int      `json:"swap_size"`
-	Image           string   `json:"image"`
-	RootPassword    string   `json:"root_pass"`
-	AuthorizedKeys  []string `json:"authorized_keys"`
-	AuthorizedUsers []string `json:"authorized_users"`
-	Booted          bool     `json:"booted"`
-	Label           string   `json:"label"`
-	LinodeType      string   `json:"type"`
-	Region          string   `json:"region"`
-	Group           string   `json:"group"`
-}
-
-type LinodeImage struct {
-	DiskID      int    `json:"disk_id"`
-	Description string `json:"description"`
-	Label       string `json:"label"`
-}
-
-type LinodeDisk struct {
-	Data []struct {
-		ID         int    `json:"id"`
-		Status     string `json:"status"`
-		Label      string `json:"label"`
-		Filesystem string `json:"filesystem"`
-	}
-}
 
 var log = logrus.New()
 
@@ -336,40 +304,10 @@ func CreateImage(token string, linodeID int, label string) {
 }
 
 func GetDiskID(token string, linodeID int) int {
-	req, err := http.NewRequest("GET", "https://api.linode.com/v4/linode/instances/"+strconv.Itoa(linodeID)+"/disks", nil)
-	if err != nil {
-		utils.Log.Fatal(err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		utils.Log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err.Error())
-	}
-	var data LinodeDisk
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	return data.Data[0].ID
-}
-
-func GetDiskID_test(token string, linodeID int) int {
 	linodeClient := GetClient(token)
-	// diskID := GetDiskID(token, linodeID)
-	diskID, err := linodeClient.GetInstanceDisk(context.Background(), linodeID, 1)
+	disk, err := linodeClient.ListInstanceDisks(context.Background(), linodeID, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return diskID.ID
+	return disk[0].ID
 }
