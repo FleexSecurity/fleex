@@ -4,9 +4,9 @@
 Fleex allows you to create multiple VPS on cloud providers and use them to distribute your workload. Run tools like masscan, puredns, ffuf, httpx or anything you need and get results quickly!
 
 <p align="center">
-<a href="https://github.com/sw33tLie/fleex/issues"><img src="https://img.shields.io/badge/contributions-welcome-blue.svg?style=flat"></a>
+<a href="https://github.com/FleexSecurity/fleex/issues"><img src="https://img.shields.io/badge/contributions-welcome-blue.svg?style=flat"></a>
 <img alt="AUR license badge" src="https://img.shields.io/badge/license-Apache-blue">
-<a href="https://github.com/sw33tLie/fleex/releases"><img src="https://img.shields.io/github/release/sw33tLie/fleex"></a>
+<a href="https://github.com/FleexSecurity/fleex/releases"><img src="https://img.shields.io/github/release/FleexSecurity/fleex"></a>
 <br>
 <a href="https://twitter.com/sw33tLie"><img src="https://img.shields.io/twitter/follow/sw33tLie.svg?logo=twitter"></a>
 <a href="https://twitter.com/xm1k3_"><img src="https://img.shields.io/twitter/follow/xm1k3_.svg?logo=twitter"></a>
@@ -18,7 +18,7 @@ Fleex allows you to create multiple VPS on cloud providers and use them to distr
 
 # Install 
 ```
-GO111MODULE=on go get -v github.com/sw33tLie/fleex
+GO111MODULE=on go get -v github.com/FleexSecurity/fleex
 ```
 
 # Supported providers
@@ -46,7 +46,7 @@ Available Commands:
 
 # Documentation
 
-<a href="https://sw33tlie.github.io/fleex-docs/"><img src="static/Fleex-docs.png" alt="Fleex-docs"></a>
+<a href="https://fleexsecurity.github.io/fleex-docs/"><img src="static/Fleex-docs.png" alt="Fleex-docs"></a>
 
 # Referrals
 

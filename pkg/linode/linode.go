@@ -8,14 +8,14 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/FleexSecurity/fleex/pkg/box"
+	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/linode/linodego"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"github.com/sw33tLie/fleex/pkg/box"
-	"github.com/sw33tLie/fleex/pkg/utils"
 	"golang.org/x/oauth2"
 
-	"github.com/sw33tLie/fleex/pkg/sshutils"
+	"github.com/FleexSecurity/fleex/pkg/sshutils"
 )
 
 var log = logrus.New()

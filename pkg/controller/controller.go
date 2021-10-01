@@ -14,10 +14,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/term"
 
-	"github.com/sw33tLie/fleex/pkg/box"
-	"github.com/sw33tLie/fleex/pkg/digitalocean"
-	"github.com/sw33tLie/fleex/pkg/linode"
-	"github.com/sw33tLie/fleex/pkg/utils"
+	"github.com/FleexSecurity/fleex/pkg/box"
+	"github.com/FleexSecurity/fleex/pkg/digitalocean"
+	"github.com/FleexSecurity/fleex/pkg/linode"
+	"github.com/FleexSecurity/fleex/pkg/utils"
 )
 
 type Provider int

@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FleexSecurity/fleex/pkg/controller"
+	"github.com/FleexSecurity/fleex/pkg/sshutils"
+	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/hnakamur/go-scp"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/sw33tLie/fleex/pkg/controller"
-	"github.com/sw33tLie/fleex/pkg/sshutils"
-	"github.com/sw33tLie/fleex/pkg/utils"
 	"gopkg.in/yaml.v2"
 )
 

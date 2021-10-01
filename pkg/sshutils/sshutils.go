@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/spf13/viper"
-	"github.com/sw33tLie/fleex/pkg/utils"
 
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"

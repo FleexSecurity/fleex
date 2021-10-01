@@ -20,9 +20,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
-	"github.com/sw33tLie/fleex/pkg/utils"
 )
 
 // initCmd represents the init command
@@ -44,7 +44,7 @@ var initCmd = &cobra.Command{
 		}
 
 		if linkFlag == "" {
-			fileUrl = "https://github.com/sw33tLie/fleex/releases/download/v1.0/config.zip"
+			fileUrl = "https://github.com/FleexSecurity/fleex/releases/download/v1.0/config.zip"
 		} else {
 			fileUrl = linkFlag
 		}

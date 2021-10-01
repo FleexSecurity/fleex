@@ -1,6 +1,6 @@
 package main
 
-import "github.com/sw33tLie/fleex/cmd"
+import "github.com/FleexSecurity/fleex/cmd"
 
 func main() {
 	cmd.Execute()
