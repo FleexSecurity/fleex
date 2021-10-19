@@ -31,8 +31,7 @@ import (
 // scpCmd represents the scp command
 var scpCmd = &cobra.Command{
 	Use:   "scp",
-	Short: "SCP client",
-	Long:  "SCP client",
+	Short: "Send a file/folder to a fleet using SCP",
 	Run: func(cmd *cobra.Command, args []string) {
 		var token string
 

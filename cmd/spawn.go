@@ -11,7 +11,7 @@ import (
 // spawnCmd represents the spawn command
 var spawnCmd = &cobra.Command{
 	Use:   "spawn",
-	Short: "Spawn a fleet",
+	Short: "Spawn a fleet or even a single box",
 	Run: func(cmd *cobra.Command, args []string) {
 		var token, image, region, size, sshFingerprint string
 		var tags []string

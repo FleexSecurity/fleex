@@ -22,7 +22,7 @@ type Module struct {
 // scanCmd represents the scan command
 var scanCmd = &cobra.Command{
 	Use:   "scan",
-	Short: "Distributed scanning",
+	Short: "Send a command to a fleet, but also with files upload & chunks splitting",
 	Run: func(cmd *cobra.Command, args []string) {
 		var token string
 

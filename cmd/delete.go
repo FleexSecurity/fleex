@@ -10,7 +10,7 @@ import (
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "Delete a fleet or a single box",
+	Short: "Delete an existing fleet or even a single box",
 	Run: func(cmd *cobra.Command, args []string) {
 		var token string
 

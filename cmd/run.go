@@ -10,7 +10,7 @@ import (
 // runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Run a command",
+	Short: "Send a command to a fleet",
 	Run: func(cmd *cobra.Command, args []string) {
 		var token string
 

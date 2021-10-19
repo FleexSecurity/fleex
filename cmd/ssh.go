@@ -10,7 +10,7 @@ import (
 // sshCmd represents the ssh command
 var sshCmd = &cobra.Command{
 	Use:   "ssh",
-	Short: "Start SSH",
+	Short: "Start SSH terminal for a box",
 
 	Run: func(cmd *cobra.Command, args []string) {
 		var token string

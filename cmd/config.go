@@ -18,7 +18,6 @@ var configCmd = &cobra.Command{
 var configGet = &cobra.Command{
 	Use:   "get",
 	Short: "Get data from config file",
-	Long:  "Get data from config file",
 	Run: func(cmd *cobra.Command, args []string) {
 		fieldFlag, _ := cmd.Flags().GetString("field")
 		viper.SetConfigType("yaml")

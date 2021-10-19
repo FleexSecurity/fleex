@@ -31,7 +31,7 @@ type BuildConfig struct {
 // buildCmd represents the build command
 var buildCmd = &cobra.Command{
 	Use:   "build",
-	Short: "Build image",
+	Short: "Build an image with all the tools you need. Run this the first time only (for each provider).",
 	Long:  "Build image",
 	Run: func(cmd *cobra.Command, args []string) {
 		var token, region, size, sshFingerprint, boxIP, image string
