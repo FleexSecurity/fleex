@@ -16,7 +16,6 @@ var cfgFile string
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use: "fleex",
-	//Short: "Distributed computing",
 	Short: `
 ███████╗██╗     ███████╗███████╗██╗  ██╗
 ██╔════╝██║     ██╔════╝██╔════╝╚██╗██╔╝
@@ -25,7 +24,8 @@ var rootCmd = &cobra.Command{
 ██║     ███████╗███████╗███████╗██╔╝ ██╗
 ╚═╝     ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝
 
-Distributed computing
+Distributed computing using Linode/Digitalocean boxes.
+Check out our docs at https://fleexsecurity.github.io/fleex-docs/
 `,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
