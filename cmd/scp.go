@@ -79,7 +79,9 @@ var scpCmd = &cobra.Command{
 		}
 
 		if strings.Contains(destinationFlag, home) {
-			destinationFlag = strings.ReplaceAll(destinationFlag, home, "/home/"+usernameFlag)
+			if home != "/root" {
+				destinationFlag = strings.ReplaceAll(destinationFlag, home, "/home/"+usernameFlag)
+			}
 		}
 
 		fleets := controller.GetFleet(nameFlag, token, provider)
