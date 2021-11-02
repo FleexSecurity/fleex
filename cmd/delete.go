@@ -29,6 +29,8 @@ var deleteCmd = &cobra.Command{
 			token = viper.GetString("linode.token")
 		case controller.PROVIDER_DIGITALOCEAN:
 			token = viper.GetString("digitalocean.token")
+		case controller.PROVIDER_VULTR:
+			token = viper.GetString("vultr.token")
 		}
 
 		controller.DeleteFleet(name, token, provider)
@@ -39,6 +41,6 @@ var deleteCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(deleteCmd)
 	deleteCmd.Flags().StringP("name", "n", "pwn", "Fleet name. Boxes will be named [name]-[number]")
-	deleteCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
+	deleteCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean, vultr)")
 
 }

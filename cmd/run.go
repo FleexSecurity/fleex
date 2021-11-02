@@ -51,6 +51,11 @@ var runCmd = &cobra.Command{
 			port = viper.GetInt("digitalocean.port")
 			username = viper.GetString("digitalocean.username")
 			password = viper.GetString("digitalocean.password")
+		case controller.PROVIDER_VULTR:
+			token = viper.GetString("vultr.token")
+			port = viper.GetInt("vultr.port")
+			username = viper.GetString("vultr.username")
+			password = viper.GetString("vultr.password")
 		}
 		// log.Fatalln(fleetName, command, token, port, username, password, provider)
 		controller.RunCommand(fleetName, command, token, port, username, password, provider)
@@ -65,7 +70,7 @@ func init() {
 	runCmd.Flags().IntP("port", "", -1, "SSH port")
 	runCmd.Flags().StringP("username", "U", "", "SSH username")
 	runCmd.Flags().StringP("password", "P", "", "SSH password")
-	runCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
+	runCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean, vultr)")
 
 	runCmd.MarkFlagRequired("command")
 }

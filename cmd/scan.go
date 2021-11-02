@@ -68,6 +68,11 @@ var scanCmd = &cobra.Command{
 			port = viper.GetInt("digitalocean.port")
 			username = viper.GetString("digitalocean.username")
 			password = viper.GetString("digitalocean.password")
+		case controller.PROVIDER_VULTR:
+			token = viper.GetString("vultr.token")
+			port = viper.GetInt("vultr.port")
+			username = viper.GetString("vultr.username")
+			password = viper.GetString("vultr.password")
 		}
 
 		var module Module
@@ -95,7 +100,7 @@ func init() {
 	scanCmd.Flags().StringP("input", "i", "", "Input file")
 	scanCmd.Flags().StringP("output", "o", "", "Output file path. Made from concatenating all output chunks from all boxes")
 	scanCmd.Flags().StringP("chunks-folder", "", "", "Output folder containing output chunks. If empty it will use /tmp/<unix_timestamp>")
-	scanCmd.Flags().StringP("provider", "p", "", "VPS provider (Supported: linode, digitalocean)")
+	scanCmd.Flags().StringP("provider", "p", "", "VPS provider (Supported: linode, digitalocean, vultr)")
 	scanCmd.Flags().IntP("port", "", -1, "SSH port")
 	scanCmd.Flags().StringP("username", "U", "", "SSH username")
 	scanCmd.Flags().StringP("password", "P", "", "SSH password")

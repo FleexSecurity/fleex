@@ -24,6 +24,7 @@ GO111MODULE=on go get -v github.com/FleexSecurity/fleex
 # Supported providers
 - [Linode](https://www.linode.com)
 - [Digitalocean](https://www.digitalocean.com)
+- [Vultr](https://www.vultr.com/)
 
 # Available commands
 ```

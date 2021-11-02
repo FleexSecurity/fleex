@@ -77,8 +77,9 @@ func GetBoxes(token string) (boxes []box.Box) {
 	}
 
 	for _, linode := range linodes {
+		linodeID := strconv.Itoa(linode.ID)
 		boxes = append(boxes, box.Box{
-			ID:     linode.ID,
+			ID:     linodeID,
 			Label:  linode.Label,
 			Group:  linode.Group,
 			Status: string(linode.Status),
@@ -244,9 +245,10 @@ func CountFleet(fleetName string, boxes []box.Box) (count int) {
 	return count
 }
 
-func DeleteBoxByID(id int, token string) {
+func DeleteBoxByID(id string, token string) {
 	linodeClient := GetClient(token)
-	err := linodeClient.DeleteInstance(context.Background(), id)
+	linodeID, _ := strconv.Atoi(id)
+	err := linodeClient.DeleteInstance(context.Background(), linodeID)
 	if err != nil {
 		log.Fatal(err)
 	}
