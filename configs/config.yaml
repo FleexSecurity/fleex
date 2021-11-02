@@ -44,7 +44,7 @@ digitalocean:
 # Settings for vultr provider
 vultr:
   # Token: Account > API > Create Personal Access Token
-  token: YOUR_LINODE_TOKEN
+  token: YOUR_VULTR_TOKEN
   # Region & Size, see fleex-docs for more info
   region: atl
   size: vc2-1c-1gb
