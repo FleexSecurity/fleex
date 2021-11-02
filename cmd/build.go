@@ -84,7 +84,7 @@ var buildCmd = &cobra.Command{
 			size = viper.GetString("vultr.size")
 			sshFingerprint = sshutils.SSHFingerprintGen(publicSSH)
 			//image = "ubuntu-20-04-x64"
-			image = "387"
+			image = viper.GetString("vultr.image")
 		}
 
 		// Check for authorization_keys
