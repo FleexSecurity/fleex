@@ -35,7 +35,7 @@ var buildCmd = &cobra.Command{
 	Long:  "Build image",
 	Run: func(cmd *cobra.Command, args []string) {
 		var token, region, size, sshFingerprint, boxIP, image string
-		var boxID int
+		var boxID string
 
 		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
 		utils.SetProxy(proxy)
@@ -78,6 +78,13 @@ var buildCmd = &cobra.Command{
 			size = viper.GetString("digitalocean.size")
 			sshFingerprint = sshutils.SSHFingerprintGen(publicSSH)
 			image = "ubuntu-20-04-x64"
+		case controller.PROVIDER_VULTR:
+			token = viper.GetString("vultr.token")
+			region = viper.GetString("vultr.region")
+			size = viper.GetString("vultr.size")
+			sshFingerprint = sshutils.SSHFingerprintGen(publicSSH)
+			//image = "ubuntu-20-04-x64"
+			image = viper.GetString("vultr.image")
 		}
 
 		// Check for authorization_keys
@@ -92,7 +99,8 @@ var buildCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		controller.SpawnFleet(fleetName, 1, image, region, size, sshFingerprint, tags, token, false, provider)
+
+		controller.SpawnFleet(fleetName, 1, image, region, size, sshFingerprint, tags, token, false, provider, true)
 
 		for {
 			stillNotReady := false
@@ -161,7 +169,7 @@ var buildCmd = &cobra.Command{
 func init() {
 	home, _ := homedir.Dir()
 	rootCmd.AddCommand(buildCmd)
-	buildCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
+	buildCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean, vultr)")
 	buildCmd.Flags().StringP("file", "f", home+"/fleex/build/common.yaml", "Build file")
 	buildCmd.Flags().StringP("region", "R", "", "Region")
 	buildCmd.Flags().StringP("size", "S", "", "Size")

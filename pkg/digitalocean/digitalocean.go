@@ -116,7 +116,8 @@ func GetBoxes(token string) (boxes []box.Box) {
 
 	for _, d := range droplets {
 		ip, _ := d.PublicIPv4()
-		boxes = append(boxes, box.Box{ID: d.ID, Label: d.Name, Group: "", Status: d.Status, IP: ip})
+		dID := strconv.Itoa(d.ID)
+		boxes = append(boxes, box.Box{ID: dID, Label: d.Name, Group: "", Status: d.Status, IP: ip})
 	}
 	return boxes
 }
@@ -164,11 +165,12 @@ func ListImages(token string) {
 	}
 }
 
-func DeleteBoxByID(ID int, token string) {
+func DeleteBoxByID(ID string, token string) {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 
-	_, err := client.Droplets.Delete(ctx, ID)
+	ID1, _ := strconv.Atoi(ID)
+	_, err := client.Droplets.Delete(ctx, ID1)
 	if err != nil {
 		utils.Log.Fatal(err)
 	}
