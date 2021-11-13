@@ -63,8 +63,7 @@ func ListBoxes(token string, provider Provider) {
 	case PROVIDER_LINODE:
 		c.Service = services.LinodeService{}
 	case PROVIDER_DIGITALOCEAN:
-		digitalocean.ListBoxes(token)
-		return
+		c.Service = services.DigitaloceanService{}
 	case PROVIDER_VULTR:
 		vultr.ListBoxes(token)
 		return
@@ -82,8 +81,7 @@ func DeleteFleet(name string, token string, provider Provider) {
 	case PROVIDER_LINODE:
 		c.Service = services.LinodeService{}
 	case PROVIDER_DIGITALOCEAN:
-		digitalocean.DeleteFleet(name, token)
-		return
+		c.Service = services.DigitaloceanService{}
 	case PROVIDER_VULTR:
 		vultr.DeleteFleet(name, token)
 		return
@@ -107,8 +105,7 @@ func ListImages(token string, provider Provider) {
 	case PROVIDER_LINODE:
 		c.Service = services.LinodeService{}
 	case PROVIDER_DIGITALOCEAN:
-		digitalocean.ListImages(token)
-		return
+		c.Service = services.DigitaloceanService{}
 	case PROVIDER_VULTR:
 		vultr.ListImages(token)
 		return
@@ -124,9 +121,7 @@ func CreateImage(token string, provider Provider, diskID string, label string) {
 	case PROVIDER_LINODE:
 		c.Service = services.LinodeService{}
 	case PROVIDER_DIGITALOCEAN:
-		diskID, _ := strconv.Atoi(diskID)
-		digitalocean.CreateImage(token, diskID, label)
-		return
+		c.Service = services.DigitaloceanService{}
 	case PROVIDER_VULTR:
 		vultr.CreateImage(token, diskID)
 		return
@@ -143,7 +138,7 @@ func GetFleet(fleetName string, token string, provider Provider) []box.Box {
 	case PROVIDER_LINODE:
 		c.Service = services.LinodeService{}
 	case PROVIDER_DIGITALOCEAN:
-		return digitalocean.GetFleet(fleetName, token)
+		c.Service = services.DigitaloceanService{}
 	case PROVIDER_VULTR:
 		return vultr.GetFleet(fleetName, token)
 	default:
@@ -159,7 +154,7 @@ func GetBox(boxName string, token string, provider Provider) box.Box {
 	case PROVIDER_LINODE:
 		c.Service = services.LinodeService{}
 	case PROVIDER_DIGITALOCEAN:
-		return digitalocean.GetBox(boxName, token)
+		c.Service = services.DigitaloceanService{}
 	case PROVIDER_VULTR:
 		return vultr.GetBox(boxName, token)
 	default:
@@ -175,8 +170,7 @@ func RunCommand(name, command, token string, port int, username, password string
 	case PROVIDER_LINODE:
 		c.Service = services.LinodeService{}
 	case PROVIDER_DIGITALOCEAN:
-		digitalocean.RunCommand(name, command, port, username, password, token)
-		return
+		c.Service = services.DigitaloceanService{}
 	case PROVIDER_VULTR:
 		vultr.RunCommand(name, command, port, username, password, token)
 		return
@@ -192,7 +186,7 @@ func DeleteBoxByID(id string, token string, provider Provider) {
 	case PROVIDER_LINODE:
 		c.Service = services.LinodeService{}
 	case PROVIDER_DIGITALOCEAN:
-		digitalocean.DeleteBoxByID(id, token)
+		c.Service = services.DigitaloceanService{}
 	case PROVIDER_VULTR:
 		vultr.DeleteBoxByID(id, token)
 	default:
@@ -224,8 +218,9 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 	switch provider {
 	case PROVIDER_LINODE:
 		controller.Service = services.LinodeService{}
-		controller.Service.SpawnFleet(fleetName, fleetCount, image, region, size, token)
+		controller.Service.SpawnFleet(fleetName, fleetCount, image, region, size, "", nil, token)
 	case PROVIDER_DIGITALOCEAN:
+		controller.Service = services.DigitaloceanService{}
 		digitalocean.SpawnFleet(fleetName, fleetCount, image, region, size, sshFingerprint, tags, token)
 	case PROVIDER_VULTR:
 		vultr.SpawnFleet(fleetName, fleetCount, image, region, size, token, build)
