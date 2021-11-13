@@ -6,12 +6,17 @@ import (
 	"path/filepath"
 
 	"github.com/FleexSecurity/fleex/pkg/utils"
+	"github.com/FleexSecurity/fleex/provider/services"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var cfgFile string
+
+type ProviderController struct {
+	Service services.LinodeService
+}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{

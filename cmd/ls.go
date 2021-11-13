@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/FleexSecurity/fleex/pkg/controller"
 	"github.com/FleexSecurity/fleex/pkg/utils"
+	"github.com/FleexSecurity/fleex/provider/controller"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -31,7 +31,6 @@ var lsCmd = &cobra.Command{
 		case controller.PROVIDER_VULTR:
 			token = viper.GetString("vultr.token")
 		}
-
 		controller.ListBoxes(token, provider)
 	},
 }

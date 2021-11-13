@@ -15,9 +15,9 @@ import (
 	"github.com/hnakamur/go-scp"
 
 	"github.com/FleexSecurity/fleex/pkg/box"
-	"github.com/FleexSecurity/fleex/pkg/controller"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
+	"github.com/FleexSecurity/fleex/provider/controller"
 )
 
 func lineCounter(r io.Reader) (int, error) {

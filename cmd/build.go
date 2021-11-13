@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FleexSecurity/fleex/pkg/controller"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
+	"github.com/FleexSecurity/fleex/provider/controller"
 	"github.com/hnakamur/go-scp"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
