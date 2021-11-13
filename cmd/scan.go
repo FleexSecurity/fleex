@@ -3,9 +3,9 @@ package cmd
 import (
 	"io/ioutil"
 
-	"github.com/FleexSecurity/fleex/pkg/scan"
 	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/FleexSecurity/fleex/provider/controller"
+	"github.com/FleexSecurity/fleex/provider/scan"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

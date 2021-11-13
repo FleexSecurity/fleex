@@ -9,9 +9,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/FleexSecurity/fleex/pkg/box"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
+	"github.com/FleexSecurity/fleex/provider"
 	"github.com/linode/linodego"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
@@ -66,7 +66,7 @@ func (l LinodeService) SpawnFleet(fleetName string, fleetCount int, image string
 	processGroup.Wait()
 }
 
-func (l LinodeService) GetFleet(fleetName, token string) (fleet []box.Box) {
+func (l LinodeService) GetFleet(fleetName, token string) (fleet []provider.Box) {
 	boxes := l.GetBoxes(token)
 
 	for _, box := range boxes {
@@ -77,7 +77,7 @@ func (l LinodeService) GetFleet(fleetName, token string) (fleet []box.Box) {
 	return fleet
 }
 
-func (l LinodeService) GetBox(boxName, token string) box.Box {
+func (l LinodeService) GetBox(boxName, token string) provider.Box {
 	boxes := l.GetBoxes(token)
 
 	for _, box := range boxes {
@@ -86,10 +86,10 @@ func (l LinodeService) GetBox(boxName, token string) box.Box {
 		}
 	}
 	utils.Log.Fatal("Box not found!")
-	return box.Box{}
+	return provider.Box{}
 }
 
-func (l LinodeService) GetBoxes(token string) (boxes []box.Box) {
+func (l LinodeService) GetBoxes(token string) (boxes []provider.Box) {
 	linodeClient := getClient(token)
 	linodes, err := linodeClient.ListInstances(context.Background(), nil)
 	if err != nil {
@@ -98,7 +98,7 @@ func (l LinodeService) GetBoxes(token string) (boxes []box.Box) {
 
 	for _, linode := range linodes {
 		linodeID := strconv.Itoa(linode.ID)
-		boxes = append(boxes, box.Box{
+		boxes = append(boxes, provider.Box{
 			ID:     linodeID,
 			Label:  linode.Label,
 			Group:  linode.Group,
@@ -109,7 +109,7 @@ func (l LinodeService) GetBoxes(token string) (boxes []box.Box) {
 	return boxes
 }
 
-func getImages(token string) (images []box.Image) {
+func getImages(token string) (images []provider.Image) {
 	linodeClient := getClient(token)
 
 	linodeImages, err := linodeClient.ListImages(context.Background(), nil)
@@ -121,7 +121,7 @@ func getImages(token string) (images []box.Image) {
 	for _, image := range linodeImages {
 		// Only list custom images
 		if strings.HasPrefix(image.ID, "private") {
-			images = append(images, box.Image{
+			images = append(images, provider.Image{
 				ID:      image.ID,
 				Label:   image.Label,
 				Created: image.Created.String(),
@@ -187,7 +187,7 @@ func (l LinodeService) DeleteFleet(name string, token string) {
 	// Otherwise, we got a fleet to delete
 	fleetSize := l.CountFleet(name, boxes)
 
-	fleet := make(chan *box.Box, fleetSize)
+	fleet := make(chan *provider.Box, fleetSize)
 	processGroup := new(sync.WaitGroup)
 	processGroup.Add(fleetSize)
 
@@ -233,7 +233,7 @@ func (l LinodeService) DeleteBoxByLabel(label string, token string) {
 	}
 }
 
-func (l LinodeService) CountFleet(fleetName string, boxes []box.Box) (count int) {
+func (l LinodeService) CountFleet(fleetName string, boxes []provider.Box) (count int) {
 	for _, box := range boxes {
 		if strings.HasPrefix(box.Label, fleetName) {
 			count++
@@ -255,7 +255,7 @@ func (l LinodeService) RunCommand(name, command string, port int, username, pass
 	// Otherwise, send command to a fleet
 	fleetSize := l.CountFleet(name, boxes)
 
-	fleet := make(chan *box.Box, fleetSize)
+	fleet := make(chan *provider.Box, fleetSize)
 	processGroup := new(sync.WaitGroup)
 	processGroup.Add(fleetSize)
 
@@ -283,11 +283,11 @@ func (l LinodeService) RunCommand(name, command string, port int, username, pass
 	processGroup.Wait()
 }
 
-func (l LinodeService) CreateImage(token string, linodeID int, label string) {
+func (l LinodeService) CreateImage(token string, diskID int, label string) {
 	linodeClient := getClient(token)
-	diskID := getDiskID(token, linodeID)
+	linodeID := getDiskID(token, diskID)
 	_, err := linodeClient.CreateImage(context.Background(), linodego.ImageCreateOptions{
-		DiskID:      diskID,
+		DiskID:      linodeID,
 		Description: "Fleex build image",
 		Label:       label,
 	})

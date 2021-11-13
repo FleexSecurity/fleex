@@ -14,9 +14,9 @@ import (
 
 	"github.com/hnakamur/go-scp"
 
-	"github.com/FleexSecurity/fleex/pkg/box"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
+	p "github.com/FleexSecurity/fleex/provider"
 	"github.com/FleexSecurity/fleex/provider/controller"
 )
 
@@ -141,7 +141,7 @@ loop:
 
 	/////
 
-	fleetNames := make(chan *box.Box, len(fleet))
+	fleetNames := make(chan *p.Box, len(fleet))
 	processGroup := new(sync.WaitGroup)
 	processGroup.Add(len(fleet))
 

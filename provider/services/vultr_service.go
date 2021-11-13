@@ -1,24 +1,24 @@
-package vultr
+package services
 
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"sync"
 
-	"github.com/FleexSecurity/fleex/pkg/box"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
-	"github.com/sirupsen/logrus"
+	"github.com/FleexSecurity/fleex/provider"
 	"github.com/vultr/govultr/v2"
 	"golang.org/x/oauth2"
 	//      "github.com/spf13/viper"
 )
 
-var log = logrus.New()
+type VultrService struct{}
 
-func GetClient(token string) *govultr.Client {
+func (v VultrService) getClient(token string) *govultr.Client {
 	config := &oauth2.Config{}
 	ctx := context.Background()
 	ts := config.TokenSource(ctx, &oauth2.Token{AccessToken: token})
@@ -28,8 +28,9 @@ func GetClient(token string) *govultr.Client {
 }
 
 // SpawnFleet spawns a Vultr fleet
-func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, token string, build bool) {
-	existingFleet := GetFleet(fleetName, token)
+// func (l LinodeService) SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string) {
+func (v VultrService) SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string) {
+	existingFleet := v.GetFleet(fleetName, token)
 
 	threads := 10
 	fleet := make(chan string, threads)
@@ -46,7 +47,7 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 				}
 
 				utils.Log.Info("Spawning box ", box)
-				spawnBox(box, image, region, size, token, build)
+				v.spawnBox(box, image, region, size, token, false)
 			}
 			processGroup.Done()
 		}()
@@ -61,8 +62,8 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 }
 
 // GetBoxes returns a slice containg all active boxes of a Linode account
-func GetBoxes(token string) (boxes []box.Box) {
-	vultrClient := GetClient(token)
+func (v VultrService) GetBoxes(token string) (boxes []provider.Box) {
+	vultrClient := v.getClient(token)
 	listOptions := &govultr.ListOptions{PerPage: 100}
 	for {
 		instances, meta, err := vultrClient.Instance.List(context.Background(), listOptions)
@@ -71,7 +72,7 @@ func GetBoxes(token string) (boxes []box.Box) {
 		}
 
 		for _, instance := range instances {
-			boxes = append(boxes, box.Box{
+			boxes = append(boxes, provider.Box{
 				ID:     instance.ID,
 				Label:  instance.Label,
 				Status: string(instance.Status),
@@ -89,8 +90,8 @@ func GetBoxes(token string) (boxes []box.Box) {
 }
 
 // GetBoxes returns a slice containg all boxes of a given fleet
-func GetFleet(fleetName, token string) (fleet []box.Box) {
-	boxes := GetBoxes(token)
+func (v VultrService) GetFleet(fleetName, token string) (fleet []provider.Box) {
+	boxes := v.GetBoxes(token)
 
 	for _, box := range boxes {
 		if strings.HasPrefix(box.Label, fleetName) {
@@ -101,8 +102,8 @@ func GetFleet(fleetName, token string) (fleet []box.Box) {
 }
 
 // GetBox returns a single box by its label
-func GetBox(boxName, token string) box.Box {
-	boxes := GetBoxes(token)
+func (v VultrService) GetBox(boxName, token string) provider.Box {
+	boxes := v.GetBoxes(token)
 
 	for _, box := range boxes {
 		if box.Label == boxName {
@@ -110,12 +111,12 @@ func GetBox(boxName, token string) box.Box {
 		}
 	}
 	utils.Log.Fatal("Box not found!")
-	return box.Box{}
+	return provider.Box{}
 }
 
 // GetImages returns a slice containing all snapshots of vultr account
-func GetImages(token string) (images []box.Image) {
-	vultrClient := GetClient(token)
+func (v VultrService) GetImages(token string) (images []provider.Image) {
+	vultrClient := v.getClient(token)
 	listOptions := &govultr.ListOptions{PerPage: 100}
 	for {
 		vultrImages, meta, err := vultrClient.Snapshot.List(context.Background(), listOptions)
@@ -126,7 +127,7 @@ func GetImages(token string) (images []box.Image) {
 
 		for _, image := range vultrImages {
 			// Only list custom images
-			images = append(images, box.Image{
+			images = append(images, provider.Image{
 				ID:      image.ID,
 				Label:   image.Description,
 				Created: image.DateCreated,
@@ -145,34 +146,34 @@ func GetImages(token string) (images []box.Image) {
 }
 
 // ListBoxes prints all active boxes of a vultr account
-func ListBoxes(token string) {
-	for _, instance := range GetBoxes(token) {
+func (v VultrService) ListBoxes(token string) {
+	for _, instance := range v.GetBoxes(token) {
 		fmt.Printf("%-10v %-16v %-20v %-15v\n", instance.ID, instance.Label, instance.Status, instance.IP)
 	}
 }
 
 // ListImages prints snapshots of vultr account
-func ListImages(token string) {
-	images := GetImages(token)
+func (v VultrService) ListImages(token string) {
+	images := v.GetImages(token)
 	for _, image := range images {
 		fmt.Printf("%-18v %-48v %-6v %-29v %-15v\n", image.ID, image.Label, image.Size, image.Created, image.Vendor)
 	}
 }
 
-func DeleteFleet(name string, token string) {
-	boxes := GetBoxes(token)
+func (v VultrService) DeleteFleet(name string, token string) {
+	boxes := v.GetBoxes(token)
 	for _, box := range boxes {
 		if box.Label == name {
 			// We only have to delete a single box
-			DeleteBoxByID(box.ID, token)
+			v.DeleteBoxByID(box.ID, token)
 			return
 		}
 	}
 
 	// Otherwise, we got a fleet to delete
-	fleetSize := CountFleet(name, boxes)
+	fleetSize := v.CountFleet(name, boxes)
 
-	fleet := make(chan *box.Box, fleetSize)
+	fleet := make(chan *provider.Box, fleetSize)
 	processGroup := new(sync.WaitGroup)
 	processGroup.Add(fleetSize)
 
@@ -184,7 +185,7 @@ func DeleteFleet(name string, token string) {
 				if box == nil {
 					break
 				}
-				DeleteBoxByID(box.ID, token)
+				v.DeleteBoxByID(box.ID, token)
 			}
 			processGroup.Done()
 		}()
@@ -200,8 +201,8 @@ func DeleteFleet(name string, token string) {
 	processGroup.Wait()
 }
 
-func RunCommand(name, command string, port int, username, password, token string) {
-	boxes := GetBoxes(token)
+func (v VultrService) RunCommand(name, command string, port int, username, password, token string) {
+	boxes := v.GetBoxes(token)
 	for _, box := range boxes {
 		if box.Label == name {
 			// It's a single box
@@ -211,9 +212,9 @@ func RunCommand(name, command string, port int, username, password, token string
 	}
 
 	// Otherwise, send command to a fleet
-	fleetSize := CountFleet(name, boxes)
+	fleetSize := v.CountFleet(name, boxes)
 
-	fleet := make(chan *box.Box, fleetSize)
+	fleet := make(chan *provider.Box, fleetSize)
 	processGroup := new(sync.WaitGroup)
 	processGroup.Add(fleetSize)
 
@@ -241,7 +242,7 @@ func RunCommand(name, command string, port int, username, password, token string
 	processGroup.Wait()
 }
 
-func CountFleet(fleetName string, boxes []box.Box) (count int) {
+func (v VultrService) CountFleet(fleetName string, boxes []provider.Box) (count int) {
 	for _, box := range boxes {
 		if strings.HasPrefix(box.Label, fleetName) {
 			count++
@@ -250,29 +251,29 @@ func CountFleet(fleetName string, boxes []box.Box) (count int) {
 	return count
 }
 
-func DeleteBoxByID(id string, token string) {
-	vultrClient := GetClient(token)
+func (v VultrService) DeleteBoxByID(id string, token string) {
+	vultrClient := v.getClient(token)
 	err := vultrClient.Instance.Delete(context.Background(), id)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func deleteBoxByLabel(label string, token string) {
-	instances := GetBoxes(token)
+func (v VultrService) DeleteBoxByLabel(label string, token string) {
+	instances := v.GetBoxes(token)
 	for _, instance := range instances {
 		if instance.Label == label {
-			DeleteBoxByID(instance.ID, token)
+			v.DeleteBoxByID(instance.ID, token)
 		}
 	}
 }
 
-func spawnBox(name string, image string, region string, size string, token string, build bool) {
+func (v VultrService) spawnBox(name string, image string, region string, size string, token string, build bool) {
 	//vultrPasswd := viper.GetString("vultr.password")
-	vultrClient := GetClient(token)
+	vultrClient := v.getClient(token)
 	//swapSize := 512
 	//booted := true
-	sshKey := getSSHKey(token)
+	sshKey := v.getSSHKey(token)
 	instanceOptions := &govultr.InstanceCreateReq{}
 
 	if build {
@@ -311,10 +312,10 @@ func spawnBox(name string, image string, region string, size string, token strin
 	}
 }
 
-func CreateImage(token string, instanceID string) {
-	vultrClient := GetClient(token)
+func (v VultrService) CreateImage(token string, diskID int, label string) {
+	vultrClient := v.getClient(token)
 	snapshotOptions := &govultr.SnapshotReq{
-		InstanceID:  instanceID,
+		InstanceID:  fmt.Sprint(diskID),
 		Description: "Fleex build image",
 	}
 	_, err := vultrClient.Snapshot.Create(context.Background(), snapshotOptions)
@@ -323,10 +324,10 @@ func CreateImage(token string, instanceID string) {
 	}
 }
 
-func getSSHKey(token string) string {
+func (v VultrService) getSSHKey(token string) string {
 	fleex_key := sshutils.GetLocalPublicSSHKey()
-	vultrClient := GetClient(token)
-	keyID := KeyCheck(token, fleex_key)
+	vultrClient := v.getClient(token)
+	keyID := v.KeyCheck(token, fleex_key)
 	if keyID == "" {
 		sshkeyOptions := &govultr.SSHKeyReq{
 			Name:   "fleex_key",
@@ -336,13 +337,13 @@ func getSSHKey(token string) string {
 		if err != nil {
 			utils.Log.Fatal(err)
 		}
-		keyID = KeyCheck(token, fleex_key)
+		keyID = v.KeyCheck(token, fleex_key)
 	}
 	return keyID
 }
 
-func KeyCheck(token string, fleex_key string) string {
-	vultrClient := GetClient(token)
+func (v VultrService) KeyCheck(token string, fleex_key string) string {
+	vultrClient := v.getClient(token)
 	listOptions := &govultr.ListOptions{PerPage: 100}
 	var keyID string
 	for {

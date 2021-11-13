@@ -7,9 +7,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/FleexSecurity/fleex/pkg/box"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
+	"github.com/FleexSecurity/fleex/provider"
 	"github.com/digitalocean/godo"
 	"github.com/spf13/viper"
 )
@@ -79,7 +79,7 @@ echo 'op:` + digitaloceanPasswd + `' | sudo chpasswd`
 
 }
 
-func (d DigitaloceanService) GetFleet(fleetName, token string) (fleet []box.Box) {
+func (d DigitaloceanService) GetFleet(fleetName, token string) (fleet []provider.Box) {
 	boxes := d.GetBoxes(token)
 
 	for _, box := range boxes {
@@ -91,7 +91,7 @@ func (d DigitaloceanService) GetFleet(fleetName, token string) (fleet []box.Box)
 }
 
 // GetBox returns a single box by its label
-func (d DigitaloceanService) GetBox(boxName, token string) box.Box {
+func (d DigitaloceanService) GetBox(boxName, token string) provider.Box {
 	boxes := d.GetBoxes(token)
 
 	for _, box := range boxes {
@@ -100,10 +100,10 @@ func (d DigitaloceanService) GetBox(boxName, token string) box.Box {
 		}
 	}
 	utils.Log.Fatal("Box not found!")
-	return box.Box{}
+	return provider.Box{}
 }
 
-func (d DigitaloceanService) GetBoxes(token string) (boxes []box.Box) {
+func (d DigitaloceanService) GetBoxes(token string) (boxes []provider.Box) {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 	opt := &godo.ListOptions{
@@ -119,7 +119,7 @@ func (d DigitaloceanService) GetBoxes(token string) (boxes []box.Box) {
 	for _, d := range droplets {
 		ip, _ := d.PublicIPv4()
 		dID := strconv.Itoa(d.ID)
-		boxes = append(boxes, box.Box{ID: dID, Label: d.Name, Group: "", Status: d.Status, IP: ip})
+		boxes = append(boxes, provider.Box{ID: dID, Label: d.Name, Group: "", Status: d.Status, IP: ip})
 	}
 	return boxes
 }
@@ -149,7 +149,7 @@ func (d DigitaloceanService) DeleteFleet(name string, token string) {
 	}
 }
 
-func (l DigitaloceanService) GetImages(token string) (images []box.Image) {
+func (l DigitaloceanService) GetImages(token string) (images []provider.Image) {
 	return
 }
 
@@ -190,7 +190,7 @@ func (l DigitaloceanService) DeleteBoxByLabel(label string, token string) {
 	}
 }
 
-func (d DigitaloceanService) CountFleet(fleetName string, boxes []box.Box) (count int) {
+func (d DigitaloceanService) CountFleet(fleetName string, boxes []provider.Box) (count int) {
 	for _, box := range boxes {
 		if strings.HasPrefix(box.Label, fleetName) {
 			count++
@@ -219,7 +219,7 @@ func (d DigitaloceanService) RunCommand(name, command string, port int, username
 	// Otherwise, send command to a fleet
 	fleetSize := d.CountFleet(name, boxes)
 
-	fleet := make(chan *box.Box, fleetSize)
+	fleet := make(chan *provider.Box, fleetSize)
 	processGroup := new(sync.WaitGroup)
 	processGroup.Add(fleetSize)
 
