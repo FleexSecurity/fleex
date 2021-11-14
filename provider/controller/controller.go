@@ -27,11 +27,6 @@ const (
 	PROVIDER_VULTR        = 3
 )
 
-const (
-	INVALID_PROVIDER = `Something went wrong, check that the data in the config.yaml is correct.`
-	ERRROR_PROVIDER  = `Invalid Provider`
-)
-
 var log = logrus.New()
 
 type Controller struct {
@@ -53,10 +48,10 @@ func GetProvider(name string) Provider {
 	return -1
 }
 
-func GetProviderController(provider Provider) Controller {
+func GetProviderController(pvd Provider) Controller {
 	c := Controller{}
 
-	switch provider {
+	switch pvd {
 	case PROVIDER_LINODE:
 		c.Service = services.LinodeService{}
 	case PROVIDER_DIGITALOCEAN:
@@ -64,7 +59,7 @@ func GetProviderController(provider Provider) Controller {
 	case PROVIDER_VULTR:
 		c.Service = services.VultrService{}
 	default:
-		utils.Log.Fatal(ERRROR_PROVIDER)
+		utils.Log.Fatal(provider.ErrInvalidProvider)
 	}
 
 	return c

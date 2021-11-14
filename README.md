@@ -57,6 +57,9 @@ Available Commands:
 <a href="https://www.linode.com/?r=172cb6708bc78a41c5014cc2da0f2ab0d7abbe7b">
   <img src="static/Referrals/Linode-referral.png" alt="Linode referral link">
 </a>
+<a href="https://vultr.com/?ref=8969285-8H">
+  <img src="static/Referrals/Vultr-referral.png" alt="Vultr referral link">
+</a>
 
 # Main contributors
 <table>
