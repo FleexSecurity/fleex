@@ -29,7 +29,7 @@ var rootCmd = &cobra.Command{
 ██║     ███████╗███████╗███████╗██╔╝ ██╗
 ╚═╝     ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝
 
-Distributed computing using Linode/Digitalocean boxes.
+Distributed computing using Linode/Digitalocean/Vultr boxes.
 Check out our docs at https://fleexsecurity.github.io/fleex-docs/
 `,
 	// Uncomment the following line if your bare application
