@@ -14,10 +14,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/term"
 
-	"github.com/FleexSecurity/fleex/pkg/box"
-	"github.com/FleexSecurity/fleex/pkg/digitalocean"
-	"github.com/FleexSecurity/fleex/pkg/linode"
 	"github.com/FleexSecurity/fleex/pkg/utils"
+	"github.com/FleexSecurity/fleex/provider"
+	"github.com/FleexSecurity/fleex/provider/services"
 )
 
 type Provider int
@@ -25,13 +24,14 @@ type Provider int
 const (
 	PROVIDER_LINODE       = 1
 	PROVIDER_DIGITALOCEAN = 2
-)
-
-const (
-	INVALID_PROVIDER = `Something went wrong, check that the data in the config.yaml is correct.`
+	PROVIDER_VULTR        = 3
 )
 
 var log = logrus.New()
+
+type Controller struct {
+	Service provider.Service
+}
 
 func GetProvider(name string) Provider {
 	name = strings.ToLower(name)
@@ -41,33 +41,40 @@ func GetProvider(name string) Provider {
 		return PROVIDER_LINODE
 	case "digitalocean":
 		return PROVIDER_DIGITALOCEAN
+	case "vultr":
+		return PROVIDER_VULTR
 	}
 
 	return -1
 }
 
+func GetProviderController(pvd Provider) Controller {
+	c := Controller{}
+
+	switch pvd {
+	case PROVIDER_LINODE:
+		c.Service = services.LinodeService{}
+	case PROVIDER_DIGITALOCEAN:
+		c.Service = services.DigitaloceanService{}
+	case PROVIDER_VULTR:
+		c.Service = services.VultrService{}
+	default:
+		utils.Log.Fatal(provider.ErrInvalidProvider)
+	}
+
+	return c
+}
+
 // ListBoxes prints all active boxes of a provider
 func ListBoxes(token string, provider Provider) {
-	switch provider {
-	case PROVIDER_LINODE:
-		linode.ListBoxes(token)
-	case PROVIDER_DIGITALOCEAN:
-		digitalocean.ListBoxes(token)
-	default:
-		utils.Log.Fatal(INVALID_PROVIDER)
-	}
+	c := GetProviderController(provider)
+	c.Service.ListBoxes(token)
 }
 
 // DeleteFleet deletes a whole fleet or a single box
 func DeleteFleet(name string, token string, provider Provider) {
-	switch provider {
-	case PROVIDER_LINODE:
-		linode.DeleteFleet(name, token)
-	case PROVIDER_DIGITALOCEAN:
-		digitalocean.DeleteFleet(name, token)
-	default:
-		utils.Log.Fatal(INVALID_PROVIDER)
-	}
+	c := GetProviderController(provider)
+	c.Service.DeleteFleet(name, token)
 
 	time.Sleep(1 * time.Second)
 	for len(GetFleet(name, token, provider)) > 0 {
@@ -78,74 +85,38 @@ func DeleteFleet(name string, token string, provider Provider) {
 
 // ListImages prints a list of available private images of a provider
 func ListImages(token string, provider Provider) {
-	switch provider {
-	case PROVIDER_LINODE:
-		linode.ListImages(token)
-	case PROVIDER_DIGITALOCEAN:
-		digitalocean.ListImages(token)
-	default:
-		utils.Log.Fatal(INVALID_PROVIDER)
-	}
+	c := GetProviderController(provider)
+	c.Service.ListImages(token)
 }
 
-func CreateImage(token string, provider Provider, diskID int, label string) {
-	switch provider {
-	case PROVIDER_LINODE:
-		linode.CreateImage(token, diskID, label)
-	case PROVIDER_DIGITALOCEAN:
-		digitalocean.CreateImage(token, diskID, label)
-	default:
-		utils.Log.Fatal(INVALID_PROVIDER)
-	}
+func CreateImage(token string, provider Provider, diskID string, label string) {
+	c := GetProviderController(provider)
+	diskIDInt, _ := strconv.Atoi(diskID)
+	c.Service.CreateImage(token, diskIDInt, label)
 }
 
-func GetFleet(fleetName string, token string, provider Provider) []box.Box {
-	switch provider {
-	case PROVIDER_LINODE:
-		return linode.GetFleet(fleetName, token)
-	case PROVIDER_DIGITALOCEAN:
-		return digitalocean.GetFleet(fleetName, token)
-	default:
-		utils.Log.Fatal(INVALID_PROVIDER)
-		return nil
-	}
+func GetFleet(fleetName string, token string, provider Provider) []provider.Box {
+	c := GetProviderController(provider)
+	return c.Service.GetFleet(fleetName, token)
 }
 
-func GetBox(boxName string, token string, provider Provider) box.Box {
-	switch provider {
-	case PROVIDER_LINODE:
-		return linode.GetBox(boxName, token)
-	case PROVIDER_DIGITALOCEAN:
-		return digitalocean.GetBox(boxName, token)
-	default:
-		utils.Log.Fatal(INVALID_PROVIDER)
-		return box.Box{}
-	}
+func GetBox(boxName string, token string, provider Provider) provider.Box {
+	c := GetProviderController(provider)
+	return c.Service.GetBox(boxName, token)
 }
 
 func RunCommand(name, command, token string, port int, username, password string, provider Provider) {
-	switch provider {
-	case PROVIDER_LINODE:
-		linode.RunCommand(name, command, port, username, password, token)
-	case PROVIDER_DIGITALOCEAN:
-		digitalocean.RunCommand(name, command, port, username, password, token)
-	default:
-		utils.Log.Fatal(INVALID_PROVIDER)
-	}
+	c := GetProviderController(provider)
+	c.Service.RunCommand(name, command, port, username, password, token)
 }
 
-func DeleteBoxByID(id int, token string, provider Provider) {
-	switch provider {
-	case PROVIDER_LINODE:
-		linode.DeleteBoxByID(id, token)
-	case PROVIDER_DIGITALOCEAN:
-		digitalocean.DeleteBoxByID(id, token)
-	default:
-		utils.Log.Fatal(INVALID_PROVIDER)
-	}
+func DeleteBoxByID(id string, token string, provider Provider) {
+	c := GetProviderController(provider)
+	c.Service.DeleteBoxByID(id, token)
 }
 
-func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string, skipWait bool, provider Provider) {
+func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string, skipWait bool, provider Provider, build bool) {
+	controller := GetProviderController(provider)
 	startFleet := GetFleet(fleetName, token, provider)
 	finalFleetSize := len(startFleet) + fleetCount
 
@@ -164,14 +135,7 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 		}
 	}()
 
-	switch provider {
-	case PROVIDER_LINODE:
-		linode.SpawnFleet(fleetName, fleetCount, image, region, size, token)
-	case PROVIDER_DIGITALOCEAN:
-		digitalocean.SpawnFleet(fleetName, fleetCount, image, region, size, sshFingerprint, tags, token)
-	default:
-		utils.Log.Fatal(INVALID_PROVIDER)
-	}
+	controller.Service.SpawnFleet(fleetName, fleetCount, image, region, size, sshFingerprint, tags, token)
 
 	if !skipWait {
 		utils.Log.Info("All spawn requests sent! Now waiting for all boxes to become ready")
@@ -180,7 +144,7 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 			fleet := GetFleet(fleetName, token, provider)
 			if len(fleet) == finalFleetSize {
 				for i := range fleet {
-					if (provider == PROVIDER_DIGITALOCEAN && fleet[i].Status != "active") || (provider == PROVIDER_LINODE && fleet[i].Status != "running") {
+					if (provider == PROVIDER_DIGITALOCEAN && fleet[i].Status != "active") || (provider == PROVIDER_LINODE && fleet[i].Status != "running") || (provider == PROVIDER_VULTR && fleet[i].Status != "active") {
 						stillNotReady = true
 					}
 				}

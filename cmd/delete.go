@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/FleexSecurity/fleex/pkg/controller"
 	"github.com/FleexSecurity/fleex/pkg/utils"
+	"github.com/FleexSecurity/fleex/provider/controller"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -10,7 +10,7 @@ import (
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "Delete a fleet or a single box",
+	Short: "Delete an existing fleet or even a single box",
 	Run: func(cmd *cobra.Command, args []string) {
 		var token string
 
@@ -29,6 +29,8 @@ var deleteCmd = &cobra.Command{
 			token = viper.GetString("linode.token")
 		case controller.PROVIDER_DIGITALOCEAN:
 			token = viper.GetString("digitalocean.token")
+		case controller.PROVIDER_VULTR:
+			token = viper.GetString("vultr.token")
 		}
 
 		controller.DeleteFleet(name, token, provider)
@@ -39,6 +41,6 @@ var deleteCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(deleteCmd)
 	deleteCmd.Flags().StringP("name", "n", "pwn", "Fleet name. Boxes will be named [name]-[number]")
-	deleteCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
+	deleteCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean, vultr)")
 
 }

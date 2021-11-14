@@ -19,9 +19,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/FleexSecurity/fleex/pkg/controller"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
+	"github.com/FleexSecurity/fleex/provider/controller"
 	"github.com/hnakamur/go-scp"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -31,8 +31,7 @@ import (
 // scpCmd represents the scp command
 var scpCmd = &cobra.Command{
 	Use:   "scp",
-	Short: "SCP client",
-	Long:  "SCP client",
+	Short: "Send a file/folder to a fleet using SCP",
 	Run: func(cmd *cobra.Command, args []string) {
 		var token string
 
@@ -76,6 +75,11 @@ var scpCmd = &cobra.Command{
 			usernameFlag = viper.GetString("digitalocean.username")
 			passwordFlag = viper.GetString("digitalocean.password")
 			portFlag = viper.GetInt("digitalocean.port")
+		case controller.PROVIDER_VULTR:
+			token = viper.GetString("vultr.token")
+			usernameFlag = viper.GetString("vultr.username")
+			passwordFlag = viper.GetString("vultr.password")
+			portFlag = viper.GetInt("vultr.port")
 		}
 
 		if strings.Contains(destinationFlag, home) {
@@ -108,7 +112,7 @@ var scpCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(scpCmd)
 
-	scpCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
+	scpCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean, vultr)")
 	scpCmd.Flags().StringP("name", "n", "pwn", "Fleet name")
 	scpCmd.Flags().StringP("username", "U", "", "Username")
 	scpCmd.Flags().StringP("password", "P", "", "Password")

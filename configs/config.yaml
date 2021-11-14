@@ -40,3 +40,19 @@ digitalocean:
   tags:
     - vps
     - fleex
+
+# Settings for vultr provider
+vultr:
+  # Token: Account > API > Create Personal Access Token
+  token: YOUR_VULTR_TOKEN
+  # Region & Size, see fleex-docs for more info
+  region: atl
+  size: vc2-1c-1gb
+  # Put your image id here
+  # Run "fleex images -p vultr" to get it
+  image: 1a2b3c4d-1a2b-1a2b-1a2b-1a2b3c4d5e
+  # Settings for SSH command
+  port: 2266
+  username: op
+  # You can set custom passwords for creating vps 
+  password: USER_PASSWORD

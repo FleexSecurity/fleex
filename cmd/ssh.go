@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/FleexSecurity/fleex/pkg/controller"
 	"github.com/FleexSecurity/fleex/pkg/utils"
+	"github.com/FleexSecurity/fleex/provider/controller"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -10,7 +10,7 @@ import (
 // sshCmd represents the ssh command
 var sshCmd = &cobra.Command{
 	Use:   "ssh",
-	Short: "Start SSH",
+	Short: "Start SSH terminal for a box",
 
 	Run: func(cmd *cobra.Command, args []string) {
 		var token string
@@ -49,6 +49,10 @@ var sshCmd = &cobra.Command{
 			token = viper.GetString("digitalocean.token")
 			port = viper.GetInt("digitalocean.port")
 			username = viper.GetString("digitalocean.username")
+		case controller.PROVIDER_VULTR:
+			token = viper.GetString("vultr.token")
+			port = viper.GetInt("vultr.port")
+			username = viper.GetString("vultr.username")
 		}
 		controller.SSH(boxName, username, port, sshKey, token, provider)
 	},
@@ -59,6 +63,6 @@ func init() {
 	sshCmd.Flags().StringP("name", "n", "pwn", "Box name")
 	sshCmd.Flags().StringP("username", "U", "", "SSH username")
 	sshCmd.Flags().IntP("port", "", -1, "SSH port")
-	sshCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
+	sshCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean, vultr)")
 
 }

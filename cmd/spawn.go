@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"github.com/FleexSecurity/fleex/pkg/controller"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
+	"github.com/FleexSecurity/fleex/provider/controller"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -11,7 +11,7 @@ import (
 // spawnCmd represents the spawn command
 var spawnCmd = &cobra.Command{
 	Use:   "spawn",
-	Short: "Spawn a fleet",
+	Short: "Spawn a fleet or even a single box",
 	Run: func(cmd *cobra.Command, args []string) {
 		var token, image, region, size, sshFingerprint string
 		var tags []string
@@ -60,8 +60,15 @@ var spawnCmd = &cobra.Command{
 			size = viper.GetString("digitalocean.size")
 			sshFingerprint = sshutils.SSHFingerprintGen(publicSSH)
 			tags = viper.GetStringSlice("digitalocean.tags")
+		case controller.PROVIDER_VULTR:
+			token = viper.GetString("vultr.token")
+			region = viper.GetString("vultr.region")
+			image = viper.GetString("vultr.image")
+			size = viper.GetString("vultr.size")
+			sshFingerprint = sshutils.SSHFingerprintGen(publicSSH)
+			tags = viper.GetStringSlice("vultr.tags")
 		}
-		controller.SpawnFleet(fleetName, fleetCount, image, region, size, sshFingerprint, tags, token, skipWait, provider)
+		controller.SpawnFleet(fleetName, fleetCount, image, region, size, sshFingerprint, tags, token, skipWait, provider, false)
 
 	},
 }
@@ -75,10 +82,10 @@ func init() {
 	// spawnCmd.Flags().StringP("username", "U", "op", "Username")
 	// spawnCmd.Flags().StringP("password", "P", "1337superPass", "Password")
 	// spawnCmd.Flags().IntP("port", "", 2266, "SSH port")
-	spawnCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
+	spawnCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean, vultr)")
 	spawnCmd.Flags().StringP("region", "R", "", "Region")
 	spawnCmd.Flags().StringP("size", "S", "", "Size")
 	spawnCmd.Flags().StringP("image", "I", "", "Image")
 
-	//spawnCmd.Flags().StringP("provider", "p", "linode", "Service provider (Supported: linode, digitalocean)")
+	//spawnCmd.Flags().StringP("provider", "p", "linode", "Service provider (Supported: linode, digitalocean, vultr)")
 }

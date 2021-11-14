@@ -1,4 +1,4 @@
-package digitalocean
+package services
 
 import (
 	"context"
@@ -7,16 +7,18 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/FleexSecurity/fleex/pkg/box"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
+	"github.com/FleexSecurity/fleex/provider"
 	"github.com/digitalocean/godo"
 	"github.com/spf13/viper"
 )
 
+type DigitaloceanService struct{}
+
 // SpawnFleet spawns a DigitalOcean fleet
-func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string) {
-	existingFleet := GetFleet(fleetName, token)
+func (d DigitaloceanService) SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string) {
+	existingFleet := d.GetFleet(fleetName, token)
 
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
@@ -77,8 +79,8 @@ echo 'op:` + digitaloceanPasswd + `' | sudo chpasswd`
 
 }
 
-func GetFleet(fleetName, token string) (fleet []box.Box) {
-	boxes := GetBoxes(token)
+func (d DigitaloceanService) GetFleet(fleetName, token string) (fleet []provider.Box) {
+	boxes := d.GetBoxes(token)
 
 	for _, box := range boxes {
 		if strings.HasPrefix(box.Label, fleetName) {
@@ -89,8 +91,8 @@ func GetFleet(fleetName, token string) (fleet []box.Box) {
 }
 
 // GetBox returns a single box by its label
-func GetBox(boxName, token string) box.Box {
-	boxes := GetBoxes(token)
+func (d DigitaloceanService) GetBox(boxName, token string) provider.Box {
+	boxes := d.GetBoxes(token)
 
 	for _, box := range boxes {
 		if box.Label == boxName {
@@ -98,10 +100,10 @@ func GetBox(boxName, token string) box.Box {
 		}
 	}
 	utils.Log.Fatal("Box not found!")
-	return box.Box{}
+	return provider.Box{}
 }
 
-func GetBoxes(token string) (boxes []box.Box) {
+func (d DigitaloceanService) GetBoxes(token string) (boxes []provider.Box) {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 	opt := &godo.ListOptions{
@@ -116,24 +118,25 @@ func GetBoxes(token string) (boxes []box.Box) {
 
 	for _, d := range droplets {
 		ip, _ := d.PublicIPv4()
-		boxes = append(boxes, box.Box{ID: d.ID, Label: d.Name, Group: "", Status: d.Status, IP: ip})
+		dID := strconv.Itoa(d.ID)
+		boxes = append(boxes, provider.Box{ID: dID, Label: d.Name, Group: "", Status: d.Status, IP: ip})
 	}
 	return boxes
 }
 
-func ListBoxes(token string) {
-	boxes := GetBoxes(token)
+func (d DigitaloceanService) ListBoxes(token string) {
+	boxes := d.GetBoxes(token)
 	for _, box := range boxes {
 		fmt.Println(box.ID, box.Label, box.Group, box.Status, box.IP)
 	}
 }
 
-func DeleteFleet(name string, token string) {
-	droplets := GetBoxes(token)
+func (d DigitaloceanService) DeleteFleet(name string, token string) {
+	droplets := d.GetBoxes(token)
 	for _, droplet := range droplets {
 		if droplet.Label == name {
 			// It's a single box
-			DeleteBoxByID(droplet.ID, token)
+			d.DeleteBoxByID(droplet.ID, token)
 			return
 		}
 	}
@@ -141,13 +144,16 @@ func DeleteFleet(name string, token string) {
 	// Otherwise, we got a fleet to delete
 	for _, droplet := range droplets {
 		if strings.HasPrefix(droplet.Label, name) {
-			DeleteBoxByID(droplet.ID, token)
+			d.DeleteBoxByID(droplet.ID, token)
 		}
 	}
 }
 
-func ListImages(token string) {
-	// TODO
+func (l DigitaloceanService) GetImages(token string) (images []provider.Image) {
+	return
+}
+
+func (d DigitaloceanService) ListImages(token string) {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 	opt := &godo.ListOptions{
@@ -164,27 +170,27 @@ func ListImages(token string) {
 	}
 }
 
-func DeleteBoxByID(ID int, token string) {
+func (d DigitaloceanService) DeleteBoxByID(ID string, token string) {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 
-	_, err := client.Droplets.Delete(ctx, ID)
+	ID1, _ := strconv.Atoi(ID)
+	_, err := client.Droplets.Delete(ctx, ID1)
 	if err != nil {
 		utils.Log.Fatal(err)
 	}
 }
 
-func deleteBoxByTag(tag string, token string) {
-	client := godo.NewFromToken(token)
-	ctx := context.TODO()
-
-	_, err := client.Droplets.DeleteByTag(ctx, tag)
-	if err != nil {
-		utils.Log.Fatal(err)
+func (l DigitaloceanService) DeleteBoxByLabel(label string, token string) {
+	linodes := l.GetBoxes(token)
+	for _, linode := range linodes {
+		if linode.Label == label && linode.Label != "BugBountyUbuntu" {
+			l.DeleteBoxByID(linode.ID, token)
+		}
 	}
 }
 
-func CountFleet(fleetName string, boxes []box.Box) (count int) {
+func (d DigitaloceanService) CountFleet(fleetName string, boxes []provider.Box) (count int) {
 	for _, box := range boxes {
 		if strings.HasPrefix(box.Label, fleetName) {
 			count++
@@ -193,11 +199,11 @@ func CountFleet(fleetName string, boxes []box.Box) (count int) {
 	return count
 }
 
-func RunCommand(name, command string, port int, username, password, token string) {
+func (d DigitaloceanService) RunCommand(name, command string, port int, username, password, token string) {
 	//doSshUser := viper.GetString("digitalocean.username")
 	//doSshPort := viper.GetInt("digitalocean.port")
 	// doSshPassword := viper.GetString("digitalocean.password")
-	boxes := GetBoxes(token)
+	boxes := d.GetBoxes(token)
 
 	// fmt.Println(port, username, password)
 
@@ -211,9 +217,9 @@ func RunCommand(name, command string, port int, username, password, token string
 	}
 
 	// Otherwise, send command to a fleet
-	fleetSize := CountFleet(name, boxes)
+	fleetSize := d.CountFleet(name, boxes)
 
-	fleet := make(chan *box.Box, fleetSize)
+	fleet := make(chan *provider.Box, fleetSize)
 	processGroup := new(sync.WaitGroup)
 	processGroup.Add(fleetSize)
 
@@ -242,11 +248,7 @@ func RunCommand(name, command string, port int, username, password, token string
 	processGroup.Wait()
 }
 
-func RunCommandByIP(ip, command string, port int, username, password, token string) {
-	sshutils.RunCommand(command, ip, port, username, password)
-}
-
-func CreateImage(token string, diskID int, label string) {
+func (d DigitaloceanService) CreateImage(token string, diskID int, label string) {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 

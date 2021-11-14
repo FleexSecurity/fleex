@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/FleexSecurity/fleex/pkg/controller"
 	"github.com/FleexSecurity/fleex/pkg/utils"
+	"github.com/FleexSecurity/fleex/provider/controller"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -28,6 +28,8 @@ var imagesCmd = &cobra.Command{
 			token = viper.GetString("linode.token")
 		case controller.PROVIDER_DIGITALOCEAN:
 			token = viper.GetString("digitalocean.token")
+		case controller.PROVIDER_VULTR:
+			token = viper.GetString("vultr.token")
 		}
 
 		controller.ListImages(token, provider)
@@ -37,5 +39,5 @@ var imagesCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(imagesCmd)
 
-	imagesCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean)")
+	imagesCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean, vultr)")
 }

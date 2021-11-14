@@ -3,9 +3,9 @@ package cmd
 import (
 	"io/ioutil"
 
-	"github.com/FleexSecurity/fleex/pkg/controller"
-	"github.com/FleexSecurity/fleex/pkg/scan"
 	"github.com/FleexSecurity/fleex/pkg/utils"
+	"github.com/FleexSecurity/fleex/provider/controller"
+	"github.com/FleexSecurity/fleex/provider/scan"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -22,7 +22,7 @@ type Module struct {
 // scanCmd represents the scan command
 var scanCmd = &cobra.Command{
 	Use:   "scan",
-	Short: "Distributed scanning",
+	Short: "Send a command to a fleet, but also with files upload & chunks splitting",
 	Run: func(cmd *cobra.Command, args []string) {
 		var token string
 
@@ -68,6 +68,11 @@ var scanCmd = &cobra.Command{
 			port = viper.GetInt("digitalocean.port")
 			username = viper.GetString("digitalocean.username")
 			password = viper.GetString("digitalocean.password")
+		case controller.PROVIDER_VULTR:
+			token = viper.GetString("vultr.token")
+			port = viper.GetInt("vultr.port")
+			username = viper.GetString("vultr.username")
+			password = viper.GetString("vultr.password")
 		}
 
 		var module Module
@@ -95,7 +100,7 @@ func init() {
 	scanCmd.Flags().StringP("input", "i", "", "Input file")
 	scanCmd.Flags().StringP("output", "o", "", "Output file path. Made from concatenating all output chunks from all boxes")
 	scanCmd.Flags().StringP("chunks-folder", "", "", "Output folder containing output chunks. If empty it will use /tmp/<unix_timestamp>")
-	scanCmd.Flags().StringP("provider", "p", "", "VPS provider (Supported: linode, digitalocean)")
+	scanCmd.Flags().StringP("provider", "p", "", "VPS provider (Supported: linode, digitalocean, vultr)")
 	scanCmd.Flags().IntP("port", "", -1, "SSH port")
 	scanCmd.Flags().StringP("username", "U", "", "SSH username")
 	scanCmd.Flags().StringP("password", "P", "", "SSH password")

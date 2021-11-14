@@ -28,8 +28,7 @@ import (
 // initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "This command initializes fleex",
-	Long:  `This command initializes fleex, downloads all the configuration files and puts them in $HOME/fleex`,
+	Short: "Fleex initialization command. Run this the first time.",
 	Run: func(cmd *cobra.Command, args []string) {
 		var fileUrl string
 		linkFlag, _ := cmd.Flags().GetString("url")
