@@ -304,11 +304,7 @@ func (v VultrService) spawnBox(name string, image string, region string, size st
 	_, err := vultrClient.Instance.Create(context.Background(), instanceOptions)
 
 	if err != nil {
-		//if strings.Contains(err.Error(), "Please try again") {
-		//              continue
-		//}
-		fmt.Println(image)
-		utils.Log.Fatal(err)
+		utils.Log.Fatal(provider.ErrInvalidImage)
 	}
 }
 
