@@ -47,7 +47,7 @@ func (v VultrService) SpawnFleet(fleetName string, fleetCount int, image string,
 				}
 
 				utils.Log.Info("Spawning box ", box)
-				v.spawnBox(box, image, region, size, token, false)
+				v.spawnBox(box, image, region, size, token)
 			}
 			processGroup.Done()
 		}()
@@ -268,7 +268,7 @@ func (v VultrService) DeleteBoxByLabel(label string, token string) {
 	}
 }
 
-func (v VultrService) spawnBox(name string, image string, region string, size string, token string, build bool) {
+func (v VultrService) spawnBox(name string, image string, region string, size string, token string) {
 	//vultrPasswd := viper.GetString("vultr.password")
 	vultrClient := v.getClient(token)
 	//swapSize := 512
@@ -276,8 +276,8 @@ func (v VultrService) spawnBox(name string, image string, region string, size st
 	sshKey := v.getSSHKey(token)
 	instanceOptions := &govultr.InstanceCreateReq{}
 
-	if build {
-		os_id, err := strconv.Atoi(image)
+	os_id, err := strconv.Atoi(image)
+	if err == nil {
 		instanceOptions = &govultr.InstanceCreateReq{
 			Region:   region,
 			Plan:     size,
@@ -301,7 +301,7 @@ func (v VultrService) spawnBox(name string, image string, region string, size st
 			Backups:    "disabled",
 		}
 	}
-	_, err := vultrClient.Instance.Create(context.Background(), instanceOptions)
+	_, err = vultrClient.Instance.Create(context.Background(), instanceOptions)
 
 	if err != nil {
 		utils.Log.Fatal(provider.ErrInvalidImage)
