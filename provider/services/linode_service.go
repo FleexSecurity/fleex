@@ -153,7 +153,7 @@ func spawnBox(name string, image string, region string, size string, token strin
 		linodeClient := getClient(token)
 		swapSize := 512
 		booted := true
-		_, err := linodeClient.CreateInstance(context.Background(), linodego.InstanceCreateOptions{
+		instance, err := linodeClient.CreateInstance(context.Background(), linodego.InstanceCreateOptions{
 			SwapSize:       &swapSize,
 			Image:          image,
 			RootPass:       linPasswd,
@@ -170,6 +170,8 @@ func spawnBox(name string, image string, region string, size string, token strin
 			}
 			utils.Log.Fatal(err)
 		}
+		// Sometimes a few instances do not boot automatically
+		linodeClient.BootInstance(context.Background(), instance.ID, 0)
 		break
 	}
 }
