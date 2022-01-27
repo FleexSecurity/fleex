@@ -35,14 +35,14 @@ type Image struct {
 type Service interface {
 	SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string)
 	GetBoxes(token string) (boxes []Box, err error)
-	GetFleet(fleetName, token string) (fleet []Box)
+	GetFleet(fleetName, token string) (fleet []Box, err error)
 	GetBox(boxName, token string) (Box, error)
 	ListBoxes(token string)
 	ListImages(token string) error
-	RunCommand(name, command string, port int, username, password, token string)
+	RunCommand(name, command string, port int, username, password, token string) error
 	CountFleet(fleetName string, boxes []Box) (count int)
-	DeleteFleet(name string, token string)
-	DeleteBoxByID(id string, token string)
-	DeleteBoxByLabel(label string, token string)
+	DeleteFleet(name string, token string) error
+	DeleteBoxByID(id string, token string) error
+	DeleteBoxByLabel(label string, token string) error
 	CreateImage(token string, diskID int, label string) error
 }

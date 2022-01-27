@@ -60,7 +60,9 @@ func GetProviderController(pvd Provider, token string) Controller {
 	case PROVIDER_DIGITALOCEAN:
 		c.Service = services.DigitaloceanService{}
 	case PROVIDER_VULTR:
-		c.Service = services.VultrService{}
+		c.Service = services.VultrService{
+			Client: config.GetVultrClient(token),
+		}
 	default:
 		utils.Log.Fatal(provider.ErrInvalidProvider)
 	}
@@ -77,7 +79,10 @@ func ListBoxes(token string, provider Provider) {
 // DeleteFleet deletes a whole fleet or a single box
 func DeleteFleet(name string, token string, provider Provider) {
 	c := GetProviderController(provider, token)
-	c.Service.DeleteFleet(name, token)
+	err := c.Service.DeleteFleet(name, token)
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
 
 	time.Sleep(1 * time.Second)
 	for len(GetFleet(name, token, provider)) > 0 {
@@ -89,18 +94,28 @@ func DeleteFleet(name string, token string, provider Provider) {
 // ListImages prints a list of available private images of a provider
 func ListImages(token string, provider Provider) {
 	c := GetProviderController(provider, token)
-	c.Service.ListImages(token)
+	err := c.Service.ListImages(token)
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
 }
 
 func CreateImage(token string, provider Provider, diskID string, label string) {
 	c := GetProviderController(provider, token)
 	diskIDInt, _ := strconv.Atoi(diskID)
-	c.Service.CreateImage(token, diskIDInt, label)
+	err := c.Service.CreateImage(token, diskIDInt, label)
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
 }
 
 func GetFleet(fleetName string, token string, provider Provider) []provider.Box {
 	c := GetProviderController(provider, token)
-	return c.Service.GetFleet(fleetName, token)
+	fleet, err := c.Service.GetFleet(fleetName, token)
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
+	return fleet
 }
 
 func GetBox(boxName string, token string, provider Provider) (provider.Box, error) {
@@ -110,12 +125,18 @@ func GetBox(boxName string, token string, provider Provider) (provider.Box, erro
 
 func RunCommand(name, command, token string, port int, username, password string, provider Provider) {
 	c := GetProviderController(provider, token)
-	c.Service.RunCommand(name, command, port, username, password, token)
+	err := c.Service.RunCommand(name, command, port, username, password, token)
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
 }
 
 func DeleteBoxByID(id string, token string, provider Provider) {
 	c := GetProviderController(provider, token)
-	c.Service.DeleteBoxByID(id, token)
+	err := c.Service.DeleteBoxByID(id, token)
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
 }
 
 func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string, skipWait bool, provider Provider, build bool) {
@@ -167,7 +188,10 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 }
 
 func SSH(boxName, username string, port int, sshKey string, token string, provider Provider) {
-	box, _ := GetBox(boxName, token, provider)
+	box, err := GetBox(boxName, token, provider)
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
 
 	if box.Label == boxName {
 		c := exec.Command("ssh", "-i", "~/.ssh/"+sshKey, username+"@"+box.IP, "-p", strconv.Itoa(port))
@@ -197,7 +221,7 @@ func SSH(boxName, username string, port int, sshKey string, token string, provid
 		// Set stdin in raw mode.
 		oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 		if err != nil {
-			panic(err)
+			utils.Log.Fatal(err)
 		}
 		defer func() { _ = term.Restore(int(os.Stdin.Fd()), oldState) }() // Best effort.
 

@@ -16,9 +16,8 @@ import (
 
 type DigitaloceanService struct{}
 
-// SpawnFleet spawns a DigitalOcean fleet
 func (d DigitaloceanService) SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string) {
-	existingFleet := d.GetFleet(fleetName, token)
+	existingFleet, _ := d.GetFleet(fleetName, token)
 
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
@@ -79,16 +78,18 @@ echo 'op:` + digitaloceanPasswd + `' | sudo chpasswd`
 
 }
 
-func (d DigitaloceanService) GetFleet(fleetName, token string) (fleet []provider.Box) {
-	// TODO manage error
-	boxes, _ := d.GetBoxes(token)
+func (d DigitaloceanService) GetFleet(fleetName, token string) (fleet []provider.Box, err error) {
+	boxes, err := d.GetBoxes(token)
+	if err != nil {
+		return []provider.Box{}, err
+	}
 
 	for _, box := range boxes {
 		if strings.HasPrefix(box.Label, fleetName) {
 			fleet = append(fleet, box)
 		}
 	}
-	return fleet
+	return fleet, nil
 }
 
 // GetBox returns a single box by its label
@@ -132,26 +133,6 @@ func (d DigitaloceanService) ListBoxes(token string) {
 		fmt.Println(box.ID, box.Label, box.Group, box.Status, box.IP)
 	}
 }
-
-func (d DigitaloceanService) DeleteFleet(name string, token string) {
-	// TODO manage error
-	droplets, _ := d.GetBoxes(token)
-	for _, droplet := range droplets {
-		if droplet.Label == name {
-			// It's a single box
-			d.DeleteBoxByID(droplet.ID, token)
-			return
-		}
-	}
-
-	// Otherwise, we got a fleet to delete
-	for _, droplet := range droplets {
-		if strings.HasPrefix(droplet.Label, name) {
-			d.DeleteBoxByID(droplet.ID, token)
-		}
-	}
-}
-
 func (d DigitaloceanService) ListImages(token string) error {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
@@ -170,25 +151,63 @@ func (d DigitaloceanService) ListImages(token string) error {
 	return nil
 }
 
-func (d DigitaloceanService) DeleteBoxByID(ID string, token string) {
+func (d DigitaloceanService) DeleteFleet(name string, token string) error {
+	boxes, err := d.GetBoxes(token)
+	if err != nil {
+		return err
+	}
+	for _, droplet := range boxes {
+		if droplet.Label == name {
+			// It's a single box
+			err := d.DeleteBoxByID(droplet.ID, token)
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+	}
+
+	// Otherwise, we got a fleet to delete
+	for _, droplet := range boxes {
+		if strings.HasPrefix(droplet.Label, name) {
+			err := d.DeleteBoxByID(droplet.ID, token)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (d DigitaloceanService) DeleteBoxByID(ID string, token string) error {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 
-	ID1, _ := strconv.Atoi(ID)
-	_, err := client.Droplets.Delete(ctx, ID1)
+	ID1, err := strconv.Atoi(ID)
 	if err != nil {
-		utils.Log.Fatal(err)
+		return err
 	}
+	_, err = client.Droplets.Delete(ctx, ID1)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (l DigitaloceanService) DeleteBoxByLabel(label string, token string) {
-	// TODO manage error
-	linodes, _ := l.GetBoxes(token)
-	for _, linode := range linodes {
-		if linode.Label == label && linode.Label != "BugBountyUbuntu" {
-			l.DeleteBoxByID(linode.ID, token)
+func (l DigitaloceanService) DeleteBoxByLabel(label string, token string) error {
+	boxes, err := l.GetBoxes(token)
+	if err != nil {
+		return err
+	}
+	for _, box := range boxes {
+		if box.Label == label && box.Label != "BugBountyUbuntu" {
+			err := l.DeleteBoxByID(box.ID, token)
+			if err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 func (d DigitaloceanService) CountFleet(fleetName string, boxes []provider.Box) (count int) {
@@ -200,21 +219,18 @@ func (d DigitaloceanService) CountFleet(fleetName string, boxes []provider.Box) 
 	return count
 }
 
-func (d DigitaloceanService) RunCommand(name, command string, port int, username, password, token string) {
-	//doSshUser := viper.GetString("digitalocean.username")
-	//doSshPort := viper.GetInt("digitalocean.port")
-	// doSshPassword := viper.GetString("digitalocean.password")
-	// TODO manage error
-	boxes, _ := d.GetBoxes(token)
-
-	// fmt.Println(port, username, password)
+func (d DigitaloceanService) RunCommand(name, command string, port int, username, password, token string) error {
+	boxes, err := d.GetBoxes(token)
+	if err != nil {
+		return err
+	}
 
 	for _, box := range boxes {
 		if box.Label == name {
 			// It's a single box
 			boxIP := box.IP
 			sshutils.RunCommand(command, boxIP, port, username, password)
-			return
+			return nil
 		}
 	}
 
@@ -248,6 +264,7 @@ func (d DigitaloceanService) RunCommand(name, command string, port int, username
 
 	close(fleet)
 	processGroup.Wait()
+	return nil
 }
 
 func (d DigitaloceanService) CreateImage(token string, diskID int, label string) error {

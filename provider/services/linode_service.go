@@ -20,7 +20,7 @@ type LinodeService struct {
 }
 
 func (l LinodeService) SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string) {
-	existingFleet := l.GetFleet(fleetName, token)
+	existingFleet, _ := l.GetFleet(fleetName, token)
 
 	threads := 10
 	fleet := make(chan string, threads)
@@ -51,16 +51,18 @@ func (l LinodeService) SpawnFleet(fleetName string, fleetCount int, image string
 	processGroup.Wait()
 }
 
-func (l LinodeService) GetFleet(fleetName, token string) (fleet []provider.Box) {
-	// TODO manage error
-	boxes, _ := l.GetBoxes(token)
+func (l LinodeService) GetFleet(fleetName, token string) (fleet []provider.Box, err error) {
+	boxes, err := l.GetBoxes(token)
+	if err != nil {
+		return []provider.Box{}, err
+	}
 
 	for _, box := range boxes {
 		if strings.HasPrefix(box.Label, fleetName) {
 			fleet = append(fleet, box)
 		}
 	}
-	return fleet
+	return fleet, nil
 }
 
 func (l LinodeService) GetBox(boxName, token string) (provider.Box, error) {
@@ -163,14 +165,20 @@ func (l LinodeService) spawnBox(name string, image string, region string, size s
 	}
 }
 
-func (l LinodeService) DeleteFleet(name string, token string) {
+func (l LinodeService) DeleteFleet(name string, token string) error {
 	// TODO manage error
-	boxes, _ := l.GetBoxes(token)
+	boxes, err := l.GetBoxes(token)
+	if err != nil {
+		return err
+	}
 	for _, box := range boxes {
 		if box.Label == name {
 			// We only have to delete a single box
-			l.DeleteBoxByID(box.ID, token)
-			return
+			err := l.DeleteBoxByID(box.ID, token)
+			if err != nil {
+				return err
+			}
+			return nil
 		}
 	}
 
@@ -182,16 +190,20 @@ func (l LinodeService) DeleteFleet(name string, token string) {
 	processGroup.Add(fleetSize)
 
 	for i := 0; i < fleetSize; i++ {
-		go func() {
+		go func() error {
 			for {
 				box := <-fleet
 
 				if box == nil {
 					break
 				}
-				l.DeleteBoxByID(box.ID, token)
+				err := l.DeleteBoxByID(box.ID, token)
+				if err != nil {
+					return err
+				}
 			}
 			processGroup.Done()
+			return nil
 		}()
 	}
 
@@ -203,24 +215,32 @@ func (l LinodeService) DeleteFleet(name string, token string) {
 
 	close(fleet)
 	processGroup.Wait()
+	return nil
 }
 
-func (l LinodeService) DeleteBoxByID(id string, token string) {
+func (l LinodeService) DeleteBoxByID(id string, token string) error {
 	linodeID, _ := strconv.Atoi(id)
 	err := l.Client.DeleteInstance(context.Background(), linodeID)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+	return nil
 }
 
-func (l LinodeService) DeleteBoxByLabel(label string, token string) {
-	// TODO manage error
-	boxes, _ := l.GetBoxes(token)
+func (l LinodeService) DeleteBoxByLabel(label string, token string) error {
+	boxes, err := l.GetBoxes(token)
+	if err != nil {
+		return err
+	}
 	for _, linode := range boxes {
 		if linode.Label == label && linode.Label != "BugBountyUbuntu" {
-			l.DeleteBoxByID(linode.ID, token)
+			err := l.DeleteBoxByID(linode.ID, token)
+			if err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 func (l LinodeService) CountFleet(fleetName string, boxes []provider.Box) (count int) {
@@ -232,14 +252,17 @@ func (l LinodeService) CountFleet(fleetName string, boxes []provider.Box) (count
 	return count
 }
 
-func (l LinodeService) RunCommand(name, command string, port int, username, password, token string) {
+func (l LinodeService) RunCommand(name, command string, port int, username, password, token string) error {
 	// TODO manage error
-	boxes, _ := l.GetBoxes(token)
+	boxes, err := l.GetBoxes(token)
+	if err != nil {
+		return err
+	}
 	for _, box := range boxes {
 		if box.Label == name {
 			// It's a single box
 			sshutils.RunCommand(command, box.IP, port, username, password)
-			return
+			return nil
 		}
 	}
 
@@ -272,6 +295,7 @@ func (l LinodeService) RunCommand(name, command string, port int, username, pass
 
 	close(fleet)
 	processGroup.Wait()
+	return nil
 }
 
 // ─── IMAGE CREATION ─────────────────────────────────────────────────────────────
