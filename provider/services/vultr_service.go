@@ -13,7 +13,6 @@ import (
 	"github.com/FleexSecurity/fleex/provider"
 	"github.com/vultr/govultr/v2"
 	"golang.org/x/oauth2"
-	//      "github.com/spf13/viper"
 )
 
 type VultrService struct{}
@@ -62,7 +61,7 @@ func (v VultrService) SpawnFleet(fleetName string, fleetCount int, image string,
 }
 
 // GetBoxes returns a slice containg all active boxes of a Linode account
-func (v VultrService) GetBoxes(token string) (boxes []provider.Box) {
+func (v VultrService) GetBoxes(token string) (boxes []provider.Box, err error) {
 	vultrClient := v.getClient(token)
 	listOptions := &govultr.ListOptions{PerPage: 100}
 	for {
@@ -86,12 +85,13 @@ func (v VultrService) GetBoxes(token string) (boxes []provider.Box) {
 			continue
 		}
 	}
-	return boxes
+	return boxes, nil
 }
 
 // GetBoxes returns a slice containg all boxes of a given fleet
 func (v VultrService) GetFleet(fleetName, token string) (fleet []provider.Box) {
-	boxes := v.GetBoxes(token)
+	// TODO manage error
+	boxes, _ := v.GetBoxes(token)
 
 	for _, box := range boxes {
 		if strings.HasPrefix(box.Label, fleetName) {
@@ -102,16 +102,16 @@ func (v VultrService) GetFleet(fleetName, token string) (fleet []provider.Box) {
 }
 
 // GetBox returns a single box by its label
-func (v VultrService) GetBox(boxName, token string) provider.Box {
-	boxes := v.GetBoxes(token)
+func (v VultrService) GetBox(boxName, token string) (provider.Box, error) {
+	// TODO manage error
+	boxes, _ := v.GetBoxes(token)
 
 	for _, box := range boxes {
 		if box.Label == boxName {
-			return box
+			return box, nil
 		}
 	}
-	utils.Log.Fatal("Box not found!")
-	return provider.Box{}
+	return provider.Box{}, provider.ErrBoxNotFound
 }
 
 // GetImages returns a slice containing all snapshots of vultr account
@@ -147,21 +147,25 @@ func (v VultrService) GetImages(token string) (images []provider.Image) {
 
 // ListBoxes prints all active boxes of a vultr account
 func (v VultrService) ListBoxes(token string) {
-	for _, instance := range v.GetBoxes(token) {
+	// TODO manage error
+	boxes, _ := v.GetBoxes(token)
+	for _, instance := range boxes {
 		fmt.Printf("%-10v %-16v %-20v %-15v\n", instance.ID, instance.Label, instance.Status, instance.IP)
 	}
 }
 
 // ListImages prints snapshots of vultr account
-func (v VultrService) ListImages(token string) {
+func (v VultrService) ListImages(token string) error {
 	images := v.GetImages(token)
 	for _, image := range images {
 		fmt.Printf("%-18v %-48v %-6v %-29v %-15v\n", image.ID, image.Label, image.Size, image.Created, image.Vendor)
 	}
+	return nil
 }
 
 func (v VultrService) DeleteFleet(name string, token string) {
-	boxes := v.GetBoxes(token)
+	// TODO manage error
+	boxes, _ := v.GetBoxes(token)
 	for _, box := range boxes {
 		if box.Label == name {
 			// We only have to delete a single box
@@ -202,7 +206,8 @@ func (v VultrService) DeleteFleet(name string, token string) {
 }
 
 func (v VultrService) RunCommand(name, command string, port int, username, password, token string) {
-	boxes := v.GetBoxes(token)
+	// TODO manage error
+	boxes, _ := v.GetBoxes(token)
 	for _, box := range boxes {
 		if box.Label == name {
 			// It's a single box
@@ -260,7 +265,8 @@ func (v VultrService) DeleteBoxByID(id string, token string) {
 }
 
 func (v VultrService) DeleteBoxByLabel(label string, token string) {
-	instances := v.GetBoxes(token)
+	// TODO manage error
+	instances, _ := v.GetBoxes(token)
 	for _, instance := range instances {
 		if instance.Label == label {
 			v.DeleteBoxByID(instance.ID, token)
@@ -308,7 +314,7 @@ func (v VultrService) spawnBox(name string, image string, region string, size st
 	}
 }
 
-func (v VultrService) CreateImage(token string, diskID int, label string) {
+func (v VultrService) CreateImage(token string, diskID int, label string) error {
 	vultrClient := v.getClient(token)
 	snapshotOptions := &govultr.SnapshotReq{
 		InstanceID:  fmt.Sprint(diskID),
@@ -316,8 +322,9 @@ func (v VultrService) CreateImage(token string, diskID int, label string) {
 	}
 	_, err := vultrClient.Snapshot.Create(context.Background(), snapshotOptions)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+	return nil
 }
 
 func (v VultrService) getSSHKey(token string) string {

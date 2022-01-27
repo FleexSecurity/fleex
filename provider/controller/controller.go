@@ -14,6 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/term"
 
+	"github.com/FleexSecurity/fleex/config"
 	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/FleexSecurity/fleex/provider"
 	"github.com/FleexSecurity/fleex/provider/services"
@@ -48,12 +49,14 @@ func GetProvider(name string) Provider {
 	return -1
 }
 
-func GetProviderController(pvd Provider) Controller {
+func GetProviderController(pvd Provider, token string) Controller {
 	c := Controller{}
 
 	switch pvd {
 	case PROVIDER_LINODE:
-		c.Service = services.LinodeService{}
+		c.Service = services.LinodeService{
+			Client: config.GetLinodeClient(token),
+		}
 	case PROVIDER_DIGITALOCEAN:
 		c.Service = services.DigitaloceanService{}
 	case PROVIDER_VULTR:
@@ -67,13 +70,13 @@ func GetProviderController(pvd Provider) Controller {
 
 // ListBoxes prints all active boxes of a provider
 func ListBoxes(token string, provider Provider) {
-	c := GetProviderController(provider)
+	c := GetProviderController(provider, token)
 	c.Service.ListBoxes(token)
 }
 
 // DeleteFleet deletes a whole fleet or a single box
 func DeleteFleet(name string, token string, provider Provider) {
-	c := GetProviderController(provider)
+	c := GetProviderController(provider, token)
 	c.Service.DeleteFleet(name, token)
 
 	time.Sleep(1 * time.Second)
@@ -85,38 +88,38 @@ func DeleteFleet(name string, token string, provider Provider) {
 
 // ListImages prints a list of available private images of a provider
 func ListImages(token string, provider Provider) {
-	c := GetProviderController(provider)
+	c := GetProviderController(provider, token)
 	c.Service.ListImages(token)
 }
 
 func CreateImage(token string, provider Provider, diskID string, label string) {
-	c := GetProviderController(provider)
+	c := GetProviderController(provider, token)
 	diskIDInt, _ := strconv.Atoi(diskID)
 	c.Service.CreateImage(token, diskIDInt, label)
 }
 
 func GetFleet(fleetName string, token string, provider Provider) []provider.Box {
-	c := GetProviderController(provider)
+	c := GetProviderController(provider, token)
 	return c.Service.GetFleet(fleetName, token)
 }
 
-func GetBox(boxName string, token string, provider Provider) provider.Box {
-	c := GetProviderController(provider)
+func GetBox(boxName string, token string, provider Provider) (provider.Box, error) {
+	c := GetProviderController(provider, token)
 	return c.Service.GetBox(boxName, token)
 }
 
 func RunCommand(name, command, token string, port int, username, password string, provider Provider) {
-	c := GetProviderController(provider)
+	c := GetProviderController(provider, token)
 	c.Service.RunCommand(name, command, port, username, password, token)
 }
 
 func DeleteBoxByID(id string, token string, provider Provider) {
-	c := GetProviderController(provider)
+	c := GetProviderController(provider, token)
 	c.Service.DeleteBoxByID(id, token)
 }
 
 func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string, skipWait bool, provider Provider, build bool) {
-	controller := GetProviderController(provider)
+	controller := GetProviderController(provider, token)
 	startFleet := GetFleet(fleetName, token, provider)
 	finalFleetSize := len(startFleet) + fleetCount
 
@@ -164,7 +167,7 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 }
 
 func SSH(boxName, username string, port int, sshKey string, token string, provider Provider) {
-	box := GetBox(boxName, token, provider)
+	box, _ := GetBox(boxName, token, provider)
 
 	if box.Label == boxName {
 		c := exec.Command("ssh", "-i", "~/.ssh/"+sshKey, username+"@"+box.IP, "-p", strconv.Itoa(port))

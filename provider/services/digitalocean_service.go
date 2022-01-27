@@ -80,7 +80,8 @@ echo 'op:` + digitaloceanPasswd + `' | sudo chpasswd`
 }
 
 func (d DigitaloceanService) GetFleet(fleetName, token string) (fleet []provider.Box) {
-	boxes := d.GetBoxes(token)
+	// TODO manage error
+	boxes, _ := d.GetBoxes(token)
 
 	for _, box := range boxes {
 		if strings.HasPrefix(box.Label, fleetName) {
@@ -91,19 +92,19 @@ func (d DigitaloceanService) GetFleet(fleetName, token string) (fleet []provider
 }
 
 // GetBox returns a single box by its label
-func (d DigitaloceanService) GetBox(boxName, token string) provider.Box {
-	boxes := d.GetBoxes(token)
+func (d DigitaloceanService) GetBox(boxName, token string) (provider.Box, error) {
+	// TODO manage error
+	boxes, _ := d.GetBoxes(token)
 
 	for _, box := range boxes {
 		if box.Label == boxName {
-			return box
+			return box, nil
 		}
 	}
-	utils.Log.Fatal("Box not found!")
-	return provider.Box{}
+	return provider.Box{}, provider.ErrBoxNotFound
 }
 
-func (d DigitaloceanService) GetBoxes(token string) (boxes []provider.Box) {
+func (d DigitaloceanService) GetBoxes(token string) (boxes []provider.Box, err error) {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 	opt := &godo.ListOptions{
@@ -113,7 +114,7 @@ func (d DigitaloceanService) GetBoxes(token string) (boxes []provider.Box) {
 
 	droplets, _, err := client.Droplets.List(ctx, opt)
 	if err != nil {
-		utils.Log.Fatal(err)
+		return []provider.Box{}, err
 	}
 
 	for _, d := range droplets {
@@ -121,18 +122,20 @@ func (d DigitaloceanService) GetBoxes(token string) (boxes []provider.Box) {
 		dID := strconv.Itoa(d.ID)
 		boxes = append(boxes, provider.Box{ID: dID, Label: d.Name, Group: "", Status: d.Status, IP: ip})
 	}
-	return boxes
+	return boxes, nil
 }
 
 func (d DigitaloceanService) ListBoxes(token string) {
-	boxes := d.GetBoxes(token)
+	// TODO manage error
+	boxes, _ := d.GetBoxes(token)
 	for _, box := range boxes {
 		fmt.Println(box.ID, box.Label, box.Group, box.Status, box.IP)
 	}
 }
 
 func (d DigitaloceanService) DeleteFleet(name string, token string) {
-	droplets := d.GetBoxes(token)
+	// TODO manage error
+	droplets, _ := d.GetBoxes(token)
 	for _, droplet := range droplets {
 		if droplet.Label == name {
 			// It's a single box
@@ -149,11 +152,7 @@ func (d DigitaloceanService) DeleteFleet(name string, token string) {
 	}
 }
 
-func (l DigitaloceanService) GetImages(token string) (images []provider.Image) {
-	return
-}
-
-func (d DigitaloceanService) ListImages(token string) {
+func (d DigitaloceanService) ListImages(token string) error {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 	opt := &godo.ListOptions{
@@ -163,11 +162,12 @@ func (d DigitaloceanService) ListImages(token string) {
 
 	images, _, err := client.Images.ListUser(ctx, opt)
 	if err != nil {
-		utils.Log.Fatal(err)
+		return err
 	}
 	for _, image := range images {
 		fmt.Println(image.ID, image.Name, image.Status, image.SizeGigaBytes)
 	}
+	return nil
 }
 
 func (d DigitaloceanService) DeleteBoxByID(ID string, token string) {
@@ -182,7 +182,8 @@ func (d DigitaloceanService) DeleteBoxByID(ID string, token string) {
 }
 
 func (l DigitaloceanService) DeleteBoxByLabel(label string, token string) {
-	linodes := l.GetBoxes(token)
+	// TODO manage error
+	linodes, _ := l.GetBoxes(token)
 	for _, linode := range linodes {
 		if linode.Label == label && linode.Label != "BugBountyUbuntu" {
 			l.DeleteBoxByID(linode.ID, token)
@@ -203,7 +204,8 @@ func (d DigitaloceanService) RunCommand(name, command string, port int, username
 	//doSshUser := viper.GetString("digitalocean.username")
 	//doSshPort := viper.GetInt("digitalocean.port")
 	// doSshPassword := viper.GetString("digitalocean.password")
-	boxes := d.GetBoxes(token)
+	// TODO manage error
+	boxes, _ := d.GetBoxes(token)
 
 	// fmt.Println(port, username, password)
 
@@ -248,12 +250,13 @@ func (d DigitaloceanService) RunCommand(name, command string, port int, username
 	processGroup.Wait()
 }
 
-func (d DigitaloceanService) CreateImage(token string, diskID int, label string) {
+func (d DigitaloceanService) CreateImage(token string, diskID int, label string) error {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 
 	_, _, err := client.DropletActions.Snapshot(ctx, diskID, label)
 	if err != nil {
-		utils.Log.Fatal(err)
+		return err
 	}
+	return nil
 }
