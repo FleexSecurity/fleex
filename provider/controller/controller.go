@@ -31,7 +31,7 @@ const (
 var log = logrus.New()
 
 type Controller struct {
-	Service provider.Service
+	Service provider.Provider
 }
 
 func GetProvider(name string) Provider {
