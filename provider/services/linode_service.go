@@ -19,7 +19,7 @@ type LinodeService struct {
 	Client linodego.Client
 }
 
-func (l LinodeService) SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string) {
+func (l LinodeService) SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string) error {
 	existingFleet, _ := l.GetFleet(fleetName, token)
 
 	threads := 10
@@ -28,7 +28,7 @@ func (l LinodeService) SpawnFleet(fleetName string, fleetCount int, image string
 	processGroup.Add(threads)
 
 	for i := 0; i < threads; i++ {
-		go func() {
+		go func() error {
 			for {
 				box := <-fleet
 
@@ -37,9 +37,13 @@ func (l LinodeService) SpawnFleet(fleetName string, fleetCount int, image string
 				}
 
 				utils.Log.Info("Spawning box ", box)
-				l.spawnBox(box, image, region, size, token)
+				err := l.spawnBox(box, image, region, size, token)
+				if err != nil {
+					return err
+				}
 			}
 			processGroup.Done()
+			return nil
 		}()
 	}
 
@@ -49,6 +53,7 @@ func (l LinodeService) SpawnFleet(fleetName string, fleetCount int, image string
 
 	close(fleet)
 	processGroup.Wait()
+	return nil
 }
 
 func (l LinodeService) GetFleet(fleetName, token string) (fleet []provider.Box, err error) {
@@ -138,7 +143,7 @@ func (l LinodeService) ListImages(token string) error {
 	return nil
 }
 
-func (l LinodeService) spawnBox(name string, image string, region string, size string, token string) {
+func (l LinodeService) spawnBox(name string, image string, region string, size string, token string) error {
 	for {
 		linPasswd := viper.GetString("linode.password")
 
@@ -159,10 +164,11 @@ func (l LinodeService) spawnBox(name string, image string, region string, size s
 			if strings.Contains(err.Error(), "Please try again") {
 				continue
 			}
-			utils.Log.Fatal(err)
+			return err
 		}
 		break
 	}
+	return nil
 }
 
 func (l LinodeService) DeleteFleet(name string, token string) error {

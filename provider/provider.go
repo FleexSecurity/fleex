@@ -33,7 +33,7 @@ type Image struct {
 }
 
 type Service interface {
-	SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string)
+	SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string) error
 	GetBoxes(token string) (boxes []Box, err error)
 	GetFleet(fleetName, token string) (fleet []Box, err error)
 	GetBox(boxName, token string) (Box, error)

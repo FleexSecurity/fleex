@@ -19,7 +19,7 @@ type VultrService struct {
 }
 
 // SpawnFleet spawns a Vultr fleet
-func (v VultrService) SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string) {
+func (v VultrService) SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string) error {
 	existingFleet, _ := v.GetFleet(fleetName, token)
 
 	threads := 10
@@ -28,7 +28,7 @@ func (v VultrService) SpawnFleet(fleetName string, fleetCount int, image string,
 	processGroup.Add(threads)
 
 	for i := 0; i < threads; i++ {
-		go func() {
+		go func() error {
 			for {
 				box := <-fleet
 
@@ -40,6 +40,7 @@ func (v VultrService) SpawnFleet(fleetName string, fleetCount int, image string,
 				v.spawnBox(box, image, region, size, token)
 			}
 			processGroup.Done()
+			return nil
 		}()
 	}
 
@@ -49,6 +50,7 @@ func (v VultrService) SpawnFleet(fleetName string, fleetCount int, image string,
 
 	close(fleet)
 	processGroup.Wait()
+	return nil
 }
 
 // GetBoxes returns a slice containg all active boxes of a Linode account
@@ -284,7 +286,7 @@ func (v VultrService) CountFleet(fleetName string, boxes []provider.Box) (count 
 	return count
 }
 
-func (v VultrService) spawnBox(name string, image string, region string, size string, token string) {
+func (v VultrService) spawnBox(name string, image string, region string, size string, token string) error {
 	sshKey := v.getSSHKey(token)
 	instanceOptions := &govultr.InstanceCreateReq{}
 
@@ -300,7 +302,7 @@ func (v VultrService) spawnBox(name string, image string, region string, size st
 			Backups:  "disabled",
 		}
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 	} else {
 		instanceOptions = &govultr.InstanceCreateReq{
@@ -316,8 +318,9 @@ func (v VultrService) spawnBox(name string, image string, region string, size st
 	_, err = v.Client.Instance.Create(context.Background(), instanceOptions)
 
 	if err != nil {
-		utils.Log.Fatal(provider.ErrInvalidImage)
+		return provider.ErrInvalidImage
 	}
+	return nil
 }
 
 func (v VultrService) CreateImage(token string, diskID int, label string) error {

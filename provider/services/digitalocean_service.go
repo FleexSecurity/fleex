@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
-	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/FleexSecurity/fleex/provider"
 	"github.com/digitalocean/godo"
 	"github.com/spf13/viper"
@@ -16,7 +15,7 @@ import (
 
 type DigitaloceanService struct{}
 
-func (d DigitaloceanService) SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string) {
+func (d DigitaloceanService) SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string) error {
 	existingFleet, _ := d.GetFleet(fleetName, token)
 
 	client := godo.NewFromToken(token)
@@ -41,10 +40,9 @@ echo 'op:` + digitaloceanPasswd + `' | sudo chpasswd`
 	imageIntID, err := strconv.Atoi(image)
 	if err != nil {
 		createRequest = &godo.DropletMultiCreateRequest{
-			Names:  droplets,
-			Region: region,
-			Size:   size,
-			// UserData: "echo 'root:" + digitaloceanPasswd + "' | chpasswd",
+			Names:    droplets,
+			Region:   region,
+			Size:     size,
 			UserData: user_data,
 			Image: godo.DropletCreateImage{
 				Slug: image,
@@ -73,9 +71,9 @@ echo 'op:` + digitaloceanPasswd + `' | sudo chpasswd`
 	_, _, err = client.Droplets.CreateMultiple(ctx, createRequest)
 
 	if err != nil {
-		utils.Log.Fatal(err)
+		return err
 	}
-
+	return nil
 }
 
 func (d DigitaloceanService) GetFleet(fleetName, token string) (fleet []provider.Box, err error) {
