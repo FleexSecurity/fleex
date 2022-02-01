@@ -37,7 +37,10 @@ func (v VultrService) SpawnFleet(fleetName string, fleetCount int, image string,
 				}
 
 				utils.Log.Info("Spawning box ", box)
-				v.spawnBox(box, image, region, size, token)
+				err := v.spawnBox(box, image, region, size, token)
+				if err != nil {
+					return err
+				}
 			}
 			processGroup.Done()
 			return nil
