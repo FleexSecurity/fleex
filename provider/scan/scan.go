@@ -146,17 +146,12 @@ loop:
 	processGroup.Add(len(fleet))
 
 	for i := 0; i < len(fleet); i++ {
-		go func() { // fmt.Println(IP)
-			// fmt.Println(PORT)
-			// fmt.Println(username)
-			// fmt.Println(password)
+		go func() {
 			for {
 				l := <-fleetNames
-
 				if l == nil {
 					break
 				}
-
 				boxName := l.Label
 
 				// Send input file via SCP
@@ -210,9 +205,6 @@ loop:
 	// Scan done, process results
 	duration := time.Since(start)
 	utils.Log.Info("Scan done! Took ", duration, ". Output file: ", outputPath)
-
-	// Remove input folder when the scan is done
-	// os.RemoveAll(tempFolderInput)
 
 	// TODO: Get rid of bash and do this using Go
 

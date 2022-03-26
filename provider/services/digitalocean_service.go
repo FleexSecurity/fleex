@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
-	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/FleexSecurity/fleex/provider"
 	"github.com/digitalocean/godo"
 	"github.com/spf13/viper"
@@ -16,9 +15,8 @@ import (
 
 type DigitaloceanService struct{}
 
-// SpawnFleet spawns a DigitalOcean fleet
-func (d DigitaloceanService) SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string) {
-	existingFleet := d.GetFleet(fleetName, token)
+func (d DigitaloceanService) SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string) error {
+	existingFleet, _ := d.GetFleet(fleetName, token)
 
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
@@ -42,10 +40,9 @@ echo 'op:` + digitaloceanPasswd + `' | sudo chpasswd`
 	imageIntID, err := strconv.Atoi(image)
 	if err != nil {
 		createRequest = &godo.DropletMultiCreateRequest{
-			Names:  droplets,
-			Region: region,
-			Size:   size,
-			// UserData: "echo 'root:" + digitaloceanPasswd + "' | chpasswd",
+			Names:    droplets,
+			Region:   region,
+			Size:     size,
 			UserData: user_data,
 			Image: godo.DropletCreateImage{
 				Slug: image,
@@ -74,36 +71,39 @@ echo 'op:` + digitaloceanPasswd + `' | sudo chpasswd`
 	_, _, err = client.Droplets.CreateMultiple(ctx, createRequest)
 
 	if err != nil {
-		utils.Log.Fatal(err)
+		return err
 	}
-
+	return nil
 }
 
-func (d DigitaloceanService) GetFleet(fleetName, token string) (fleet []provider.Box) {
-	boxes := d.GetBoxes(token)
+func (d DigitaloceanService) GetFleet(fleetName, token string) (fleet []provider.Box, err error) {
+	boxes, err := d.GetBoxes(token)
+	if err != nil {
+		return []provider.Box{}, err
+	}
 
 	for _, box := range boxes {
 		if strings.HasPrefix(box.Label, fleetName) {
 			fleet = append(fleet, box)
 		}
 	}
-	return fleet
+	return fleet, nil
 }
 
 // GetBox returns a single box by its label
-func (d DigitaloceanService) GetBox(boxName, token string) provider.Box {
-	boxes := d.GetBoxes(token)
+func (d DigitaloceanService) GetBox(boxName, token string) (provider.Box, error) {
+	// TODO manage error
+	boxes, _ := d.GetBoxes(token)
 
 	for _, box := range boxes {
 		if box.Label == boxName {
-			return box
+			return box, nil
 		}
 	}
-	utils.Log.Fatal("Box not found!")
-	return provider.Box{}
+	return provider.Box{}, provider.ErrBoxNotFound
 }
 
-func (d DigitaloceanService) GetBoxes(token string) (boxes []provider.Box) {
+func (d DigitaloceanService) GetBoxes(token string) (boxes []provider.Box, err error) {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 	opt := &godo.ListOptions{
@@ -113,7 +113,7 @@ func (d DigitaloceanService) GetBoxes(token string) (boxes []provider.Box) {
 
 	droplets, _, err := client.Droplets.List(ctx, opt)
 	if err != nil {
-		utils.Log.Fatal(err)
+		return []provider.Box{}, err
 	}
 
 	for _, d := range droplets {
@@ -121,39 +121,17 @@ func (d DigitaloceanService) GetBoxes(token string) (boxes []provider.Box) {
 		dID := strconv.Itoa(d.ID)
 		boxes = append(boxes, provider.Box{ID: dID, Label: d.Name, Group: "", Status: d.Status, IP: ip})
 	}
-	return boxes
+	return boxes, nil
 }
 
 func (d DigitaloceanService) ListBoxes(token string) {
-	boxes := d.GetBoxes(token)
+	// TODO manage error
+	boxes, _ := d.GetBoxes(token)
 	for _, box := range boxes {
 		fmt.Println(box.ID, box.Label, box.Group, box.Status, box.IP)
 	}
 }
-
-func (d DigitaloceanService) DeleteFleet(name string, token string) {
-	droplets := d.GetBoxes(token)
-	for _, droplet := range droplets {
-		if droplet.Label == name {
-			// It's a single box
-			d.DeleteBoxByID(droplet.ID, token)
-			return
-		}
-	}
-
-	// Otherwise, we got a fleet to delete
-	for _, droplet := range droplets {
-		if strings.HasPrefix(droplet.Label, name) {
-			d.DeleteBoxByID(droplet.ID, token)
-		}
-	}
-}
-
-func (l DigitaloceanService) GetImages(token string) (images []provider.Image) {
-	return
-}
-
-func (d DigitaloceanService) ListImages(token string) {
+func (d DigitaloceanService) ListImages(token string) error {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 	opt := &godo.ListOptions{
@@ -163,31 +141,71 @@ func (d DigitaloceanService) ListImages(token string) {
 
 	images, _, err := client.Images.ListUser(ctx, opt)
 	if err != nil {
-		utils.Log.Fatal(err)
+		return err
 	}
 	for _, image := range images {
 		fmt.Println(image.ID, image.Name, image.Status, image.SizeGigaBytes)
 	}
+	return nil
 }
 
-func (d DigitaloceanService) DeleteBoxByID(ID string, token string) {
+func (d DigitaloceanService) DeleteFleet(name string, token string) error {
+	boxes, err := d.GetBoxes(token)
+	if err != nil {
+		return err
+	}
+	for _, droplet := range boxes {
+		if droplet.Label == name {
+			// It's a single box
+			err := d.DeleteBoxByID(droplet.ID, token)
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+	}
+
+	// Otherwise, we got a fleet to delete
+	for _, droplet := range boxes {
+		if strings.HasPrefix(droplet.Label, name) {
+			err := d.DeleteBoxByID(droplet.ID, token)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (d DigitaloceanService) DeleteBoxByID(ID string, token string) error {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 
-	ID1, _ := strconv.Atoi(ID)
-	_, err := client.Droplets.Delete(ctx, ID1)
+	ID1, err := strconv.Atoi(ID)
 	if err != nil {
-		utils.Log.Fatal(err)
+		return err
 	}
+	_, err = client.Droplets.Delete(ctx, ID1)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (l DigitaloceanService) DeleteBoxByLabel(label string, token string) {
-	linodes := l.GetBoxes(token)
-	for _, linode := range linodes {
-		if linode.Label == label && linode.Label != "BugBountyUbuntu" {
-			l.DeleteBoxByID(linode.ID, token)
+func (l DigitaloceanService) DeleteBoxByLabel(label string, token string) error {
+	boxes, err := l.GetBoxes(token)
+	if err != nil {
+		return err
+	}
+	for _, box := range boxes {
+		if box.Label == label && box.Label != "BugBountyUbuntu" {
+			err := l.DeleteBoxByID(box.ID, token)
+			if err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 func (d DigitaloceanService) CountFleet(fleetName string, boxes []provider.Box) (count int) {
@@ -199,20 +217,18 @@ func (d DigitaloceanService) CountFleet(fleetName string, boxes []provider.Box) 
 	return count
 }
 
-func (d DigitaloceanService) RunCommand(name, command string, port int, username, password, token string) {
-	//doSshUser := viper.GetString("digitalocean.username")
-	//doSshPort := viper.GetInt("digitalocean.port")
-	// doSshPassword := viper.GetString("digitalocean.password")
-	boxes := d.GetBoxes(token)
-
-	// fmt.Println(port, username, password)
+func (d DigitaloceanService) RunCommand(name, command string, port int, username, password, token string) error {
+	boxes, err := d.GetBoxes(token)
+	if err != nil {
+		return err
+	}
 
 	for _, box := range boxes {
 		if box.Label == name {
 			// It's a single box
 			boxIP := box.IP
 			sshutils.RunCommand(command, boxIP, port, username, password)
-			return
+			return nil
 		}
 	}
 
@@ -246,14 +262,16 @@ func (d DigitaloceanService) RunCommand(name, command string, port int, username
 
 	close(fleet)
 	processGroup.Wait()
+	return nil
 }
 
-func (d DigitaloceanService) CreateImage(token string, diskID int, label string) {
+func (d DigitaloceanService) CreateImage(token string, diskID int, label string) error {
 	client := godo.NewFromToken(token)
 	ctx := context.TODO()
 
 	_, _, err := client.DropletActions.Snapshot(ctx, diskID, label)
 	if err != nil {
-		utils.Log.Fatal(err)
+		return err
 	}
+	return nil
 }

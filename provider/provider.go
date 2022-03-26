@@ -13,6 +13,7 @@ var (
 	ErrInvalidSize     = errors.New("invalid size")
 	ErrInvalidPort     = errors.New("invalid port")
 	ErrInvalidSshFile  = errors.New("invalid SSH file")
+	ErrBoxNotFound     = errors.New("box not found")
 )
 
 type Box struct {
@@ -31,17 +32,17 @@ type Image struct {
 	Vendor  string
 }
 
-type Service interface {
-	SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string)
-	GetBoxes(token string) (boxes []Box)
-	GetFleet(fleetName, token string) (fleet []Box)
-	GetBox(boxName, token string) Box
+type Provider interface {
+	SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string) error
+	GetBoxes(token string) (boxes []Box, err error)
+	GetFleet(fleetName, token string) (fleet []Box, err error)
+	GetBox(boxName, token string) (Box, error)
 	ListBoxes(token string)
-	ListImages(token string)
-	RunCommand(name, command string, port int, username, password, token string)
+	ListImages(token string) error
+	RunCommand(name, command string, port int, username, password, token string) error
 	CountFleet(fleetName string, boxes []Box) (count int)
-	DeleteFleet(name string, token string)
-	DeleteBoxByID(id string, token string)
-	DeleteBoxByLabel(label string, token string)
-	CreateImage(token string, diskID int, label string)
+	DeleteFleet(name string, token string) error
+	DeleteBoxByID(id string, token string) error
+	DeleteBoxByLabel(label string, token string) error
+	CreateImage(token string, diskID int, label string) error
 }
