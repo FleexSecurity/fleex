@@ -32,17 +32,17 @@ commands:
   - git clone https://github.com/projectdiscovery/nuclei-templates /home/op/recon/nuclei
   - "git clone https://github.com/blechschmidt/massdns.git /tmp/massdns; cd /tmp/massdns; sudo make; sudo mv bin/massdns /usr/bin/massdns"
   - /bin/su -l op -c 'source /home/op/.bashrc'
-  - /bin/su -l op -c 'GO111MODULE=on go get -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei'
-  - /bin/su -l op -c 'GO111MODULE=on go get -u github.com/tomnomnom/httprobe'
-  - /bin/su -l op -c 'GO111MODULE=on go get -u github.com/ffuf/ffuf'
-  - /bin/su -l op -c 'GO111MODULE=on go get -v github.com/projectdiscovery/httpx/cmd/httpx'
-  - /bin/su -l op -c 'GO111MODULE=on go get -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder'
-  - /bin/su -l op -c 'GO111MODULE=on go get github.com/d3mondev/puredns/v2'
-  - /bin/su -l op -c 'GO111MODULE=on go get -u github.com/lc/gau'
-  - /bin/su -l op -c 'GO111MODULE=on go get -v github.com/tomnomnom/hacks/waybackurls'
-  - /bin/su -l op -c 'GO111MODULE=on go get -v github.com/projectdiscovery/mapcidr/cmd/mapcidr'
-  - /bin/su -l op -c 'GO111MODULE=on go get -v github.com/OWASP/Amass/v3/...'
-  - /bin/su -l op -c 'GO111MODULE=on go install github.com/OJ/gobuster/v3@latest'
+  - /bin/su -l op -c 'GO111MODULE=on go install -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest'
+  - /bin/su -l op -c 'GO111MODULE=on go install -v github.com/tomnomnom/httprobe@latest'
+  - /bin/su -l op -c 'GO111MODULE=on go install -v github.com/ffuf/ffuf@latest'
+  - /bin/su -l op -c 'GO111MODULE=on go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest'
+  - /bin/su -l op -c 'GO111MODULE=on go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest'
+  - /bin/su -l op -c 'GO111MODULE=on go install -v github.com/d3mondev/puredns/v2@latest'
+  - /bin/su -l op -c 'GO111MODULE=on go install -v github.com/lc/gau@latest'
+  - /bin/su -l op -c 'GO111MODULE=on go install -v github.com/tomnomnom/hacks/waybackurls@latest'
+  - /bin/su -l op -c 'GO111MODULE=on go install -v github.com/projectdiscovery/mapcidr/cmd/mapcidr@latest'
+  - /bin/su -l op -c 'GO111MODULE=on go install -v github.com/OWASP/Amass/v3/...@master'
+  - /bin/su -l op -c 'GO111MODULE=on go install -v github.com/OJ/gobuster/v3@latest'
   - /bin/su -l root -c 'curl -sL https://raw.githubusercontent.com/epi052/feroxbuster/master/install-nix.sh | bash && mv feroxbuster /usr/bin/'
   - chown -R op:users /home/op
   - touch /home/op/.profile
