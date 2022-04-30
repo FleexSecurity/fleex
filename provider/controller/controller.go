@@ -12,9 +12,11 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"golang.org/x/term"
 
 	"github.com/FleexSecurity/fleex/config"
+	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/FleexSecurity/fleex/provider"
 	"github.com/FleexSecurity/fleex/provider/services"
@@ -26,6 +28,7 @@ const (
 	PROVIDER_LINODE       = 1
 	PROVIDER_DIGITALOCEAN = 2
 	PROVIDER_VULTR        = 3
+	PROVIDER_CUSTOM       = 4
 )
 
 var log = logrus.New()
@@ -44,6 +47,8 @@ func GetProvider(name string) Provider {
 		return PROVIDER_DIGITALOCEAN
 	case "vultr":
 		return PROVIDER_VULTR
+	case "custom":
+		return PROVIDER_CUSTOM
 	}
 
 	return -1
@@ -123,8 +128,21 @@ func GetBox(boxName string, token string, provider Provider) (provider.Box, erro
 	return c.Service.GetBox(boxName, token)
 }
 
-func RunCommand(name, command, token string, port int, username, password string, provider Provider) {
-	c := GetProviderController(provider, token)
+func RunCommand(name, command, token string, port int, username, password string, providerNumber Provider) {
+	if providerNumber == 4 {
+		vmdata := viper.GetStringMapString("custom." + name)
+		// sshutils.RunCommandWithPassword(command)
+		if len(vmdata) == 0 {
+			utils.Log.Fatal(provider.ErrInvalidProvider)
+		}
+		vmport, err := strconv.Atoi(vmdata["port"])
+		if err != nil {
+			utils.Log.Fatal(provider.ErrInvalidProvider)
+		}
+		sshutils.RunCommandWithPassword(command, vmdata["ip"], vmport, vmdata["username"], vmdata["password"])
+		return
+	}
+	c := GetProviderController(providerNumber, token)
 	err := c.Service.RunCommand(name, command, port, username, password, token)
 	if err != nil {
 		utils.Log.Fatal(err)

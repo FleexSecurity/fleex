@@ -62,6 +62,24 @@ func RunCommand(command string, ip string, port int, username string, password s
 	return conn
 }
 
+func RunCommandWithPassword(command string, ip string, port int, username string, password string) *Connection {
+	var conn *Connection
+	var err error
+	for retries := 0; retries < 3; retries++ {
+		conn, err = ConnectWithPassword(ip+":"+strconv.Itoa(port), username, password)
+		if err != nil {
+			if strings.Contains(err.Error(), "connection refused") && retries < 3 {
+				continue
+			}
+			utils.Log.Fatal(err)
+		}
+		break
+	}
+	conn.sendCommands(command)
+
+	return conn
+}
+
 func publicKeyFile(file string) ssh.AuthMethod {
 	buffer, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -165,6 +183,24 @@ func Connect(addr, user, password string) (*Connection, error) {
 			publicKeyFile(filepath.Join(getHomeDir(), ".ssh", privateSsh)), // todo replace with rsa
 		},
 		HostKeyCallback: ssh.HostKeyCallback(func(hostname string, remote net.Addr, key ssh.PublicKey) error { return nil }),
+	}
+
+	conn, err := ssh.Dial("tcp", addr, sshConfig)
+	if err != nil {
+		return nil, err
+	}
+	return &Connection{conn}, nil
+
+}
+
+func ConnectWithPassword(addr, user, password string) (*Connection, error) {
+	sshConfig := &ssh.ClientConfig{
+		User: user,
+		Auth: []ssh.AuthMethod{
+			ssh.Password(password),
+		},
+		HostKeyCallback: ssh.HostKeyCallback(func(hostname string, remote net.Addr, key ssh.PublicKey) error { return nil }),
+		// TODO: set up a timeout
 	}
 
 	conn, err := ssh.Dial("tcp", addr, sshConfig)
