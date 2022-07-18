@@ -18,7 +18,7 @@ Fleex allows you to create multiple VPS on cloud providers and use them to distr
 
 # Install 
 ```
-GO111MODULE=on go get -v github.com/FleexSecurity/fleex
+GO111MODULE=on go install -v github.com/FleexSecurity/fleex@latest
 ```
 
 # Supported providers
