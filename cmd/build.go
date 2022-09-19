@@ -52,6 +52,7 @@ var buildCmd = &cobra.Command{
 		sizeFlag, _ := cmd.Flags().GetString("size")
 		fileFlag, _ := cmd.Flags().GetString("file")
 		deleteFlag, _ := cmd.Flags().GetBool("delete")
+		debugFlag, _ := cmd.Flags().GetBool("debug")
 
 		if providerFlag != "" {
 			viper.Set("provider", providerFlag)
@@ -94,74 +95,82 @@ var buildCmd = &cobra.Command{
 
 		utils.Copy(home+"/.ssh/"+pubSSH, home+"/fleex/configs/authorized_keys")
 
-		c, err := readConf(fileFlag)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		controller.SpawnFleet(fleetName, 1, image, region, size, sshFingerprint, tags, token, false, provider, true)
-
-		for {
-			stillNotReady := false
-			fleets := controller.GetFleet(fleetName+"-1", token, provider)
-			if len(fleets) == 0 {
-				stillNotReady = true
+		if provider == controller.PROVIDER_LINODE {
+			packerVars := "-var 'TOKEN=" + token + "'"
+			packerVars += " -var 'IMAGE=" + image + "'"
+			packerVars += " -var 'SIZE=" + size + "'"
+			packerVars += " -var 'REGION=" + region + "'"
+			utils.RunCommand("packer build "+packerVars+" "+fileFlag, debugFlag)
+		} else {
+			c, err := readConf(fileFlag)
+			if err != nil {
+				log.Fatal(err)
 			}
-			for _, box := range fleets {
-				if box.Label == fleetName+"-1" {
-					boxID = box.ID
-					boxIP = box.IP
+
+			controller.SpawnFleet(fleetName, 1, image, region, size, sshFingerprint, tags, token, false, provider, true)
+
+			for {
+				stillNotReady := false
+				fleets := controller.GetFleet(fleetName+"-1", token, provider)
+				if len(fleets) == 0 {
+					stillNotReady = true
+				}
+				for _, box := range fleets {
+					if box.Label == fleetName+"-1" {
+						boxID = box.ID
+						boxIP = box.IP
+						break
+					}
+				}
+
+				if stillNotReady {
+					time.Sleep(3 * time.Second)
+				} else {
 					break
 				}
 			}
 
-			if stillNotReady {
-				time.Sleep(3 * time.Second)
-			} else {
-				break
+			if strings.ContainsAny("~", c.Config.Source) {
+				c.Config.Source = strings.ReplaceAll(c.Config.Source, "~", home)
 			}
-		}
 
-		if strings.ContainsAny("~", c.Config.Source) {
-			c.Config.Source = strings.ReplaceAll(c.Config.Source, "~", home)
-		}
+			for {
+				stillNotReady := false
+				_, err := sshutils.GetConnectionBuild(boxIP, 22, "root", "1337superPass")
+				if err != nil {
+					stillNotReady = true
+				}
 
-		for {
-			stillNotReady := false
-			_, err := sshutils.GetConnectionBuild(boxIP, 22, "root", "1337superPass")
+				if stillNotReady {
+					time.Sleep(5 * time.Second)
+				} else {
+					break
+				}
+			}
+
+			err = scp.NewSCP(sshutils.GetConnection(boxIP, 22, "root", "1337superPass").Client).SendDir(c.Config.Source, c.Config.Destination, nil)
 			if err != nil {
-				stillNotReady = true
+				log.Fatal(err)
 			}
 
-			if stillNotReady {
+			if provider == controller.PROVIDER_DIGITALOCEAN {
+				c.Commands = append(c.Commands, `/bin/su -l op -c "curl http://169.254.169.254/metadata/v1/user-data > /home/op/install.sh"`)
+				c.Commands = append(c.Commands, `/bin/su -l op -c "chmod +x /home/op/install.sh"`)
+				c.Commands = append(c.Commands, `/bin/su -l op -c "/home/op/install.sh"`)
+			}
+
+			for _, command := range c.Commands {
+				controller.RunCommand(fleetName+"-1", command, token, 22, "root", "1337superPass", provider)
+			}
+
+			time.Sleep(8 * time.Second)
+			controller.CreateImage(token, provider, boxID, "Fleex-build-"+timeNow)
+			if deleteFlag {
 				time.Sleep(5 * time.Second)
-			} else {
-				break
+				controller.DeleteFleet(fleetName+"-1", token, provider)
 			}
+			utils.Log.Info("\nImage done!")
 		}
-
-		err = scp.NewSCP(sshutils.GetConnection(boxIP, 22, "root", "1337superPass").Client).SendDir(c.Config.Source, c.Config.Destination, nil)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		if provider == controller.PROVIDER_DIGITALOCEAN {
-			c.Commands = append(c.Commands, `/bin/su -l op -c "curl http://169.254.169.254/metadata/v1/user-data > /home/op/install.sh"`)
-			c.Commands = append(c.Commands, `/bin/su -l op -c "chmod +x /home/op/install.sh"`)
-			c.Commands = append(c.Commands, `/bin/su -l op -c "/home/op/install.sh"`)
-		}
-
-		for _, command := range c.Commands {
-			controller.RunCommand(fleetName+"-1", command, token, 22, "root", "1337superPass", provider)
-		}
-
-		time.Sleep(8 * time.Second)
-		controller.CreateImage(token, provider, boxID, "Fleex-build-"+timeNow)
-		if deleteFlag {
-			time.Sleep(5 * time.Second)
-			controller.DeleteFleet(fleetName+"-1", token, provider)
-		}
-		utils.Log.Info("\nImage done!")
 	},
 }
 
@@ -173,6 +182,7 @@ func init() {
 	buildCmd.Flags().StringP("region", "R", "", "Region")
 	buildCmd.Flags().StringP("size", "S", "", "Size")
 	buildCmd.Flags().BoolP("delete", "d", true, "Doesn't delete the box after image creation")
+	buildCmd.Flags().BoolP("debug", "D", false, "Show build logs")
 
 }
 

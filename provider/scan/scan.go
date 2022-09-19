@@ -211,7 +211,7 @@ loop:
 	if isFolderOut {
 		SaveInFolder(tempFolder, outputPath)
 	} else {
-		utils.RunCommand("cat " + filepath.Join(tempFolder, "chunk-out-*") + " > " + outputPath)
+		utils.RunCommand("cat "+filepath.Join(tempFolder, "chunk-out-*")+" > "+outputPath, true)
 	}
 
 	if chunksFolder == "" {
@@ -244,7 +244,7 @@ func SaveInFolder(inputPath string, outputPath string) {
 			}
 			if !info.IsDir() {
 				if !strings.Contains(info.Name(), "chunk-") {
-					utils.RunCommand("cp " + path + " " + outputPath)
+					utils.RunCommand("cp "+path+" "+outputPath, true)
 				}
 			}
 			return nil

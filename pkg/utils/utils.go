@@ -2,6 +2,7 @@ package utils
 
 import (
 	"archive/zip"
+	"bytes"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -72,17 +73,22 @@ func MakeFolder(path string) {
 	}
 }
 
-func RunCommand(command string) {
+func RunCommand(command string, background bool) {
 	cmd := exec.Command("bash", "-c", command)
-	cmd.Stdout = os.Stdout
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
+	if background {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	} else {
+		var execOut bytes.Buffer
+		var execErr bytes.Buffer
+		cmd.Stdout = &execOut
+		cmd.Stderr = &execErr
+	}
 	err := cmd.Run()
 	if err != nil {
-
-		Log.Fatal("Error running shell command: ", command, "  => ", err.Error())
-
+		if background {
+			Log.Error("Error running shell command: ", command, "  => ", err.Error())
+		}
 	}
 }
 
