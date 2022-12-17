@@ -51,7 +51,7 @@ var buildCmd = &cobra.Command{
 		regionFlag, _ := cmd.Flags().GetString("region")
 		sizeFlag, _ := cmd.Flags().GetString("size")
 		fileFlag, _ := cmd.Flags().GetString("file")
-		deleteFlag, _ := cmd.Flags().GetBool("delete")
+		noDeleteFlag, _ := cmd.Flags().GetBool("no-delete")
 		debugFlag, _ := cmd.Flags().GetBool("debug")
 
 		if providerFlag != "" {
@@ -165,7 +165,7 @@ var buildCmd = &cobra.Command{
 
 			time.Sleep(8 * time.Second)
 			controller.CreateImage(token, provider, boxID, "Fleex-build-"+timeNow)
-			if deleteFlag {
+			if !noDeleteFlag {
 				time.Sleep(5 * time.Second)
 				controller.DeleteFleet(fleetName+"-1", token, provider)
 			}
@@ -181,7 +181,7 @@ func init() {
 	buildCmd.Flags().StringP("file", "f", home+"/fleex/build/common.yaml", "Build file")
 	buildCmd.Flags().StringP("region", "R", "", "Region")
 	buildCmd.Flags().StringP("size", "S", "", "Size")
-	buildCmd.Flags().BoolP("delete", "d", true, "Doesn't delete the box after image creation")
+	buildCmd.Flags().BoolP("no-delete", "", false, "Don't delete the box after image creation")
 	buildCmd.Flags().BoolP("debug", "D", false, "Show build logs")
 
 }
