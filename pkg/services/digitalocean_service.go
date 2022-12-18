@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/FleexSecurity/fleex/pkg/provider"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
-	"github.com/FleexSecurity/fleex/provider"
 	"github.com/digitalocean/godo"
 	"github.com/spf13/viper"
 )

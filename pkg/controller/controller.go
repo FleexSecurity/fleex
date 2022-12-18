@@ -15,9 +15,9 @@ import (
 	"golang.org/x/term"
 
 	"github.com/FleexSecurity/fleex/config"
+	"github.com/FleexSecurity/fleex/pkg/provider"
+	"github.com/FleexSecurity/fleex/pkg/services"
 	"github.com/FleexSecurity/fleex/pkg/utils"
-	"github.com/FleexSecurity/fleex/provider"
-	"github.com/FleexSecurity/fleex/provider/services"
 )
 
 type Provider int
