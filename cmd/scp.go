@@ -1,13 +1,10 @@
 package cmd
 
 import (
-	"os"
 	"strings"
 
 	"github.com/FleexSecurity/fleex/pkg/controller"
-	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
-	"github.com/hnakamur/go-scp"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -79,14 +76,14 @@ var scpCmd = &cobra.Command{
 		}
 		for _, box := range fleets {
 			if box.Label == nameFlag {
-				SendSCP(sourceFlag, destinationFlag, box.IP, portFlag, usernameFlag, passwordFlag)
+				controller.SendSCP(sourceFlag, destinationFlag, box.IP, portFlag, usernameFlag, passwordFlag)
 				return
 			}
 		}
 
 		for _, box := range fleets {
 			if strings.HasPrefix(box.Label, nameFlag) {
-				SendSCP(sourceFlag, destinationFlag, box.IP, portFlag, usernameFlag, passwordFlag)
+				controller.SendSCP(sourceFlag, destinationFlag, box.IP, portFlag, usernameFlag, passwordFlag)
 			}
 		}
 
@@ -108,30 +105,4 @@ func init() {
 	scpCmd.MarkFlagRequired("source")
 	scpCmd.MarkFlagRequired("destination")
 
-}
-
-func SendSCP(source string, destination string, IP string, PORT int, username string, password string) {
-	checkDir, err := IsDirectory(source)
-	if err != nil {
-		utils.Log.Fatal(err)
-	}
-	if checkDir {
-		err := scp.NewSCP(sshutils.GetConnection(IP, PORT, username, password).Client).SendDir(source, destination, nil)
-		if err != nil {
-			utils.Log.Fatal(err)
-		}
-	} else {
-		err := scp.NewSCP(sshutils.GetConnection(IP, PORT, username, password).Client).SendFile(source, destination)
-		if err != nil {
-			utils.Log.Fatal(err)
-		}
-	}
-}
-
-func IsDirectory(path string) (bool, error) {
-	fileInfo, err := os.Stat(path)
-	if err != nil {
-		return false, err
-	}
-	return fileInfo.IsDir(), err
 }
