@@ -36,7 +36,7 @@ func SSHFingerprintGen(publicSSH string) string {
 	// Parse the key, other info ignored
 	pk, _, _, _, err := ssh.ParseAuthorizedKey([]byte(rawKey))
 	if err != nil {
-		panic(err)
+		utils.Log.Fatal("SSHFingerprintGen: ", err)
 	}
 
 	// Get the fingerprint
@@ -53,7 +53,7 @@ func RunCommand(command string, ip string, port int, username string, password s
 			if strings.Contains(err.Error(), "connection refused") && retries < 3 {
 				continue
 			}
-			utils.Log.Fatal(err)
+			utils.Log.Fatal("RunCommand: ", err)
 		}
 		break
 	}
@@ -80,7 +80,7 @@ var termCount int
 func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
 	session, err := conn.NewSession()
 	if err != nil {
-		utils.Log.Fatal(err)
+		utils.Log.Fatal("sendCommands: ", err)
 	}
 	defer session.Close()
 
@@ -147,7 +147,7 @@ func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
 func GetConnection(ip string, port int, username string, password string) *Connection {
 	conn, err := Connect(ip+":"+strconv.Itoa(port), username, password)
 	if err != nil {
-		utils.Log.Fatal(err)
+		utils.Log.Fatal("GetConnection: ", err)
 	}
 	return conn
 }
@@ -178,7 +178,7 @@ func Connect(addr, user, password string) (*Connection, error) {
 func getHomeDir() string {
 	usr, err := user.Current()
 	if err != nil {
-		utils.Log.Fatal(err)
+		utils.Log.Fatal("getHomeDir: ", err)
 	}
 	return usr.HomeDir
 }
