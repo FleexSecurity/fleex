@@ -22,7 +22,6 @@ var scpCmd = &cobra.Command{
 
 		providerFlag, _ := cmd.Flags().GetString("provider")
 		usernameFlag, _ := cmd.Flags().GetString("username")
-		passwordFlag, _ := cmd.Flags().GetString("password")
 		sourceFlag, _ := cmd.Flags().GetString("source")
 		portFlag, _ := cmd.Flags().GetInt("port")
 		destinationFlag, _ := cmd.Flags().GetString("destination")
@@ -39,9 +38,7 @@ var scpCmd = &cobra.Command{
 		if usernameFlag != "" {
 			viper.Set(providerFlag+".username", usernameFlag)
 		}
-		if passwordFlag != "" {
-			viper.Set(providerFlag+".password", passwordFlag)
-		}
+
 		if portFlag != -1 {
 			viper.Set(providerFlag+".port", portFlag)
 		}
@@ -50,17 +47,14 @@ var scpCmd = &cobra.Command{
 		case controller.PROVIDER_LINODE:
 			token = viper.GetString("linode.token")
 			usernameFlag = viper.GetString("linode.username")
-			passwordFlag = viper.GetString("linode.password")
 			portFlag = viper.GetInt("linode.port")
 		case controller.PROVIDER_DIGITALOCEAN:
 			token = viper.GetString("digitalocean.token")
 			usernameFlag = viper.GetString("digitalocean.username")
-			passwordFlag = viper.GetString("digitalocean.password")
 			portFlag = viper.GetInt("digitalocean.port")
 		case controller.PROVIDER_VULTR:
 			token = viper.GetString("vultr.token")
 			usernameFlag = viper.GetString("vultr.username")
-			passwordFlag = viper.GetString("vultr.password")
 			portFlag = viper.GetInt("vultr.port")
 		}
 
@@ -76,14 +70,14 @@ var scpCmd = &cobra.Command{
 		}
 		for _, box := range fleets {
 			if box.Label == nameFlag {
-				controller.SendSCP(sourceFlag, destinationFlag, box.IP, portFlag, usernameFlag, passwordFlag)
+				controller.SendSCP(sourceFlag, destinationFlag, box.IP, portFlag, usernameFlag)
 				return
 			}
 		}
 
 		for _, box := range fleets {
 			if strings.HasPrefix(box.Label, nameFlag) {
-				controller.SendSCP(sourceFlag, destinationFlag, box.IP, portFlag, usernameFlag, passwordFlag)
+				controller.SendSCP(sourceFlag, destinationFlag, box.IP, portFlag, usernameFlag)
 			}
 		}
 
@@ -97,7 +91,6 @@ func init() {
 	scpCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean, vultr)")
 	scpCmd.Flags().StringP("name", "n", "pwn", "Fleet name")
 	scpCmd.Flags().StringP("username", "U", "", "Username")
-	scpCmd.Flags().StringP("password", "P", "", "Password")
 	scpCmd.Flags().IntP("port", "", -1, "SSH port")
 	scpCmd.Flags().StringP("source", "s", "", "Source file / folder")
 	scpCmd.Flags().StringP("destination", "d", "", "Destination file / folder")

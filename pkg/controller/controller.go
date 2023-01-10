@@ -11,14 +11,12 @@ import (
 	"time"
 
 	"github.com/creack/pty"
-	"github.com/hnakamur/go-scp"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/term"
 
 	"github.com/FleexSecurity/fleex/config"
 	"github.com/FleexSecurity/fleex/pkg/provider"
 	"github.com/FleexSecurity/fleex/pkg/services"
-	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
 )
 
@@ -236,20 +234,8 @@ func SSH(boxName, username string, port int, sshKey string, token string, provid
 	}
 }
 
-func SendSCP(source string, destination string, IP string, PORT int, username string, password string) {
-	checkDir, err := utils.IsDirectory(source)
-	if err != nil {
-		utils.Log.Fatal(err)
-	}
-	if checkDir {
-		err := scp.NewSCP(sshutils.GetConnection(IP, PORT, username, password).Client).SendDir(source, destination, nil)
-		if err != nil {
-			utils.Log.Fatal(err)
-		}
-	} else {
-		err := scp.NewSCP(sshutils.GetConnection(IP, PORT, username, password).Client).SendFile(source, destination)
-		if err != nil {
-			utils.Log.Fatal(err)
-		}
-	}
+func SendSCP(source string, destination string, IP string, PORT int, username string) {
+	// We were using a nice native SCP golang library but apparently they all suck so to avoid problems we do it this way
+
+	utils.RunCommand("scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P "+strconv.Itoa(PORT)+" "+source+" "+username+"@"+IP+":"+destination, false)
 }
