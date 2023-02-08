@@ -27,23 +27,9 @@ GO111MODULE=on go install -v github.com/FleexSecurity/fleex@latest
 - [Vultr](https://www.vultr.com/)
 
 # Available commands
-```
-./fleex -h
 
-Available Commands:
-  build       Build image
-  config      Config setup
-  delete      Delete a fleet or a single box
-  help        Help about any command
-  images      List available images
-  init        This command initializes fleex
-  ls          List running boxes
-  run         Run a command
-  scan        Distributed scanning
-  scp         SCP client
-  spawn       Spawn a fleet
-  ssh         Start SSH
-```
+<a href="https://fleexsecurity.github.io/fleex-docs/gif/fleex_intro.gif"><img src="https://fleexsecurity.github.io/fleex-docs/gif/fleex_intro.gif" alt="Fleex-docs"></a>
+
 
 # Documentation
 
@@ -83,33 +69,6 @@ Available Commands:
         />
         <br />
         <b>xm1k3</b>
-        </a>
-    </td>
-  </tr>
-</table>
-
-# Sponsors
-
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://github.com/projectdiscovery">
-      <img
-          width="75px;"
-          src="https://avatars.githubusercontent.com/u/50994705?v=4"
-          alt="projectdiscovery"/>
-        <br />
-        <b>ProjectDiscovery</b>
-        </a>
-    </td>
-     <td align="center">
-      <a href="https://twitter.com/bsysop">
-      <img
-          width="75px;"
-          src="https://avatars.githubusercontent.com/u/9998303?v=4"
-          alt="bsysop"/>
-        <br />
-        <b>bsysop</b>
         </a>
     </td>
   </tr>
