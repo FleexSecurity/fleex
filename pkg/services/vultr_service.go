@@ -164,7 +164,7 @@ func (l VultrService) RemoveImages(name string) error {
 	return nil
 }
 
-func (v VultrService) DeleteFleet(name string, token string) error {
+func (v VultrService) DeleteFleet(name string) error {
 	boxes, err := v.GetBoxes()
 	if err != nil {
 		return err

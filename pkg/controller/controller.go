@@ -104,7 +104,7 @@ func ListImages(token string, provider Provider) {
 
 func RemoveImages(token string, provider Provider, name string) {
 	c := GetProviderController(provider, token)
-	err := c.Service.RemoveImages(token, name)
+	err := c.Service.RemoveImages(name)
 	if err != nil {
 		utils.Log.Fatal(err)
 	}
