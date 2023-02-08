@@ -33,17 +33,16 @@ type Image struct {
 }
 
 type Provider interface {
-	SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string) error
-	GetBoxes(token string) (boxes []Box, err error)
-	GetFleet(fleetName, token string) (fleet []Box, err error)
-	GetBox(boxName, token string) (Box, error)
-	ListBoxes(token string)
-	ListImages(token string) error
-	RemoveImages(token string, name string) error
-	RunCommand(name, command string, port int, username, password, token string) error
+	SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string) error
+	GetBoxes() (boxes []Box, err error)
+	GetFleet(fleetName string) (fleet []Box, err error)
+	GetBox(boxName string) (Box, error)
+	ListBoxes()
+	ListImages() error
+	RunCommand(name, command string, port int, username, password string) error
 	CountFleet(fleetName string, boxes []Box) (count int)
-	DeleteFleet(name string, token string) error
-	DeleteBoxByID(id string, token string) error
-	DeleteBoxByLabel(label string, token string) error
-	CreateImage(token string, diskID int, label string) error
+	DeleteFleet(name string) error
+	DeleteBoxByID(id string) error
+	DeleteBoxByLabel(label string) error
+	CreateImage(diskID int, label string) error
 }

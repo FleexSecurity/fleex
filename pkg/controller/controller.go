@@ -58,7 +58,9 @@ func GetProviderController(pvd Provider, token string) Controller {
 			Client: config.GetLinodeClient(token),
 		}
 	case PROVIDER_DIGITALOCEAN:
-		c.Service = services.DigitaloceanService{}
+		c.Service = services.DigitaloceanService{
+			Client: config.GetDigitaloaceanToken(token),
+		}
 	case PROVIDER_VULTR:
 		c.Service = services.VultrService{
 			Client: config.GetVultrClient(token),
@@ -73,13 +75,13 @@ func GetProviderController(pvd Provider, token string) Controller {
 // ListBoxes prints all active boxes of a provider
 func ListBoxes(token string, provider Provider) {
 	c := GetProviderController(provider, token)
-	c.Service.ListBoxes(token)
+	c.Service.ListBoxes()
 }
 
 // DeleteFleet deletes a whole fleet or a single box
 func DeleteFleet(name string, token string, provider Provider) {
 	c := GetProviderController(provider, token)
-	err := c.Service.DeleteFleet(name, token)
+	err := c.Service.DeleteFleet(name)
 	if err != nil {
 		utils.Log.Fatal(err)
 	}
@@ -94,7 +96,7 @@ func DeleteFleet(name string, token string, provider Provider) {
 // ListImages prints a list of available private images of a provider
 func ListImages(token string, provider Provider) {
 	c := GetProviderController(provider, token)
-	err := c.Service.ListImages(token)
+	err := c.Service.ListImages()
 	if err != nil {
 		utils.Log.Fatal(err)
 	}
@@ -111,7 +113,7 @@ func RemoveImages(token string, provider Provider, name string) {
 func CreateImage(token string, provider Provider, diskID string, label string) {
 	c := GetProviderController(provider, token)
 	diskIDInt, _ := strconv.Atoi(diskID)
-	err := c.Service.CreateImage(token, diskIDInt, label)
+	err := c.Service.CreateImage(diskIDInt, label)
 	if err != nil {
 		utils.Log.Fatal(err)
 	}
@@ -119,7 +121,7 @@ func CreateImage(token string, provider Provider, diskID string, label string) {
 
 func GetFleet(fleetName string, token string, provider Provider) []provider.Box {
 	c := GetProviderController(provider, token)
-	fleet, err := c.Service.GetFleet(fleetName, token)
+	fleet, err := c.Service.GetFleet(fleetName)
 	if err != nil {
 		utils.Log.Fatal(err)
 	}
@@ -128,12 +130,12 @@ func GetFleet(fleetName string, token string, provider Provider) []provider.Box 
 
 func GetBox(boxName string, token string, provider Provider) (provider.Box, error) {
 	c := GetProviderController(provider, token)
-	return c.Service.GetBox(boxName, token)
+	return c.Service.GetBox(boxName)
 }
 
 func RunCommand(name, command, token string, port int, username, password string, provider Provider) {
 	c := GetProviderController(provider, token)
-	err := c.Service.RunCommand(name, command, port, username, password, token)
+	err := c.Service.RunCommand(name, command, port, username, password)
 	if err != nil {
 		utils.Log.Fatal(err)
 	}
@@ -141,7 +143,7 @@ func RunCommand(name, command, token string, port int, username, password string
 
 func DeleteBoxByID(id string, token string, provider Provider) {
 	c := GetProviderController(provider, token)
-	err := c.Service.DeleteBoxByID(id, token)
+	err := c.Service.DeleteBoxByID(id)
 	if err != nil {
 		utils.Log.Fatal(err)
 	}
@@ -167,7 +169,7 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 		}
 	}()
 
-	controller.Service.SpawnFleet(fleetName, fleetCount, image, region, size, sshFingerprint, tags, token)
+	controller.Service.SpawnFleet(fleetName, fleetCount, image, region, size, sshFingerprint, tags)
 
 	if !skipWait {
 		utils.Log.Info("All spawn requests sent! Now waiting for all boxes to become ready")
