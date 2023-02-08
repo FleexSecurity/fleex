@@ -39,6 +39,7 @@ type Provider interface {
 	GetBox(boxName string) (Box, error)
 	ListBoxes()
 	ListImages() error
+	RemoveImages(name string) error
 	RunCommand(name, command string, port int, username, password string) error
 	CountFleet(fleetName string, boxes []Box) (count int)
 	DeleteFleet(name string) error
