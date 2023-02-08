@@ -57,7 +57,6 @@ var runCmd = &cobra.Command{
 			username = viper.GetString("vultr.username")
 			password = viper.GetString("vultr.password")
 		}
-		// log.Fatalln(fleetName, command, token, port, username, password, provider)
 		controller.RunCommand(fleetName, command, token, port, username, password, provider)
 
 	},
