@@ -159,6 +159,11 @@ func (v VultrService) ListImages(token string) error {
 	return nil
 }
 
+// TODO
+func (l VultrService) RemoveImages(token string, name string) error {
+	return nil
+}
+
 func (v VultrService) DeleteFleet(name string, token string) error {
 	boxes, err := v.GetBoxes(token)
 	if err != nil {
