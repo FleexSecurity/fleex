@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -141,6 +142,24 @@ func (l LinodeService) ListImages(token string) error {
 		fmt.Printf("%-18v %-48v %-6v %-29v %-15v\n", image.ID, image.Label, image.Size, image.Created, image.Vendor)
 	}
 	return nil
+}
+
+func (l LinodeService) RemoveImages(token string, name string) error {
+	images, err := l.getImages(token)
+	if err != nil {
+		return err
+	}
+	for _, image := range images {
+		if image.Label == name {
+			err := l.Client.DeleteImage(context.Background(), image.ID)
+			if err != nil {
+				return err
+			}
+			fmt.Println("Successfully removed:", name)
+		}
+		fmt.Printf("%-18v %-48v %-6v %-29v %-15v\n", image.ID, image.Label, image.Size, image.Created, image.Vendor)
+	}
+	return errors.New("Image not found")
 }
 
 func (l LinodeService) spawnBox(name string, image string, region string, size string, token string) error {

@@ -100,6 +100,14 @@ func ListImages(token string, provider Provider) {
 	}
 }
 
+func RemoveImages(token string, provider Provider, name string) {
+	c := GetProviderController(provider, token)
+	err := c.Service.RemoveImages(token, name)
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
+}
+
 func CreateImage(token string, provider Provider, diskID string, label string) {
 	c := GetProviderController(provider, token)
 	diskIDInt, _ := strconv.Atoi(diskID)

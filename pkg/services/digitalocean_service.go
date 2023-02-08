@@ -149,6 +149,11 @@ func (d DigitaloceanService) ListImages(token string) error {
 	return nil
 }
 
+// TODO
+func (l DigitaloceanService) RemoveImages(token string, name string) error {
+	return nil
+}
+
 func (d DigitaloceanService) DeleteFleet(name string, token string) error {
 	boxes, err := d.GetBoxes(token)
 	if err != nil {
