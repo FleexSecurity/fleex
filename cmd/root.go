@@ -1,18 +1,21 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 
+	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/services"
 	"github.com/FleexSecurity/fleex/pkg/utils"
-	homedir "github.com/mitchellh/go-homedir"
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var cfgFile string
+var globalConfig *models.Config
 
 type ProviderController struct {
 	Service services.LinodeService
@@ -34,9 +37,9 @@ Check out our docs at https://fleexsecurity.github.io/fleex-docs/
 `,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	/*Run: func(cmd *cobra.Command, args []string) {
+	// Run: func(cmd *cobra.Command, args []string) {
 
-	},*/
+	// },
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -58,14 +61,11 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-
 	if cfgFile != "" {
 		// Use config file from the flag.
 		if !utils.FileExists(cfgFile) {
 			utils.Log.Fatal("Invalid config file path")
 		}
-
-		viper.SetConfigFile(cfgFile)
 
 	} else {
 		// Find home directory.
@@ -75,16 +75,23 @@ func initConfig() {
 			os.Exit(1)
 		}
 
-		viper.AddConfigPath(filepath.Join(home, "fleex"))
-		viper.SetConfigName("config")
+		cfgFile = filepath.Join(home, "fleex", "config.json")
 	}
 
-	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		//fmt.Println("Using config file:", viper.ConfigFileUsed())
+	file, err := os.Open(cfgFile)
+	if err != nil {
+		log.Fatal(err)
 	}
+	defer file.Close()
+
+	var config models.Config
+	err = json.NewDecoder(file).Decode(&config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	globalConfig = &config
+
 	levelString, _ := rootCmd.PersistentFlags().GetString("loglevel")
 	utils.SetLogLevel(levelString)
 }
