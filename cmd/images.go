@@ -34,7 +34,9 @@ var imagesListCmd = &cobra.Command{
 		if provider == -1 {
 			log.Fatal("invalid provider")
 		}
-		controller.ListImages(token, provider)
+
+		newController := controller.NewController(globalConfig)
+		newController.ListImages(token, provider)
 	},
 }
 
@@ -59,7 +61,8 @@ var imagesRemoveCmd = &cobra.Command{
 			log.Fatal("invalid provider")
 		}
 
-		controller.RemoveImages(token, provider, nameFlag)
+		newController := controller.NewController(globalConfig)
+		newController.RemoveImages(token, provider, nameFlag)
 	},
 }
 

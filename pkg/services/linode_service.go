@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/provider"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
@@ -16,7 +17,8 @@ import (
 )
 
 type LinodeService struct {
-	Client linodego.Client
+	Client  linodego.Client
+	Configs *models.Config
 }
 
 func (l LinodeService) SpawnFleet(fleetName, password string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string) error {

@@ -37,14 +37,12 @@ var sshCmd = &cobra.Command{
 		if usernameFlag == "" {
 			usernameFlag = globalConfig.Providers[providerFlag].Username
 		}
-
 		token = globalConfig.Providers[providerFlag].Token
-
 		boxName, _ := cmd.Flags().GetString("name")
-
 		sshKey := globalConfig.SSHKeys.PrivateFile
 
-		controller.SSH(boxName, usernameFlag, portFlag, sshKey, token, provider)
+		newController := controller.NewController(globalConfig)
+		newController.SSH(boxName, usernameFlag, portFlag, sshKey, token, provider)
 	},
 }
 

@@ -15,6 +15,7 @@ import (
 	"github.com/hnakamur/go-scp"
 
 	"github.com/FleexSecurity/fleex/pkg/controller"
+	"github.com/FleexSecurity/fleex/pkg/models"
 	p "github.com/FleexSecurity/fleex/pkg/provider"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
@@ -75,7 +76,9 @@ func Start(fleetName, command string, delete bool, input, outputPath, chunksFold
 
 	// Input file to string
 
-	fleet := controller.GetFleet(fleetName, token, provider)
+	// TODO: to fix this
+	newController := controller.NewController(&models.Config{})
+	fleet := newController.GetFleet(fleetName, token, provider)
 	if len(fleet) < 1 {
 		utils.Log.Fatal("No fleet found")
 	}
@@ -186,7 +189,7 @@ loop:
 					// TODO: Not the best way to delete a box, if this program crashes/is stopped
 					// before reaching this line the box won't be deleted. It's better to setup
 					// a cron/command on the box directly.
-					controller.DeleteBoxByID(l.ID, token, provider)
+					newController.DeleteBoxByID(l.ID, token, provider)
 					utils.Log.Debug("Killed box ", l.Label)
 				}
 

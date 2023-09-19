@@ -30,7 +30,9 @@ var deleteCmd = &cobra.Command{
 			log.Fatal("invalid provider")
 		}
 
-		controller.DeleteFleet(name, token, provider)
+		newController := controller.NewController(globalConfig)
+
+		newController.DeleteFleet(name, token, provider)
 
 	},
 }
