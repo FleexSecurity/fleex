@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/FleexSecurity/fleex/pkg/controller"
@@ -46,9 +45,6 @@ var runCmd = &cobra.Command{
 		}
 
 		globalConfig.Providers[providerFlag] = providerInfo
-
-		fmt.Println(globalConfig.Providers[providerFlag])
-		log.Fatal(1)
 
 		newController := controller.NewController(globalConfig)
 		newController.RunCommand(fleetName, commandFlag)
