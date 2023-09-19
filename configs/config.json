@@ -38,5 +38,45 @@
             "username": "op",
             "password": "USER_PASSWORD"
         }
-    }
+    },
+    "custom_vms": [
+        {
+            "provider": "aws",
+            "instance_id": "i-customid",
+            "public_ip": "1.2.3.4",
+            "ssh_port": 22,
+            "username": "ec2-user",
+            "password": "USER_PASSWORD",
+            "key_path": "/path/to/your/private-key.pem",
+            "tags": [
+                "web-server",
+                "production"
+            ]
+        },
+        {
+            "provider": "utm",
+            "instance_id": "i-customid2",
+            "public_ip": "1.2.3.4",
+            "ssh_port": 22,
+            "username": "user",
+            "password": "USER_PASSWORD",
+            "key_path": "/path/to/your/private-key.pem",
+            "tags": [
+                "test",
+                "production"
+            ]
+        },
+        {
+            "provider": "virtualbox",
+            "instance_id": "i-customid3",
+            "public_ip": "1.2.3.4",
+            "ssh_port": 22,
+            "username": "user",
+            "password": "USER_PASSWORD",
+            "key_path": "/path/to/your/private-key.pem",
+            "tags": [
+                "staging"
+            ]
+        }
+    ]
 }
