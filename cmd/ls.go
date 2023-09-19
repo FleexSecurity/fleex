@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/FleexSecurity/fleex/pkg/controller"
@@ -19,17 +20,21 @@ var lsCmd = &cobra.Command{
 		utils.SetProxy(proxy)
 
 		providerFlag, _ := cmd.Flags().GetString("provider")
-		if globalConfig.Settings.Provider != providerFlag && providerFlag == "" {
-			providerFlag = globalConfig.Settings.Provider
+		if providerFlag != "" {
+			globalConfig.Settings.Provider = providerFlag
 		}
 
-		provider := controller.GetProvider(providerFlag)
+		provider := controller.GetProvider(globalConfig.Settings.Provider)
 		if provider == -1 {
-			log.Fatal("invalid provider")
+			log.Fatal("provider non valido")
 		}
 
 		token = globalConfig.Providers[providerFlag].Token
-		controller.ListBoxes(token, provider)
+
+		newController := controller.NewController(globalConfig)
+		fmt.Println(newController.Configs.Settings.Provider)
+		log.Fatal(1)
+		newController.ListBoxes(token, provider)
 	},
 }
 

@@ -92,6 +92,8 @@ var buildCmd = &cobra.Command{
 		sourcePath := filepath.Join(home, ".ssh", pubSSH)
 		utils.Copy(sourcePath, destinationPath)
 
+		newController := controller.NewController(globalConfig)
+
 		if provider == controller.PROVIDER_LINODE {
 			packerVars := "-var 'TOKEN=" + token + "'"
 			packerVars += " -var 'IMAGE=" + image + "'"
@@ -104,11 +106,11 @@ var buildCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 
-			controller.SpawnFleet(fleetName, password, 1, image, region, size, sshFingerprint, tags, token, false, provider, true)
+			newController.SpawnFleet(fleetName, password, 1, image, region, size, sshFingerprint, tags, token, false, provider, true)
 
 			for {
 				stillNotReady := false
-				fleets := controller.GetFleet(fleetName+"-1", token, provider)
+				fleets := newController.GetFleet(fleetName+"-1", token, provider)
 				if len(fleets) == 0 {
 					stillNotReady = true
 				}
@@ -157,14 +159,20 @@ var buildCmd = &cobra.Command{
 			}
 
 			for _, command := range c.Commands {
-				controller.RunCommand(fleetName+"-1", command, token, 22, "root", "1337superPass", provider)
+				prov := newController.Configs.Settings.Provider
+				provItem := newController.Configs.Providers[prov]
+				provItem.Port = 22
+				provItem.Token = token
+				provItem.Username = "root"
+				provItem.Password = "1337superPass"
+				newController.RunCommand(fleetName+"-1", command)
 			}
 
 			time.Sleep(8 * time.Second)
-			controller.CreateImage(token, provider, boxID, "Fleex-build-"+timeNow)
+			newController.CreateImage(token, provider, boxID, "Fleex-build-"+timeNow)
 			if !noDeleteFlag {
 				time.Sleep(5 * time.Second)
-				controller.DeleteFleet(fleetName+"-1", token, provider)
+				newController.DeleteFleet(fleetName+"-1", token, provider)
 			}
 			utils.Log.Info("\nImage done!")
 		}

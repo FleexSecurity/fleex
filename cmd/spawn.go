@@ -53,7 +53,9 @@ var spawnCmd = &cobra.Command{
 		publicSSH := globalConfig.SSHKeys.PublicFile
 		sshFingerprint = sshutils.SSHFingerprintGen(publicSSH)
 
-		controller.SpawnFleet(fleetName, password, fleetCount, imageFlag, regionFlag, sizeFlag, sshFingerprint, tags, token, skipWait, provider, false)
+		newController := controller.NewController(globalConfig)
+
+		newController.SpawnFleet(fleetName, password, fleetCount, imageFlag, regionFlag, sizeFlag, sshFingerprint, tags, token, skipWait, provider, false)
 
 	},
 }
