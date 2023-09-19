@@ -19,7 +19,7 @@ type VultrService struct {
 }
 
 // SpawnFleet spawns a Vultr fleet
-func (v VultrService) SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string) error {
+func (v VultrService) SpawnFleet(fleetName, password string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string) error {
 	existingFleet, _ := v.GetFleet(fleetName)
 
 	threads := 10

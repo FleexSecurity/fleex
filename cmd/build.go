@@ -76,6 +76,7 @@ var buildCmd = &cobra.Command{
 		}
 		sshFingerprint = sshutils.SSHFingerprintGen(pubSSH)
 		token = globalConfig.Providers[providerFlag].Token
+		password := globalConfig.Providers[providerFlag].Password
 
 		switch provider {
 		case controller.PROVIDER_LINODE:
@@ -103,7 +104,7 @@ var buildCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 
-			controller.SpawnFleet(fleetName, 1, image, region, size, sshFingerprint, tags, token, false, provider, true)
+			controller.SpawnFleet(fleetName, password, 1, image, region, size, sshFingerprint, tags, token, false, provider, true)
 
 			for {
 				stillNotReady := false

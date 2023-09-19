@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 
@@ -60,9 +59,6 @@ var scanCmd = &cobra.Command{
 			password = globalConfig.Providers[providerFlag].Password
 		}
 		token = globalConfig.Providers[providerFlag].Token
-
-		fmt.Println(providerFlag, username, password, port)
-		log.Fatal(1)
 
 		var module Module
 

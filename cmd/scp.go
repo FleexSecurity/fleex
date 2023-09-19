@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
 	"path/filepath"
 	"strings"
@@ -47,9 +46,6 @@ var scpCmd = &cobra.Command{
 			usernameFlag = globalConfig.Providers[providerFlag].Username
 		}
 		token = globalConfig.Providers[providerFlag].Token
-
-		fmt.Println(providerFlag, usernameFlag, portFlag)
-		log.Fatal(1)
 
 		if strings.HasPrefix(destinationFlag, home) {
 			if home != "/root" {

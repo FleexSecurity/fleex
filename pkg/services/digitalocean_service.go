@@ -10,18 +10,17 @@ import (
 	"github.com/FleexSecurity/fleex/pkg/provider"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/digitalocean/godo"
-	"github.com/spf13/viper"
 )
 
 type DigitaloceanService struct {
 	Client *godo.Client
 }
 
-func (d DigitaloceanService) SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string) error {
+func (d DigitaloceanService) SpawnFleet(fleetName, password string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string) error {
 	existingFleet, _ := d.GetFleet(fleetName)
 
 	ctx := context.TODO()
-	digitaloceanPasswd := viper.GetString("digitalocean.password")
+	digitaloceanPasswd := password
 	if digitaloceanPasswd == "" {
 		digitaloceanPasswd = "1337rootPass"
 	}

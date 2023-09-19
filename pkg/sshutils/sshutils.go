@@ -1,8 +1,11 @@
 package sshutils
 
 import (
+	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net"
 	"os"
 	"os/user"
@@ -10,8 +13,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/utils"
-	"github.com/spf13/viper"
+	"github.com/mitchellh/go-homedir"
 
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
@@ -21,8 +25,32 @@ type Connection struct {
 	*ssh.Client
 }
 
+func GetConfigs() *models.Config {
+	home, err := homedir.Dir()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	cfgFile := filepath.Join(home, "fleex", "config.json")
+	file, err := os.Open(cfgFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	var config models.Config
+	err = json.NewDecoder(file).Decode(&config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return &config
+}
+
 func GetLocalPublicSSHKey() string {
-	publicSsh := viper.GetString("public-ssh-file")
+	configs := GetConfigs()
+	publicSsh := configs.SSHKeys.PublicFile
 	rawKey := utils.FileToString(filepath.Join(getHomeDir(), ".ssh", publicSsh))
 	retString := strings.ReplaceAll(rawKey, "\r\n", "")
 	retString = strings.ReplaceAll(retString, "\n", "")
@@ -176,7 +204,8 @@ func GetConnectionBuild(ip string, port int, username string, password string) (
 }
 
 func Connect(addr, user, password string) (*Connection, error) {
-	privateSsh := viper.GetString("private-ssh-file")
+	configs := GetConfigs()
+	privateSsh := configs.SSHKeys.PrivateFile
 	sshConfig := &ssh.ClientConfig{
 		User: user,
 		Auth: []ssh.AuthMethod{

@@ -149,7 +149,7 @@ func DeleteBoxByID(id string, token string, provider Provider) {
 	}
 }
 
-func SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string, skipWait bool, provider Provider, build bool) {
+func SpawnFleet(fleetName, password string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string, skipWait bool, provider Provider, build bool) {
 	controller := GetProviderController(provider, token)
 	startFleet := GetFleet(fleetName, token, provider)
 	finalFleetSize := len(startFleet) + fleetCount
@@ -169,7 +169,7 @@ func SpawnFleet(fleetName string, fleetCount int, image string, region string, s
 		}
 	}()
 
-	controller.Service.SpawnFleet(fleetName, fleetCount, image, region, size, sshFingerprint, tags)
+	controller.Service.SpawnFleet(fleetName, password, fleetCount, image, region, size, sshFingerprint, tags)
 
 	if !skipWait {
 		utils.Log.Info("All spawn requests sent! Now waiting for all boxes to become ready")
