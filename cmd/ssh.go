@@ -1,10 +1,11 @@
 package cmd
 
 import (
+	"log"
+
 	"github.com/FleexSecurity/fleex/pkg/controller"
 	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // sshCmd represents the ssh command
@@ -14,47 +15,36 @@ var sshCmd = &cobra.Command{
 
 	Run: func(cmd *cobra.Command, args []string) {
 		var token string
-		var port int
 
 		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
 		utils.SetProxy(proxy)
 
 		providerFlag, _ := cmd.Flags().GetString("provider")
 		portFlag, _ := cmd.Flags().GetInt("port")
-		username, _ := cmd.Flags().GetString("username")
+		usernameFlag, _ := cmd.Flags().GetString("username")
 
-		if providerFlag != "" {
-			viper.Set("provider", providerFlag)
+		if globalConfig.Settings.Provider != providerFlag && providerFlag == "" {
+			providerFlag = globalConfig.Settings.Provider
 		}
-		provider := controller.GetProvider(viper.GetString("provider"))
-		providerFlag = viper.GetString("provider")
 
-		if portFlag != -1 {
-			viper.Set(providerFlag+".port", portFlag)
+		provider := controller.GetProvider(providerFlag)
+		if provider == -1 {
+			log.Fatal("invalid provider")
 		}
-		if username != "" {
-			viper.Set(providerFlag+".username", username)
+		if portFlag == -1 {
+			portFlag = globalConfig.Providers[providerFlag].Port
 		}
+		if usernameFlag == "" {
+			usernameFlag = globalConfig.Providers[providerFlag].Username
+		}
+
+		token = globalConfig.Providers[providerFlag].Token
 
 		boxName, _ := cmd.Flags().GetString("name")
 
-		sshKey := viper.GetString("private-ssh-file")
+		sshKey := globalConfig.SSHKeys.PrivateFile
 
-		switch provider {
-		case controller.PROVIDER_LINODE:
-			token = viper.GetString("linode.token")
-			port = viper.GetInt("linode.port")
-			username = viper.GetString("linode.username")
-		case controller.PROVIDER_DIGITALOCEAN:
-			token = viper.GetString("digitalocean.token")
-			port = viper.GetInt("digitalocean.port")
-			username = viper.GetString("digitalocean.username")
-		case controller.PROVIDER_VULTR:
-			token = viper.GetString("vultr.token")
-			port = viper.GetInt("vultr.port")
-			username = viper.GetString("vultr.username")
-		}
-		controller.SSH(boxName, username, port, sshKey, token, provider)
+		controller.SSH(boxName, usernameFlag, portFlag, sshKey, token, provider)
 	},
 }
 
