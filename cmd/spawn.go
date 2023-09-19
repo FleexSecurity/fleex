@@ -37,6 +37,7 @@ var spawnCmd = &cobra.Command{
 			log.Fatal("invalid provider")
 		}
 		token = globalConfig.Providers[providerFlag].Token
+		password := globalConfig.Providers[providerFlag].Password
 
 		if regionFlag == "" {
 			regionFlag = globalConfig.Providers[providerFlag].Region
@@ -52,7 +53,7 @@ var spawnCmd = &cobra.Command{
 		publicSSH := globalConfig.SSHKeys.PublicFile
 		sshFingerprint = sshutils.SSHFingerprintGen(publicSSH)
 
-		controller.SpawnFleet(fleetName, fleetCount, imageFlag, regionFlag, sizeFlag, sshFingerprint, tags, token, skipWait, provider, false)
+		controller.SpawnFleet(fleetName, password, fleetCount, imageFlag, regionFlag, sizeFlag, sshFingerprint, tags, token, skipWait, provider, false)
 
 	},
 }

@@ -13,14 +13,13 @@ import (
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/linode/linodego"
-	"github.com/spf13/viper"
 )
 
 type LinodeService struct {
 	Client linodego.Client
 }
 
-func (l LinodeService) SpawnFleet(fleetName string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string) error {
+func (l LinodeService) SpawnFleet(fleetName, password string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string) error {
 	existingFleet, _ := l.GetFleet(fleetName)
 
 	threads := 10
@@ -38,7 +37,7 @@ func (l LinodeService) SpawnFleet(fleetName string, fleetCount int, image string
 				}
 
 				utils.Log.Info("Spawning box ", box)
-				err := l.spawnBox(box, image, region, size)
+				err := l.spawnBox(box, password, image, region, size)
 				if err != nil {
 					return err
 				}
@@ -162,16 +161,14 @@ func (l LinodeService) RemoveImages(name string) error {
 	return errors.New("Image not found")
 }
 
-func (l LinodeService) spawnBox(name string, image string, region string, size string) error {
+func (l LinodeService) spawnBox(name string, password string, image string, region string, size string) error {
 	for {
-		linPasswd := viper.GetString("linode.password")
-
 		swapSize := 512
 		booted := true
 		instance, err := l.Client.CreateInstance(context.Background(), linodego.InstanceCreateOptions{
 			SwapSize:       &swapSize,
 			Image:          image,
-			RootPass:       linPasswd,
+			RootPass:       password,
 			Type:           size,
 			Region:         region,
 			AuthorizedKeys: []string{sshutils.GetLocalPublicSSHKey()},
