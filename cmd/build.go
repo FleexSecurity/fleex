@@ -160,11 +160,11 @@ var buildCmd = &cobra.Command{
 
 			for _, command := range c.Commands {
 				prov := newController.Configs.Settings.Provider
-				provItem := newController.Configs.Providers[prov]
-				provItem.Port = 22
-				provItem.Token = token
-				provItem.Username = "root"
-				provItem.Password = "1337superPass"
+				provInfo := newController.Configs.Providers[prov]
+				provInfo.Port = 22
+				provInfo.Token = token
+				provInfo.Username = "root"
+				provInfo.Password = "1337superPass"
 				newController.RunCommand(fleetName+"-1", command)
 			}
 
@@ -181,7 +181,7 @@ var buildCmd = &cobra.Command{
 
 func init() {
 	home, _ := homedir.Dir()
-	rootCmd.AddCommand(buildCmd)
+	// rootCmd.AddCommand(buildCmd)
 	buildCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean, vultr)")
 	buildCmd.Flags().StringP("file", "f", home+"/fleex/build/common.yaml", "Build file")
 	buildCmd.Flags().StringP("region", "R", "", "Region")

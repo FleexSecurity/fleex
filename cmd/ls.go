@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/FleexSecurity/fleex/pkg/controller"
@@ -32,8 +31,6 @@ var lsCmd = &cobra.Command{
 		token = globalConfig.Providers[providerFlag].Token
 
 		newController := controller.NewController(globalConfig)
-		fmt.Println(newController.Configs.Settings.Provider)
-		log.Fatal(1)
 		newController.ListBoxes(token, provider)
 	},
 }

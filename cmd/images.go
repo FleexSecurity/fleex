@@ -26,13 +26,13 @@ var imagesListCmd = &cobra.Command{
 
 		providerFlag, _ := cmd.Flags().GetString("provider")
 
-		if globalConfig.Settings.Provider != providerFlag && providerFlag == "" {
-			providerFlag = globalConfig.Settings.Provider
+		if providerFlag != "" {
+			globalConfig.Settings.Provider = providerFlag
 		}
 
-		provider := controller.GetProvider(providerFlag)
+		provider := controller.GetProvider(globalConfig.Settings.Provider)
 		if provider == -1 {
-			log.Fatal("invalid provider")
+			log.Fatal("provider non valido")
 		}
 
 		newController := controller.NewController(globalConfig)
@@ -52,13 +52,13 @@ var imagesRemoveCmd = &cobra.Command{
 		providerFlag, _ := cmd.Flags().GetString("provider")
 		nameFlag, _ := cmd.Flags().GetString("name")
 
-		if globalConfig.Settings.Provider != providerFlag && providerFlag == "" {
-			providerFlag = globalConfig.Settings.Provider
+		if providerFlag != "" {
+			globalConfig.Settings.Provider = providerFlag
 		}
 
-		provider := controller.GetProvider(providerFlag)
+		provider := controller.GetProvider(globalConfig.Settings.Provider)
 		if provider == -1 {
-			log.Fatal("invalid provider")
+			log.Fatal("provider non valido")
 		}
 
 		newController := controller.NewController(globalConfig)
