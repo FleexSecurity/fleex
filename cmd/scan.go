@@ -1,14 +1,15 @@
 package cmd
 
 import (
+	"fmt"
 	"io/ioutil"
+	"log"
 
 	"github.com/FleexSecurity/fleex/pkg/controller"
 	"github.com/FleexSecurity/fleex/pkg/scan"
 	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 )
 
@@ -36,44 +37,32 @@ var scanCmd = &cobra.Command{
 		inputFlag, _ := cmd.Flags().GetString("input")
 		output, _ := cmd.Flags().GetString("output")
 		moduleFlag, _ := cmd.Flags().GetString("module")
-
-		chunksFolder, _ := cmd.Flags().GetString("chunks-folder")
-		if providerFlag != "" {
-			viper.Set("provider", providerFlag)
-		}
-		provider := controller.GetProvider(viper.GetString("provider"))
-		providerFlag = viper.GetString("provider")
-
 		port, _ := cmd.Flags().GetInt("port")
 		username, _ := cmd.Flags().GetString("username")
 		password, _ := cmd.Flags().GetString("password")
-		if port != -1 {
-			viper.Set(providerFlag+".port", port)
+
+		chunksFolder, _ := cmd.Flags().GetString("chunks-folder")
+		if globalConfig.Settings.Provider != providerFlag && providerFlag == "" {
+			providerFlag = globalConfig.Settings.Provider
 		}
-		if username != "" {
-			viper.Set(providerFlag+".username", username)
-		}
-		if password != "" {
-			viper.Set(providerFlag+".password", password)
+		provider := controller.GetProvider(providerFlag)
+		if provider == -1 {
+			log.Fatal("invalid provider")
 		}
 
-		switch provider {
-		case controller.PROVIDER_LINODE:
-			token = viper.GetString("linode.token")
-			port = viper.GetInt("linode.port")
-			username = viper.GetString("linode.username")
-			password = viper.GetString("linode.password")
-		case controller.PROVIDER_DIGITALOCEAN:
-			token = viper.GetString("digitalocean.token")
-			port = viper.GetInt("digitalocean.port")
-			username = viper.GetString("digitalocean.username")
-			password = viper.GetString("digitalocean.password")
-		case controller.PROVIDER_VULTR:
-			token = viper.GetString("vultr.token")
-			port = viper.GetInt("vultr.port")
-			username = viper.GetString("vultr.username")
-			password = viper.GetString("vultr.password")
+		if port == -1 {
+			port = globalConfig.Providers[providerFlag].Port
 		}
+		if username == "" {
+			username = globalConfig.Providers[providerFlag].Username
+		}
+		if password == "" {
+			password = globalConfig.Providers[providerFlag].Password
+		}
+		token = globalConfig.Providers[providerFlag].Token
+
+		fmt.Println(providerFlag, username, password, port)
+		log.Fatal(1)
 
 		var module Module
 

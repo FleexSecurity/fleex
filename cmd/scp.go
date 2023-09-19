@@ -1,13 +1,15 @@
 package cmd
 
 import (
+	"fmt"
+	"log"
+	"path/filepath"
 	"strings"
 
 	"github.com/FleexSecurity/fleex/pkg/controller"
 	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // scpCmd represents the scp command
@@ -29,38 +31,29 @@ var scpCmd = &cobra.Command{
 
 		home, _ := homedir.Dir()
 
-		if providerFlag != "" {
-			viper.Set("provider", providerFlag)
-		}
-		provider := controller.GetProvider(viper.GetString("provider"))
-		providerFlag = viper.GetString("provider")
-
-		if usernameFlag != "" {
-			viper.Set(providerFlag+".username", usernameFlag)
+		if globalConfig.Settings.Provider != providerFlag && providerFlag == "" {
+			providerFlag = globalConfig.Settings.Provider
 		}
 
-		if portFlag != -1 {
-			viper.Set(providerFlag+".port", portFlag)
+		provider := controller.GetProvider(providerFlag)
+		if provider == -1 {
+			log.Fatal("invalid provider")
 		}
 
-		switch provider {
-		case controller.PROVIDER_LINODE:
-			token = viper.GetString("linode.token")
-			usernameFlag = viper.GetString("linode.username")
-			portFlag = viper.GetInt("linode.port")
-		case controller.PROVIDER_DIGITALOCEAN:
-			token = viper.GetString("digitalocean.token")
-			usernameFlag = viper.GetString("digitalocean.username")
-			portFlag = viper.GetInt("digitalocean.port")
-		case controller.PROVIDER_VULTR:
-			token = viper.GetString("vultr.token")
-			usernameFlag = viper.GetString("vultr.username")
-			portFlag = viper.GetInt("vultr.port")
+		if portFlag == -1 {
+			portFlag = globalConfig.Providers[providerFlag].Port
 		}
+		if usernameFlag == "" {
+			usernameFlag = globalConfig.Providers[providerFlag].Username
+		}
+		token = globalConfig.Providers[providerFlag].Token
 
-		if strings.Contains(destinationFlag, home) {
+		fmt.Println(providerFlag, usernameFlag, portFlag)
+		log.Fatal(1)
+
+		if strings.HasPrefix(destinationFlag, home) {
 			if home != "/root" {
-				destinationFlag = strings.ReplaceAll(destinationFlag, home, "/home/"+usernameFlag)
+				destinationFlag = filepath.Join("/home", usernameFlag, strings.TrimPrefix(destinationFlag, home))
 			}
 		}
 

@@ -1,10 +1,11 @@
 package cmd
 
 import (
+	"log"
+
 	"github.com/FleexSecurity/fleex/pkg/controller"
 	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // imagesCmd represents the images command
@@ -24,20 +25,15 @@ var imagesListCmd = &cobra.Command{
 		utils.SetProxy(proxy)
 
 		providerFlag, _ := cmd.Flags().GetString("provider")
-		if providerFlag != "" {
-			viper.Set("provider", providerFlag)
-		}
-		provider := controller.GetProvider(viper.GetString("provider"))
 
-		switch provider {
-		case controller.PROVIDER_LINODE:
-			token = viper.GetString("linode.token")
-		case controller.PROVIDER_DIGITALOCEAN:
-			token = viper.GetString("digitalocean.token")
-		case controller.PROVIDER_VULTR:
-			token = viper.GetString("vultr.token")
+		if globalConfig.Settings.Provider != providerFlag && providerFlag == "" {
+			providerFlag = globalConfig.Settings.Provider
 		}
 
+		provider := controller.GetProvider(providerFlag)
+		if provider == -1 {
+			log.Fatal("invalid provider")
+		}
 		controller.ListImages(token, provider)
 	},
 }
@@ -53,18 +49,14 @@ var imagesRemoveCmd = &cobra.Command{
 
 		providerFlag, _ := cmd.Flags().GetString("provider")
 		nameFlag, _ := cmd.Flags().GetString("name")
-		if providerFlag != "" {
-			viper.Set("provider", providerFlag)
-		}
-		provider := controller.GetProvider(viper.GetString("provider"))
 
-		switch provider {
-		case controller.PROVIDER_LINODE:
-			token = viper.GetString("linode.token")
-		case controller.PROVIDER_DIGITALOCEAN:
-			token = viper.GetString("digitalocean.token")
-		case controller.PROVIDER_VULTR:
-			token = viper.GetString("vultr.token")
+		if globalConfig.Settings.Provider != providerFlag && providerFlag == "" {
+			providerFlag = globalConfig.Settings.Provider
+		}
+
+		provider := controller.GetProvider(providerFlag)
+		if provider == -1 {
+			log.Fatal("invalid provider")
 		}
 
 		controller.RemoveImages(token, provider, nameFlag)

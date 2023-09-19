@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -14,7 +15,6 @@ import (
 	"github.com/hnakamur/go-scp"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 )
 
@@ -40,13 +40,6 @@ var buildCmd = &cobra.Command{
 		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
 		utils.SetProxy(proxy)
 
-		timeNow := strconv.FormatInt(time.Now().Unix(), 10)
-		home, _ := homedir.Dir()
-		fleetName := "fleex-" + timeNow
-
-		publicSSH := viper.GetString("public-ssh-file")
-		tags := []string{"snapshot"}
-
 		providerFlag, _ := cmd.Flags().GetString("provider")
 		regionFlag, _ := cmd.Flags().GetString("region")
 		sizeFlag, _ := cmd.Flags().GetString("size")
@@ -54,46 +47,49 @@ var buildCmd = &cobra.Command{
 		noDeleteFlag, _ := cmd.Flags().GetBool("no-delete")
 		debugFlag, _ := cmd.Flags().GetBool("debug")
 
-		if providerFlag != "" {
-			viper.Set("provider", providerFlag)
-		}
-		provider := controller.GetProvider(viper.GetString("provider"))
-		providerFlag = viper.GetString("provider")
+		timeNow := strconv.FormatInt(time.Now().Unix(), 10)
+		home, _ := homedir.Dir()
+		fleetName := "fleex-" + timeNow
 
-		if regionFlag != "" {
-			viper.Set(providerFlag+".region", regionFlag)
-		}
-		if sizeFlag != "" {
-			viper.Set(providerFlag+".size", sizeFlag)
-		}
-
-		switch provider {
-		case controller.PROVIDER_LINODE:
-			token = viper.GetString("linode.token")
-			region = viper.GetString("linode.region")
-			size = viper.GetString("linode.size")
-			image = "linode/ubuntu20.04"
-		case controller.PROVIDER_DIGITALOCEAN:
-			token = viper.GetString("digitalocean.token")
-			region = viper.GetString("digitalocean.region")
-			size = viper.GetString("digitalocean.size")
-			sshFingerprint = sshutils.SSHFingerprintGen(publicSSH)
-			image = "ubuntu-20-04-x64"
-		case controller.PROVIDER_VULTR:
-			token = viper.GetString("vultr.token")
-			region = viper.GetString("vultr.region")
-			size = viper.GetString("vultr.size")
-			sshFingerprint = sshutils.SSHFingerprintGen(publicSSH)
-			image = "270"
-		}
-
-		// Check for authorization_keys
-		pubSSH := viper.GetString("public-ssh-file")
+		pubSSH := globalConfig.SSHKeys.PublicFile
 		if pubSSH == "" {
 			utils.Log.Fatal("You need to create a Key Pair for SSH")
 		}
+		tags := []string{"snapshot"}
 
-		utils.Copy(home+"/.ssh/"+pubSSH, home+"/fleex/configs/authorized_keys")
+		if globalConfig.Settings.Provider != providerFlag && providerFlag == "" {
+			providerFlag = globalConfig.Settings.Provider
+		}
+
+		provider := controller.GetProvider(providerFlag)
+		if provider == -1 {
+			log.Fatal("invalid provider")
+		}
+		token = globalConfig.Providers[providerFlag].Token
+
+		if regionFlag == "" {
+			regionFlag = globalConfig.Providers[providerFlag].Region
+		}
+		if sizeFlag == "" {
+			sizeFlag = globalConfig.Providers[providerFlag].Size
+
+		}
+		sshFingerprint = sshutils.SSHFingerprintGen(pubSSH)
+		token = globalConfig.Providers[providerFlag].Token
+
+		switch provider {
+		case controller.PROVIDER_LINODE:
+			image = "linode/ubuntu20.04"
+		case controller.PROVIDER_DIGITALOCEAN:
+			image = "ubuntu-20-04-x64"
+		case controller.PROVIDER_VULTR:
+			image = "270"
+		}
+
+		destinationPath := filepath.Join(home, "fleex/configs/authorized_keys")
+
+		sourcePath := filepath.Join(home, ".ssh", pubSSH)
+		utils.Copy(sourcePath, destinationPath)
 
 		if provider == controller.PROVIDER_LINODE {
 			packerVars := "-var 'TOKEN=" + token + "'"
