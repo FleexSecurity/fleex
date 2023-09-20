@@ -34,7 +34,7 @@ var buildCmd = &cobra.Command{
 	Short: "Build an image with all the tools you need. Run this the first time only (for each provider).",
 	Long:  "Build image",
 	Run: func(cmd *cobra.Command, args []string) {
-		var token, region, size, sshFingerprint, boxIP, image string
+		var token, region, size, boxIP, image string
 		var boxID string
 
 		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
@@ -55,7 +55,10 @@ var buildCmd = &cobra.Command{
 		if pubSSH == "" {
 			utils.Log.Fatal("You need to create a Key Pair for SSH")
 		}
-		tags := []string{"snapshot"}
+
+		providerInfo := globalConfig.Providers[providerFlag]
+		providerInfo.Tags = []string{"snapshot"}
+		globalConfig.Providers[providerFlag] = providerInfo
 
 		if globalConfig.Settings.Provider != providerFlag && providerFlag == "" {
 			providerFlag = globalConfig.Settings.Provider
@@ -74,10 +77,7 @@ var buildCmd = &cobra.Command{
 			sizeFlag = globalConfig.Providers[providerFlag].Size
 
 		}
-		sshFingerprint = sshutils.SSHFingerprintGen(pubSSH)
 		token = globalConfig.Providers[providerFlag].Token
-		password := globalConfig.Providers[providerFlag].Password
-
 		switch provider {
 		case controller.PROVIDER_LINODE:
 			image = "linode/ubuntu20.04"
@@ -106,11 +106,11 @@ var buildCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 
-			newController.SpawnFleet(fleetName, password, 1, image, region, size, sshFingerprint, tags, token, false, provider, true)
+			newController.SpawnFleet(fleetName, 1, false, true)
 
 			for {
 				stillNotReady := false
-				fleets := newController.GetFleet(fleetName+"-1", token, provider)
+				fleets := newController.GetFleet(fleetName + "-1")
 				if len(fleets) == 0 {
 					stillNotReady = true
 				}
@@ -172,7 +172,7 @@ var buildCmd = &cobra.Command{
 			newController.CreateImage(token, provider, boxID, "Fleex-build-"+timeNow)
 			if !noDeleteFlag {
 				time.Sleep(5 * time.Second)
-				newController.DeleteFleet(fleetName+"-1", token, provider)
+				newController.DeleteFleet(fleetName + "-1")
 			}
 			utils.Log.Info("\nImage done!")
 		}

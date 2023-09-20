@@ -13,8 +13,6 @@ var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "Delete an existing fleet or even a single box",
 	Run: func(cmd *cobra.Command, args []string) {
-		var token string
-
 		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
 		utils.SetProxy(proxy)
 
@@ -32,7 +30,7 @@ var deleteCmd = &cobra.Command{
 
 		newController := controller.NewController(globalConfig)
 
-		newController.DeleteFleet(name, token, provider)
+		newController.DeleteFleet(name)
 
 	},
 }

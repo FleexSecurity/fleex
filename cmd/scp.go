@@ -16,8 +16,6 @@ var scpCmd = &cobra.Command{
 	Use:   "scp",
 	Short: "Send a file/folder to a fleet using SCP",
 	Run: func(cmd *cobra.Command, args []string) {
-		var token string
-
 		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
 		utils.SetProxy(proxy)
 
@@ -45,7 +43,6 @@ var scpCmd = &cobra.Command{
 		if usernameFlag == "" {
 			usernameFlag = globalConfig.Providers[providerFlag].Username
 		}
-		token = globalConfig.Providers[providerFlag].Token
 
 		if strings.HasPrefix(destinationFlag, home) {
 			if home != "/root" {
@@ -55,7 +52,7 @@ var scpCmd = &cobra.Command{
 
 		newController := controller.NewController(globalConfig)
 
-		fleets := newController.GetFleet(nameFlag, token, provider)
+		fleets := newController.GetFleet(nameFlag)
 		if len(fleets) == 0 {
 			utils.Log.Fatal("Box not found")
 		}

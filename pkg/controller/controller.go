@@ -63,19 +63,23 @@ func NewController(configs *models.Config) Controller {
 	token := configs.Providers[selectedProvider].Token
 
 	switch providerId {
+	case PROVIDER_CUSTOM:
+		c.Service = services.CustomService{
+			Configs: configs,
+		}
 	case PROVIDER_LINODE:
 		c.Service = services.LinodeService{
 			Client:  config.GetLinodeClient(token),
 			Configs: configs,
 		}
-	case PROVIDER_DIGITALOCEAN:
-		c.Service = services.DigitaloceanService{
-			Client: config.GetDigitaloaceanToken(token),
-		}
-	case PROVIDER_VULTR:
-		c.Service = services.VultrService{
-			Client: config.GetVultrClient(token),
-		}
+	// case PROVIDER_DIGITALOCEAN:
+	// 	c.Service = services.DigitaloceanService{
+	// 		Client: config.GetDigitaloaceanToken(token),
+	// 	}
+	// case PROVIDER_VULTR:
+	// 	c.Service = services.VultrService{
+	// 		Client: config.GetVultrClient(token),
+	// 	}
 	default:
 		utils.Log.Fatal(provider.ErrInvalidProvider)
 	}
@@ -89,14 +93,14 @@ func (c Controller) ListBoxes(token string, provider Provider) {
 }
 
 // DeleteFleet deletes a whole fleet or a single box
-func (c Controller) DeleteFleet(name string, token string, provider Provider) {
+func (c Controller) DeleteFleet(name string) {
 	err := c.Service.DeleteFleet(name)
 	if err != nil {
 		utils.Log.Fatal(err)
 	}
 
 	time.Sleep(1 * time.Second)
-	for len(c.GetFleet(name, token, provider)) > 0 {
+	for len(c.GetFleet(name)) > 0 {
 		time.Sleep(1 * time.Second)
 	}
 	utils.Log.Info("Fleet/Box deleted!")
@@ -125,7 +129,7 @@ func (c Controller) CreateImage(token string, provider Provider, diskID string, 
 	}
 }
 
-func (c Controller) GetFleet(fleetName string, token string, provider Provider) []provider.Box {
+func (c Controller) GetFleet(fleetName string) []provider.Box {
 	fleet, err := c.Service.GetFleet(fleetName)
 	if err != nil {
 		utils.Log.Fatal(err)
@@ -155,8 +159,8 @@ func (c Controller) DeleteBoxByID(id string, token string, provider Provider) {
 	}
 }
 
-func (c Controller) SpawnFleet(fleetName, password string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string, token string, skipWait bool, provider Provider, build bool) {
-	startFleet := c.GetFleet(fleetName, token, provider)
+func (c Controller) SpawnFleet(fleetName string, fleetCount int, skipWait bool, build bool) {
+	startFleet := c.GetFleet(fleetName)
 	finalFleetSize := len(startFleet) + fleetCount
 
 	if len(startFleet) > 0 {
@@ -169,37 +173,37 @@ func (c Controller) SpawnFleet(fleetName, password string, fleetCount int, image
 	go func() {
 		for range ch {
 			utils.Log.Info("Spawn interrupted. Killing boxes...")
-			c.DeleteFleet(fleetName, token, provider)
+			c.DeleteFleet(fleetName)
 			os.Exit(0)
 		}
 	}()
 
-	c.Service.SpawnFleet(fleetName, password, fleetCount, image, region, size, sshFingerprint, tags)
+	c.Service.SpawnFleet(fleetName, fleetCount)
 
-	if !skipWait {
-		utils.Log.Info("All spawn requests sent! Now waiting for all boxes to become ready")
-		for {
-			stillNotReady := false
-			fleet := c.GetFleet(fleetName, token, provider)
-			if len(fleet) == finalFleetSize {
-				for i := range fleet {
-					if (provider == PROVIDER_DIGITALOCEAN && fleet[i].Status != "active") || (provider == PROVIDER_LINODE && fleet[i].Status != "running") || (provider == PROVIDER_VULTR && fleet[i].Status != "active") {
-						stillNotReady = true
-					}
-				}
+	// if !skipWait {
+	// 	utils.Log.Info("All spawn requests sent! Now waiting for all boxes to become ready")
+	// 	for {
+	// 		stillNotReady := false
+	// 		fleet := c.GetFleet(fleetName)
+	// 		if len(fleet) == finalFleetSize {
+	// 			for i := range fleet {
+	// 				if (provider == PROVIDER_DIGITALOCEAN && fleet[i].Status != "active") || (provider == PROVIDER_LINODE && fleet[i].Status != "running") || (provider == PROVIDER_VULTR && fleet[i].Status != "active") {
+	// 					stillNotReady = true
+	// 				}
+	// 			}
 
-				if stillNotReady {
-					time.Sleep(8 * time.Second)
-				} else {
-					break
-				}
-			}
+	// 			if stillNotReady {
+	// 				time.Sleep(8 * time.Second)
+	// 			} else {
+	// 				break
+	// 			}
+	// 		}
 
-		}
+	// 	}
 
-		utils.Log.Info("All boxes ready!")
+	// 	utils.Log.Info("All boxes ready!")
 
-	}
+	// }
 }
 
 func (c Controller) SSH(boxName, username string, port int, sshKey string, token string, provider Provider) {

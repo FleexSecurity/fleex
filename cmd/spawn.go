@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/FleexSecurity/fleex/pkg/controller"
-	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/spf13/cobra"
 )
@@ -14,9 +13,6 @@ var spawnCmd = &cobra.Command{
 	Use:   "spawn",
 	Short: "Spawn a fleet or even a single box",
 	Run: func(cmd *cobra.Command, args []string) {
-		var token, sshFingerprint string
-		var tags []string
-
 		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
 		utils.SetProxy(proxy)
 
@@ -36,8 +32,6 @@ var spawnCmd = &cobra.Command{
 		if provider == -1 {
 			log.Fatal("invalid provider")
 		}
-		token = globalConfig.Providers[providerFlag].Token
-		password := globalConfig.Providers[providerFlag].Password
 
 		if regionFlag == "" {
 			regionFlag = globalConfig.Providers[providerFlag].Region
@@ -49,13 +43,9 @@ var spawnCmd = &cobra.Command{
 		if imageFlag == "" {
 			imageFlag = globalConfig.Providers[providerFlag].Image
 		}
-		tags = globalConfig.Providers[providerFlag].Tags
-		publicSSH := globalConfig.SSHKeys.PublicFile
-		sshFingerprint = sshutils.SSHFingerprintGen(publicSSH)
 
 		newController := controller.NewController(globalConfig)
-
-		newController.SpawnFleet(fleetName, password, fleetCount, imageFlag, regionFlag, sizeFlag, sshFingerprint, tags, token, skipWait, provider, false)
+		newController.SpawnFleet(fleetName, fleetCount, skipWait, false)
 
 	},
 }

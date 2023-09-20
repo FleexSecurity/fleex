@@ -78,7 +78,7 @@ func Start(fleetName, command string, delete bool, input, outputPath, chunksFold
 
 	// TODO: to fix this
 	newController := controller.NewController(&models.Config{})
-	fleet := newController.GetFleet(fleetName, token, provider)
+	fleet := newController.GetFleet(fleetName)
 	if len(fleet) < 1 {
 		utils.Log.Fatal("No fleet found")
 	}

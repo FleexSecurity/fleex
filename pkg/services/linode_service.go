@@ -21,9 +21,8 @@ type LinodeService struct {
 	Configs *models.Config
 }
 
-func (l LinodeService) SpawnFleet(fleetName, password string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string) error {
+func (l LinodeService) SpawnFleet(fleetName string, fleetCount int) error {
 	existingFleet, _ := l.GetFleet(fleetName)
-
 	threads := 10
 	fleet := make(chan string, threads)
 	processGroup := new(sync.WaitGroup)
@@ -39,7 +38,7 @@ func (l LinodeService) SpawnFleet(fleetName, password string, fleetCount int, im
 				}
 
 				utils.Log.Info("Spawning box ", box)
-				err := l.spawnBox(box, password, image, region, size)
+				err := l.spawnBox(box)
 				if err != nil {
 					return err
 				}
@@ -163,16 +162,18 @@ func (l LinodeService) RemoveImages(name string) error {
 	return errors.New("Image not found")
 }
 
-func (l LinodeService) spawnBox(name string, password string, image string, region string, size string) error {
+func (l LinodeService) spawnBox(name string) error {
+	providerName := l.Configs.Settings.Provider
+	providerInfo := l.Configs.Providers[providerName]
 	for {
 		swapSize := 512
 		booted := true
 		instance, err := l.Client.CreateInstance(context.Background(), linodego.InstanceCreateOptions{
 			SwapSize:       &swapSize,
-			Image:          image,
-			RootPass:       password,
-			Type:           size,
-			Region:         region,
+			Image:          providerInfo.Image,
+			RootPass:       providerInfo.Password,
+			Type:           providerInfo.Size,
+			Region:         providerInfo.Region,
 			AuthorizedKeys: []string{sshutils.GetLocalPublicSSHKey()},
 			Booted:         &booted,
 			Label:          name,
