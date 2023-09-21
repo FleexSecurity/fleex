@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -81,14 +80,14 @@ func initConfig() {
 
 	file, err := os.Open(cfgFile)
 	if err != nil {
-		log.Fatal(err)
+		utils.Log.Fatal(models.ErrInvalidProvider)
 	}
 	defer file.Close()
 
 	var config models.Config
 	err = json.NewDecoder(file).Decode(&config)
 	if err != nil {
-		log.Fatal(err)
+		utils.Log.Fatal(models.ErrInvalidProvider)
 	}
 
 	globalConfig = &config

@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"log"
-
 	"github.com/FleexSecurity/fleex/pkg/controller"
+	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/spf13/cobra"
 )
@@ -30,7 +29,7 @@ var runCmd = &cobra.Command{
 
 		provider := controller.GetProvider(providerFlag)
 		if provider == -1 {
-			log.Fatal("provider non valido")
+			utils.Log.Fatal(models.ErrInvalidProvider)
 		}
 
 		providerInfo := globalConfig.Providers[providerFlag]

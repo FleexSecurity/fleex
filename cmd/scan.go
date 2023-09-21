@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"io/ioutil"
-	"log"
 
 	"github.com/FleexSecurity/fleex/pkg/controller"
+	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/scan"
 	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/mitchellh/go-homedir"
@@ -46,7 +46,7 @@ var scanCmd = &cobra.Command{
 		}
 		provider := controller.GetProvider(providerFlag)
 		if provider == -1 {
-			log.Fatal("invalid provider")
+			utils.Log.Fatal(models.ErrInvalidProvider)
 		}
 
 		if port == -1 {

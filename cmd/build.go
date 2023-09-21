@@ -3,13 +3,13 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/FleexSecurity/fleex/pkg/controller"
+	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/hnakamur/go-scp"
@@ -66,7 +66,7 @@ var buildCmd = &cobra.Command{
 
 		provider := controller.GetProvider(providerFlag)
 		if provider == -1 {
-			log.Fatal("invalid provider")
+			utils.Log.Fatal(models.ErrInvalidProvider)
 		}
 		token = globalConfig.Providers[providerFlag].Token
 
@@ -103,7 +103,7 @@ var buildCmd = &cobra.Command{
 		} else {
 			c, err := readConf(fileFlag)
 			if err != nil {
-				log.Fatal(err)
+				utils.Log.Fatal(err)
 			}
 
 			newController.SpawnFleet(fleetName, 1, false, true)
@@ -149,7 +149,7 @@ var buildCmd = &cobra.Command{
 
 			err = scp.NewSCP(sshutils.GetConnection(boxIP, 22, "root", "1337superPass").Client).SendDir(c.Config.Source, c.Config.Destination, nil)
 			if err != nil {
-				log.Fatal(err)
+				utils.Log.Fatal(err)
 			}
 
 			if provider == controller.PROVIDER_DIGITALOCEAN {
