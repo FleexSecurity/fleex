@@ -9,36 +9,37 @@ type CustomService struct {
 	Configs *models.Config
 }
 
-// SpawnFleet spawns a Vultr fleet
 func (c CustomService) SpawnFleet(fleetName string, fleetCount int) error {
 	return nil
 }
 
-// GetBoxes returns a slice containg all active boxes of a Linode account
 func (c CustomService) GetBoxes() (boxes []provider.Box, err error) {
+	customVps := c.Configs.CustomVMs
+
+	for _, vps := range customVps {
+		boxes = append(boxes, provider.Box{
+			ID:     vps.InstanceID,
+			Label:  vps.Provider,
+			Group:  "custom",
+			Status: "unknown",
+			IP:     vps.PublicIP,
+		})
+	}
 	return boxes, nil
 }
 
-// GetBoxes returns a slice containg all boxes of a given fleet
 func (c CustomService) GetFleet(fleetName string) (fleet []provider.Box, err error) {
 	return fleet, nil
 }
 
-// GetBox returns a single box by its label
 func (c CustomService) GetBox(boxName string) (provider.Box, error) {
-	return provider.Box{}, provider.ErrBoxNotFound
+	return provider.Box{}, models.ErrBoxNotFound
 }
 
-// GetImages returns a slice containing all snapshots of vultr account
 func (c CustomService) GetImages() (images []provider.Image) {
 	return []provider.Image{}
 }
 
-// ListBoxes prints all active boxes of a vultr account
-func (c CustomService) ListBoxes() {
-}
-
-// ListImages prints snapshots of vultr account
 func (c CustomService) ListImages() error {
 	return nil
 }

@@ -82,7 +82,7 @@ func (l LinodeService) GetBox(boxName string) (provider.Box, error) {
 			return box, err
 		}
 	}
-	return provider.Box{}, provider.ErrBoxNotFound
+	return provider.Box{}, models.ErrBoxNotFound
 }
 
 func (l LinodeService) GetBoxes() (boxes []provider.Box, err error) {
@@ -124,13 +124,6 @@ func (l LinodeService) getImages() (images []provider.Image, err error) {
 		}
 	}
 	return images, nil
-}
-
-func (l LinodeService) ListBoxes() {
-	boxes, _ := l.GetBoxes()
-	for _, linode := range boxes {
-		fmt.Printf("%-10v %-16v %-10v %-20v %-15v\n", linode.ID, linode.Label, linode.Group, linode.Status, linode.IP)
-	}
 }
 
 func (l LinodeService) ListImages() error {
