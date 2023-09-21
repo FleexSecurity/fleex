@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -81,7 +82,7 @@ func NewController(configs *models.Config) Controller {
 	// 		Client: config.GetVultrClient(token),
 	// 	}
 	default:
-		utils.Log.Fatal(provider.ErrInvalidProvider)
+		utils.Log.Fatal(models.ErrInvalidProvider)
 	}
 
 	return c
@@ -89,7 +90,13 @@ func NewController(configs *models.Config) Controller {
 
 // ListBoxes prints all active boxes of a provider
 func (c Controller) ListBoxes(token string, provider Provider) {
-	c.Service.ListBoxes()
+	boxes, err := c.Service.GetBoxes()
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, linode := range boxes {
+		fmt.Printf("%-20v %-16v %-10v %-20v %-15v\n", linode.ID, linode.Label, linode.Group, linode.Status, linode.IP)
+	}
 }
 
 // DeleteFleet deletes a whole fleet or a single box

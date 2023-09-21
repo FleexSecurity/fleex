@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/provider"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/digitalocean/godo"
@@ -100,7 +101,7 @@ func (d DigitaloceanService) GetBox(boxName string) (provider.Box, error) {
 			return box, nil
 		}
 	}
-	return provider.Box{}, provider.ErrBoxNotFound
+	return provider.Box{}, models.ErrBoxNotFound
 }
 
 func (d DigitaloceanService) GetBoxes() (boxes []provider.Box, err error) {
@@ -123,13 +124,6 @@ func (d DigitaloceanService) GetBoxes() (boxes []provider.Box, err error) {
 	return boxes, nil
 }
 
-func (d DigitaloceanService) ListBoxes() {
-	// TODO manage error
-	boxes, _ := d.GetBoxes()
-	for _, box := range boxes {
-		fmt.Println(box.ID, box.Label, box.Group, box.Status, box.IP)
-	}
-}
 func (d DigitaloceanService) ListImages() error {
 	ctx := context.TODO()
 	opt := &godo.ListOptions{

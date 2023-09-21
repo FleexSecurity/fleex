@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/provider"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
@@ -108,7 +109,7 @@ func (v VultrService) GetBox(boxName string) (provider.Box, error) {
 			return box, nil
 		}
 	}
-	return provider.Box{}, provider.ErrBoxNotFound
+	return provider.Box{}, models.ErrBoxNotFound
 }
 
 // GetImages returns a slice containing all snapshots of vultr account
@@ -139,15 +140,6 @@ func (v VultrService) GetImages() (images []provider.Image) {
 		}
 	}
 	return images
-}
-
-// ListBoxes prints all active boxes of a vultr account
-func (v VultrService) ListBoxes() {
-	// TODO manage error
-	boxes, _ := v.GetBoxes()
-	for _, instance := range boxes {
-		fmt.Printf("%-10v %-16v %-20v %-15v\n", instance.ID, instance.Label, instance.Status, instance.IP)
-	}
 }
 
 // ListImages prints snapshots of vultr account
@@ -326,7 +318,7 @@ func (v VultrService) spawnBox(name string, image string, region string, size st
 	_, err = v.Client.Instance.Create(context.Background(), instanceOptions)
 
 	if err != nil {
-		return provider.ErrInvalidImage
+		return models.ErrInvalidImage
 	}
 	return nil
 }
