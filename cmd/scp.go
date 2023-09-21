@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"log"
 	"path/filepath"
 	"strings"
 
 	"github.com/FleexSecurity/fleex/pkg/controller"
+	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -34,7 +34,7 @@ var scpCmd = &cobra.Command{
 
 		provider := controller.GetProvider(providerFlag)
 		if provider == -1 {
-			log.Fatal("invalid provider")
+			utils.Log.Fatal(models.ErrInvalidProvider)
 		}
 
 		if portFlag == -1 {

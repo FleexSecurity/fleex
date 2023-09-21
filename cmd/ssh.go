@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"log"
-
 	"github.com/FleexSecurity/fleex/pkg/controller"
+	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/spf13/cobra"
 )
@@ -29,7 +28,7 @@ var sshCmd = &cobra.Command{
 
 		provider := controller.GetProvider(providerFlag)
 		if provider == -1 {
-			log.Fatal("invalid provider")
+			utils.Log.Fatal(models.ErrInvalidProvider)
 		}
 		if portFlag == -1 {
 			portFlag = globalConfig.Providers[providerFlag].Port

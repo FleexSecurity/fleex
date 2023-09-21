@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/FleexSecurity/fleex/pkg/controller"
+	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/spf13/cobra"
 )
@@ -32,7 +33,7 @@ var imagesListCmd = &cobra.Command{
 
 		provider := controller.GetProvider(globalConfig.Settings.Provider)
 		if provider == -1 {
-			log.Fatal("provider non valido")
+			utils.Log.Fatal(models.ErrInvalidProvider)
 		}
 
 		newController := controller.NewController(globalConfig)
