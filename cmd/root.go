@@ -45,8 +45,7 @@ Check out our docs at https://fleexsecurity.github.io/fleex-docs/
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		utils.Log.Fatal(err)
 	}
 }
 
@@ -80,14 +79,14 @@ func initConfig() {
 
 	file, err := os.Open(cfgFile)
 	if err != nil {
-		utils.Log.Fatal(models.ErrInvalidProvider)
+		utils.Log.Fatal(err)
 	}
 	defer file.Close()
 
 	var config models.Config
 	err = json.NewDecoder(file).Decode(&config)
 	if err != nil {
-		utils.Log.Fatal(models.ErrInvalidProvider)
+		utils.Log.Fatal(err)
 	}
 
 	globalConfig = &config

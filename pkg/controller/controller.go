@@ -185,7 +185,10 @@ func (c Controller) SpawnFleet(fleetName string, fleetCount int, skipWait bool, 
 		}
 	}()
 
-	c.Service.SpawnFleet(fleetName, fleetCount)
+	err := c.Service.SpawnFleet(fleetName, fleetCount)
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
 
 	// if !skipWait {
 	// 	utils.Log.Info("All spawn requests sent! Now waiting for all boxes to become ready")

@@ -30,8 +30,9 @@ var imagesListCmd = &cobra.Command{
 		if providerFlag != "" {
 			globalConfig.Settings.Provider = providerFlag
 		}
+		providerFlag = globalConfig.Settings.Provider
 
-		provider := controller.GetProvider(globalConfig.Settings.Provider)
+		provider := controller.GetProvider(providerFlag)
 		if provider == -1 {
 			utils.Log.Fatal(models.ErrInvalidProvider)
 		}

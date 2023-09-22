@@ -36,9 +36,9 @@ var scanCmd = &cobra.Command{
 		inputFlag, _ := cmd.Flags().GetString("input")
 		output, _ := cmd.Flags().GetString("output")
 		moduleFlag, _ := cmd.Flags().GetString("module")
-		port, _ := cmd.Flags().GetInt("port")
-		username, _ := cmd.Flags().GetString("username")
-		password, _ := cmd.Flags().GetString("password")
+		portFlag, _ := cmd.Flags().GetInt("port")
+		usernameFlag, _ := cmd.Flags().GetString("username")
+		passwordFlag, _ := cmd.Flags().GetString("password")
 
 		chunksFolder, _ := cmd.Flags().GetString("chunks-folder")
 		if globalConfig.Settings.Provider != providerFlag && providerFlag == "" {
@@ -49,14 +49,15 @@ var scanCmd = &cobra.Command{
 			utils.Log.Fatal(models.ErrInvalidProvider)
 		}
 
-		if port == -1 {
-			port = globalConfig.Providers[providerFlag].Port
+		providerInfo := globalConfig.Providers[providerFlag]
+		if portFlag != -1 {
+			providerInfo.Port = portFlag
 		}
-		if username == "" {
-			username = globalConfig.Providers[providerFlag].Username
+		if usernameFlag != "" {
+			providerInfo.Username = usernameFlag
 		}
-		if password == "" {
-			password = globalConfig.Providers[providerFlag].Password
+		if passwordFlag != "" {
+			providerInfo.Password = passwordFlag
 		}
 		token = globalConfig.Providers[providerFlag].Token
 
@@ -73,7 +74,7 @@ var scanCmd = &cobra.Command{
 			utils.Log.Fatal("Command not found, insert a command or module")
 		}
 
-		scan.Start(fleetNameFlag, commandFlag, deleteFlag, inputFlag, output, chunksFolder, token, port, username, password, provider)
+		scan.Start(fleetNameFlag, commandFlag, deleteFlag, inputFlag, output, chunksFolder, token, portFlag, usernameFlag, passwordFlag, provider)
 
 	},
 }

@@ -10,7 +10,7 @@ type CustomService struct {
 }
 
 func (c CustomService) SpawnFleet(fleetName string, fleetCount int) error {
-	return nil
+	return models.ErrNotAvailableCustomVps
 }
 
 func (c CustomService) GetBoxes() (boxes []provider.Box, err error) {
@@ -41,23 +41,23 @@ func (c CustomService) GetImages() (images []provider.Image) {
 }
 
 func (c CustomService) ListImages() error {
-	return nil
+	return models.ErrNotAvailableCustomVps
 }
 
 func (c CustomService) RemoveImages(name string) error {
-	return nil
+	return models.ErrNotAvailableCustomVps
 }
 
 func (c CustomService) DeleteFleet(name string) error {
-	return nil
+	return models.ErrNotAvailableCustomVps
 }
 
 func (c CustomService) DeleteBoxByID(id string) error {
-	return nil
+	return models.ErrNotAvailableCustomVps
 }
 
 func (c CustomService) DeleteBoxByLabel(label string) error {
-	return nil
+	return models.ErrNotAvailableCustomVps
 }
 
 func (c CustomService) RunCommand(name, command string, port int, username, password string) error {
@@ -65,21 +65,9 @@ func (c CustomService) RunCommand(name, command string, port int, username, pass
 }
 
 func (c CustomService) CountFleet(fleetName string, boxes []provider.Box) (count int) {
-	return count
-}
-
-func (c CustomService) spawnBox(name string) error {
-	return nil
+	return len(c.Configs.CustomVMs)
 }
 
 func (c CustomService) CreateImage(diskID int, label string) error {
-	return nil
-}
-
-func (c CustomService) getSSHKey() string {
-	return ""
-}
-
-func (c CustomService) KeyCheck(fleex_key string) string {
-	return ""
+	return models.ErrNotAvailableCustomVps
 }
