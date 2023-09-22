@@ -23,24 +23,25 @@ var spawnCmd = &cobra.Command{
 		fleetName, _ := cmd.Flags().GetString("name")
 		skipWait, _ := cmd.Flags().GetBool("skipwait")
 
-		if globalConfig.Settings.Provider != providerFlag && providerFlag == "" {
-			providerFlag = globalConfig.Settings.Provider
+		if providerFlag != "" {
+			globalConfig.Settings.Provider = providerFlag
 		}
+		providerFlag = globalConfig.Settings.Provider
 
 		provider := controller.GetProvider(providerFlag)
 		if provider == -1 {
 			utils.Log.Fatal(models.ErrInvalidProvider)
 		}
 
-		if regionFlag == "" {
-			regionFlag = globalConfig.Providers[providerFlag].Region
+		providerInfo := globalConfig.Providers[providerFlag]
+		if regionFlag != "" {
+			providerInfo.Region = regionFlag
 		}
-		if sizeFlag == "" {
-			sizeFlag = globalConfig.Providers[providerFlag].Size
-
+		if sizeFlag != "" {
+			providerInfo.Size = sizeFlag
 		}
-		if imageFlag == "" {
-			imageFlag = globalConfig.Providers[providerFlag].Image
+		if imageFlag != "" {
+			providerInfo.Image = imageFlag
 		}
 
 		newController := controller.NewController(globalConfig)

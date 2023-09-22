@@ -22,9 +22,10 @@ var sshCmd = &cobra.Command{
 		portFlag, _ := cmd.Flags().GetInt("port")
 		usernameFlag, _ := cmd.Flags().GetString("username")
 
-		if globalConfig.Settings.Provider != providerFlag && providerFlag == "" {
-			providerFlag = globalConfig.Settings.Provider
+		if providerFlag != "" {
+			globalConfig.Settings.Provider = providerFlag
 		}
+		providerFlag = globalConfig.Settings.Provider
 
 		provider := controller.GetProvider(providerFlag)
 		if provider == -1 {

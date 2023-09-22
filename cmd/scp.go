@@ -28,20 +28,22 @@ var scpCmd = &cobra.Command{
 
 		home, _ := homedir.Dir()
 
-		if globalConfig.Settings.Provider != providerFlag && providerFlag == "" {
-			providerFlag = globalConfig.Settings.Provider
+		if providerFlag != "" {
+			globalConfig.Settings.Provider = providerFlag
 		}
+		providerFlag = globalConfig.Settings.Provider
 
 		provider := controller.GetProvider(providerFlag)
 		if provider == -1 {
 			utils.Log.Fatal(models.ErrInvalidProvider)
 		}
 
-		if portFlag == -1 {
-			portFlag = globalConfig.Providers[providerFlag].Port
+		providerInfo := globalConfig.Providers[providerFlag]
+		if portFlag != -1 {
+			providerInfo.Port = portFlag
 		}
-		if usernameFlag == "" {
-			usernameFlag = globalConfig.Providers[providerFlag].Username
+		if usernameFlag != "" {
+			providerInfo.Username = usernameFlag
 		}
 
 		if strings.HasPrefix(destinationFlag, home) {
