@@ -16,7 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -36,8 +35,6 @@ var initCmd = &cobra.Command{
 		home, _ := homedir.Dir()
 		timeNow := strconv.FormatInt(time.Now().Unix(), 10)
 		overwrite, _ := cmd.Flags().GetBool("overwrite")
-
-		fmt.Println("sas")
 
 		if _, err := os.Stat(home + "/fleex"); !os.IsNotExist(err) {
 			if !overwrite {
