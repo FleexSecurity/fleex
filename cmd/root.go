@@ -79,7 +79,8 @@ func initConfig() {
 
 	file, err := os.Open(cfgFile)
 	if err != nil {
-		utils.Log.Fatal(err)
+		initCmd.Run(initCmd, initCmd.Flags().Args())
+		os.Exit(1)
 	}
 	defer file.Close()
 
