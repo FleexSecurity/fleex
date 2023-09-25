@@ -1,8 +1,13 @@
 package services
 
 import (
+	"fmt"
+	"strings"
+	"sync"
+
 	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/provider"
+	"github.com/FleexSecurity/fleex/pkg/sshutils"
 )
 
 type CustomService struct {
@@ -61,6 +66,30 @@ func (c CustomService) DeleteBoxByLabel(label string) error {
 }
 
 func (c CustomService) RunCommand(name, command string, port int, username, password string) error {
+	for _, box := range c.Configs.CustomVMs {
+		if strings.HasPrefix(box.InstanceID, name) {
+			sshutils.RunCommandWithPassword(command, box.PublicIP, box.SSHPort, box.Username, box.Password)
+			return nil
+		}
+	}
+
+	fleetSize := len(c.Configs.CustomVMs)
+
+	if fleetSize == 0 {
+		return fmt.Errorf("No boxes with name %s", name)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(fleetSize)
+
+	for _, box := range c.Configs.CustomVMs {
+		go func(b models.CustomVM) {
+			defer wg.Done()
+			sshutils.RunCommandWithPassword(command, b.PublicIP, b.SSHPort, b.Username, b.Password)
+		}(box)
+	}
+
+	wg.Wait()
 	return nil
 }
 
