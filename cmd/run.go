@@ -32,18 +32,37 @@ var runCmd = &cobra.Command{
 			utils.Log.Fatal(models.ErrInvalidProvider)
 		}
 
-		providerInfo := globalConfig.Providers[providerFlag]
-		if portFlag != -1 {
-			providerInfo.Port = portFlag
+		if provider == controller.PROVIDER_CUSTOM {
+			customProviderInfo := globalConfig.CustomVMs
+			if portFlag != -1 {
+				for _, custom := range customProviderInfo {
+					custom.SSHPort = portFlag
+				}
+			}
+			if usernameFlag != "" {
+				for _, custom := range customProviderInfo {
+					custom.Username = usernameFlag
+				}
+			}
+			if passwordFlag != "" {
+				for _, custom := range customProviderInfo {
+					custom.Password = passwordFlag
+				}
+			}
+			globalConfig.CustomVMs = customProviderInfo
+		} else {
+			providerInfo := globalConfig.Providers[providerFlag]
+			if portFlag != -1 {
+				providerInfo.Port = portFlag
+			}
+			if usernameFlag != "" {
+				providerInfo.Username = usernameFlag
+			}
+			if passwordFlag != "" {
+				providerInfo.Password = passwordFlag
+			}
+			globalConfig.Providers[providerFlag] = providerInfo
 		}
-		if usernameFlag != "" {
-			providerInfo.Username = usernameFlag
-		}
-		if passwordFlag != "" {
-			providerInfo.Password = passwordFlag
-		}
-
-		globalConfig.Providers[providerFlag] = providerInfo
 
 		newController := controller.NewController(globalConfig)
 		newController.RunCommand(fleetName, commandFlag)
