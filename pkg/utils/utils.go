@@ -11,7 +11,9 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -229,4 +231,34 @@ func IsDirectory(path string) (bool, error) {
 		return false, err
 	}
 	return fileInfo.IsDir(), err
+}
+
+func GetConfigDir() (string, error) {
+	usr, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+
+	var configDir string
+
+	switch os := runtime.GOOS; os {
+	case "darwin":
+		configDir = filepath.Join(usr.HomeDir, ".config")
+	case "linux":
+		configDir = filepath.Join(usr.HomeDir, ".config")
+	case "windows":
+		configDir = filepath.Join(usr.HomeDir, "AppData", "Roaming", "fleex")
+	default:
+		configDir = filepath.Join(usr.HomeDir, ".config")
+	}
+
+	_, err = os.Stat(configDir)
+	if os.IsNotExist(err) {
+		err = os.MkdirAll(configDir, 0755)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return configDir, nil
 }

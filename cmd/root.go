@@ -2,14 +2,12 @@ package cmd
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/services"
 	"github.com/FleexSecurity/fleex/pkg/utils"
-	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
 
@@ -65,16 +63,14 @@ func initConfig() {
 		if !utils.FileExists(cfgFile) {
 			utils.Log.Fatal("Invalid config file path")
 		}
-
 	} else {
-		// Find home directory.
-		home, err := homedir.Dir()
+		// Find config directory.
+		configDir, err := utils.GetConfigDir()
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			utils.Log.Fatal(err)
 		}
 
-		cfgFile = filepath.Join(home, "fleex", "config.json")
+		cfgFile = filepath.Join(configDir, "config.json")
 	}
 
 	file, err := os.Open(cfgFile)
