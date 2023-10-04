@@ -17,11 +17,11 @@ package cmd
 
 import (
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
 	"github.com/FleexSecurity/fleex/pkg/utils"
-	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
 
@@ -30,34 +30,45 @@ var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Fleex initialization command. Run this the first time.",
 	Run: func(cmd *cobra.Command, args []string) {
-		var fileUrl string
 		linkFlag, _ := cmd.Flags().GetString("url")
-		home, _ := homedir.Dir()
-		timeNow := strconv.FormatInt(time.Now().Unix(), 10)
 		overwrite, _ := cmd.Flags().GetBool("overwrite")
 
-		if _, err := os.Stat(home + "/fleex"); !os.IsNotExist(err) {
+		configDir, err := utils.GetConfigDir()
+		if err != nil {
+			utils.Log.Fatal(err)
+		}
+
+		if _, err := os.Stat(configDir + "/fleex"); !os.IsNotExist(err) {
 			if !overwrite {
 				utils.Log.Fatal("Fleex folder already exists, if you want to overwrite it use the --overwrite flag ")
 			}
 		}
 
-		if linkFlag == "" {
-			fileUrl = "https://github.com/FleexSecurity/fleex/releases/download/v1.0/config.zip"
-		} else {
+		fileUrl := "https://github.com/FleexSecurity/fleex/releases/download/v1.0/config.zip"
+		if linkFlag != "" {
 			fileUrl = linkFlag
 		}
-		err := utils.DownloadFile("/tmp/fleex-config-"+timeNow+".zip", fileUrl)
-		if err != nil {
-			panic(err)
-		}
-		utils.Unzip("/tmp/fleex-config-"+timeNow+".zip", home+"/fleex")
-		err = os.Remove("/tmp/fleex-config-" + timeNow + ".zip")
+
+		timeNow := strconv.FormatInt(time.Now().Unix(), 10)
+		tmpZipPath := filepath.Join("/tmp", "fleex-config-"+timeNow+".zip")
+
+		err = utils.DownloadFile(tmpZipPath, fileUrl)
 		if err != nil {
 			utils.Log.Fatal(err)
 		}
 
-		utils.Log.Info("Fleex initialized successfully, see $HOME/fleex")
+		destPath := filepath.Join(configDir, "fleex")
+		err = utils.Unzip(tmpZipPath, destPath)
+		if err != nil {
+			utils.Log.Fatal(err)
+		}
+
+		err = os.Remove(tmpZipPath)
+		if err != nil {
+			utils.Log.Fatal(err)
+		}
+
+		utils.Log.Info("Fleex initialized successfully, see", destPath)
 	},
 }
 
