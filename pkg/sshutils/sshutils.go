@@ -2,7 +2,6 @@ package sshutils
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -15,7 +14,6 @@ import (
 
 	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/utils"
-	"github.com/mitchellh/go-homedir"
 
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
@@ -26,13 +24,11 @@ type Connection struct {
 }
 
 func GetConfigs() *models.Config {
-	home, err := homedir.Dir()
+	configDir, err := utils.GetConfigDir()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
-
-	cfgFile := filepath.Join(home, "fleex", "config.json")
+	cfgFile := filepath.Join(configDir, "fleex", "config.json")
 	file, err := os.Open(cfgFile)
 	if err != nil {
 		log.Fatal(err)

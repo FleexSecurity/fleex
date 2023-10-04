@@ -70,7 +70,7 @@ func initConfig() {
 			utils.Log.Fatal(err)
 		}
 
-		cfgFile = filepath.Join(configDir, "config.json")
+		cfgFile = filepath.Join(configDir, "fleex", "config.json")
 	}
 
 	file, err := os.Open(cfgFile)
