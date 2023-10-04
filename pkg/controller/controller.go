@@ -169,6 +169,8 @@ func (c Controller) DeleteBoxByID(id string, token string, provider Provider) {
 func (c Controller) SpawnFleet(fleetName string, fleetCount int, skipWait bool, build bool) {
 	startFleet := c.GetFleet(fleetName)
 	finalFleetSize := len(startFleet) + fleetCount
+	selectedProvider := c.Configs.Settings.Provider
+	providerId := GetProvider(selectedProvider)
 
 	if len(startFleet) > 0 {
 		utils.Log.Info("Increasing fleet ", fleetName, " from size ", len(startFleet), " to ", finalFleetSize)
@@ -190,30 +192,30 @@ func (c Controller) SpawnFleet(fleetName string, fleetCount int, skipWait bool, 
 		utils.Log.Fatal(err)
 	}
 
-	// if !skipWait {
-	// 	utils.Log.Info("All spawn requests sent! Now waiting for all boxes to become ready")
-	// 	for {
-	// 		stillNotReady := false
-	// 		fleet := c.GetFleet(fleetName)
-	// 		if len(fleet) == finalFleetSize {
-	// 			for i := range fleet {
-	// 				if (provider == PROVIDER_DIGITALOCEAN && fleet[i].Status != "active") || (provider == PROVIDER_LINODE && fleet[i].Status != "running") || (provider == PROVIDER_VULTR && fleet[i].Status != "active") {
-	// 					stillNotReady = true
-	// 				}
-	// 			}
+	if !skipWait {
+		utils.Log.Info("All spawn requests sent! Now waiting for all boxes to become ready")
+		for {
+			stillNotReady := false
+			fleet := c.GetFleet(fleetName)
+			if len(fleet) == finalFleetSize {
+				for i := range fleet {
+					if (providerId == PROVIDER_DIGITALOCEAN && fleet[i].Status != "active") || (providerId == PROVIDER_LINODE && fleet[i].Status != "running") || (providerId == PROVIDER_VULTR && fleet[i].Status != "active") {
+						stillNotReady = true
+					}
+				}
 
-	// 			if stillNotReady {
-	// 				time.Sleep(8 * time.Second)
-	// 			} else {
-	// 				break
-	// 			}
-	// 		}
+				if stillNotReady {
+					time.Sleep(8 * time.Second)
+				} else {
+					break
+				}
+			}
 
-	// 	}
+		}
 
-	// 	utils.Log.Info("All boxes ready!")
+		utils.Log.Info("All boxes ready!")
 
-	// }
+	}
 }
 
 func (c Controller) SSH(boxName, username string, port int, sshKey string, token string, provider Provider) {

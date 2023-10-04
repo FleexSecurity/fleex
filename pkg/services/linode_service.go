@@ -24,27 +24,22 @@ type LinodeService struct {
 func (l LinodeService) SpawnFleet(fleetName string, fleetCount int) error {
 	existingFleet, _ := l.GetFleet(fleetName)
 	threads := 10
-	fleet := make(chan string, threads)
+	fleet := make(chan string)
 	processGroup := new(sync.WaitGroup)
-	processGroup.Add(threads)
+	errChan := make(chan error, threads)
 
 	for i := 0; i < threads; i++ {
-		go func() error {
-			for {
-				box := <-fleet
-
-				if box == "" {
-					break
-				}
-
+		processGroup.Add(1)
+		go func() {
+			defer processGroup.Done()
+			for box := range fleet {
 				utils.Log.Info("Spawning box ", box)
 				err := l.spawnBox(box)
 				if err != nil {
-					return err
+					errChan <- err
+					return
 				}
 			}
-			processGroup.Done()
-			return nil
 		}()
 	}
 
@@ -54,6 +49,12 @@ func (l LinodeService) SpawnFleet(fleetName string, fleetCount int) error {
 
 	close(fleet)
 	processGroup.Wait()
+	close(errChan)
+
+	for err := range errChan {
+		return err
+	}
+
 	return nil
 }
 
@@ -158,9 +159,10 @@ func (l LinodeService) RemoveImages(name string) error {
 func (l LinodeService) spawnBox(name string) error {
 	providerName := l.Configs.Settings.Provider
 	providerInfo := l.Configs.Providers[providerName]
+	swapSize := 512
+	booted := true
+
 	for {
-		swapSize := 512
-		booted := true
 		instance, err := l.Client.CreateInstance(context.Background(), linodego.InstanceCreateOptions{
 			SwapSize:       &swapSize,
 			Image:          providerInfo.Image,
@@ -178,10 +180,12 @@ func (l LinodeService) spawnBox(name string) error {
 			}
 			return err
 		}
+
 		// Sometimes a few instances do not boot automatically
 		l.Client.BootInstance(context.Background(), instance.ID, 0)
 		break
 	}
+
 	return nil
 }
 
