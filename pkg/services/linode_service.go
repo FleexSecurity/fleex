@@ -284,7 +284,6 @@ func (l LinodeService) RunCommand(name, command string, port int, username, pass
 	}
 	for _, box := range boxes {
 		if box.Label == name {
-			fmt.Println("AAA")
 			// It's a single box
 			sshutils.RunCommandWithPassword(command, box.IP, port, username, password)
 			return nil
