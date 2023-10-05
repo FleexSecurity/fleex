@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/FleexSecurity/fleex/pkg/controller"
 	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/utils"
@@ -13,8 +15,7 @@ var sshCmd = &cobra.Command{
 	Short: "Start SSH terminal for a box",
 
 	Run: func(cmd *cobra.Command, args []string) {
-		var token string
-
+		boxName, _ := cmd.Flags().GetString("name")
 		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
 		utils.SetProxy(proxy)
 
@@ -26,23 +27,55 @@ var sshCmd = &cobra.Command{
 			globalConfig.Settings.Provider = providerFlag
 		}
 		providerFlag = globalConfig.Settings.Provider
-
-		provider := controller.GetProvider(providerFlag)
-		if provider == -1 {
-			utils.Log.Fatal(models.ErrInvalidProvider)
-		}
-		if portFlag == -1 {
-			portFlag = globalConfig.Providers[providerFlag].Port
-		}
-		if usernameFlag == "" {
-			usernameFlag = globalConfig.Providers[providerFlag].Username
-		}
-		token = globalConfig.Providers[providerFlag].Token
-		boxName, _ := cmd.Flags().GetString("name")
 		sshKey := globalConfig.SSHKeys.PrivateFile
 
-		newController := controller.NewController(globalConfig)
-		newController.SSH(boxName, usernameFlag, portFlag, sshKey, token, provider)
+		if globalConfig.Settings.Provider == "custom" {
+			var customVps *models.CustomVM
+			found := false
+
+			for _, vps := range globalConfig.CustomVMs {
+				if vps.InstanceID == boxName {
+					customVps = &vps
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				utils.Log.Fatal("Error: CustomVps with the specified InstanceID not found.")
+			}
+
+			if portFlag != -1 {
+				customVps.SSHPort = portFlag
+			}
+			if usernameFlag != "" {
+				customVps.Username = usernameFlag
+			}
+
+			newController := controller.NewController(globalConfig)
+			newController.SSH(boxName, customVps.Username, customVps.Password, customVps.SSHPort, sshKey)
+		} else {
+			provider := controller.GetProvider(providerFlag)
+			fmt.Println(provider, providerFlag)
+			if provider == -1 {
+				utils.Log.Fatal(models.ErrInvalidProvider)
+			}
+
+			providerInfo := globalConfig.Providers[providerFlag]
+			if portFlag == -1 {
+				providerInfo.Port = portFlag
+			}
+			if usernameFlag != "" {
+				providerInfo.Username = usernameFlag
+			}
+			password := providerInfo.Password
+			globalConfig.Providers[providerFlag] = providerInfo
+
+			sshKey := globalConfig.SSHKeys.PrivateFile
+
+			newController := controller.NewController(globalConfig)
+			newController.SSH(boxName, usernameFlag, password, portFlag, sshKey)
+		}
 	},
 }
 

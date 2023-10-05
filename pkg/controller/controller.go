@@ -2,18 +2,15 @@ package controller
 
 import (
 	"fmt"
-	"io"
 	"os"
-	"os/exec"
 	"os/signal"
+	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
-	"github.com/creack/pty"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/term"
+	"golang.org/x/crypto/ssh"
 
 	"github.com/FleexSecurity/fleex/config"
 	"github.com/FleexSecurity/fleex/pkg/models"
@@ -144,7 +141,7 @@ func (c Controller) GetFleet(fleetName string) []provider.Box {
 	return fleet
 }
 
-func (c Controller) GetBox(boxName string, token string, provider Provider) (provider.Box, error) {
+func (c Controller) GetBox(boxName string) (provider.Box, error) {
 	return c.Service.GetBox(boxName)
 }
 
@@ -218,50 +215,64 @@ func (c Controller) SpawnFleet(fleetName string, fleetCount int, skipWait bool, 
 	}
 }
 
-func (c Controller) SSH(boxName, username string, port int, sshKey string, token string, provider Provider) {
-	box, err := c.GetBox(boxName, token, provider)
+func (c Controller) SSH(boxName, username, password string, port int, sshKey string) {
+	box, err := c.GetBox(boxName)
 	if err != nil {
 		utils.Log.Fatal(err)
 	}
 
 	if box.Label == boxName {
-		c := exec.Command("ssh", "-i", "~/.ssh/"+sshKey, username+"@"+box.IP, "-p", strconv.Itoa(port))
+		// key, err := sshutils.GetKey(sshKey)
+		// if err != nil {
+		// 	utils.Log.Fatal(err)
+		// }
 
-		// Start the command with a pty.
-		ptmx, err := pty.Start(c)
+		config := &ssh.ClientConfig{
+			User: username,
+			Auth: []ssh.AuthMethod{
+				ssh.Password("debian"),
+			},
+			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		}
+
+		addr := fmt.Sprintf("%s:%d", box.IP, port)
+		client, err := ssh.Dial("tcp", addr, config)
 		if err != nil {
 			utils.Log.Fatal(err)
 		}
-		// Make sure to close the pty at the end.
-		defer func() { _ = ptmx.Close() }() // Best effort.
+		defer client.Close()
 
-		// Handle pty size.
-		ch := make(chan os.Signal, 1)
-		signal.Notify(ch, syscall.SIGWINCH)
-		go func() {
-			for range ch {
-				if err := pty.InheritSize(os.Stdin, ptmx); err != nil {
-					log.Printf("error resizing pty: %s", err)
-				}
+		session, err := client.NewSession()
+		if err != nil {
+			utils.Log.Fatal(err)
+		}
+		defer session.Close()
+
+		session.Stdout = os.Stdout
+		session.Stderr = os.Stderr
+		session.Stdin = os.Stdin
+
+		if runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
+			modes := ssh.TerminalModes{
+				ssh.ECHO:          1,
+				ssh.TTY_OP_ISPEED: 14400,
+				ssh.TTY_OP_OSPEED: 14400,
 			}
-		}()
 
-		ch <- syscall.SIGWINCH                        // Initial resize.
-		defer func() { signal.Stop(ch); close(ch) }() // Cleanup signals when done.
+			if err := session.RequestPty("xterm", 80, 40, modes); err != nil {
+				utils.Log.Fatal(err)
+			}
+		}
 
-		// Set stdin in raw mode.
-		oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+		err = session.Shell()
 		if err != nil {
 			utils.Log.Fatal(err)
 		}
-		defer func() { _ = term.Restore(int(os.Stdin.Fd()), oldState) }() // Best effort.
 
-		// Copy stdin to the pty and the pty to stdout.
-		// NOTE: The goroutine will keep reading until the next keystroke before returning.
-		go func() { _, _ = io.Copy(ptmx, os.Stdin) }()
-		_, _ = io.Copy(os.Stdout, ptmx)
-
-		return
+		err = session.Wait()
+		if err != nil {
+			utils.Log.Fatal(err)
+		}
 	}
 }
 
