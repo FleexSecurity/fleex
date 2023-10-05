@@ -13,6 +13,7 @@ import (
 
 	"github.com/hnakamur/go-scp"
 
+	"github.com/FleexSecurity/fleex/pkg/models"
 	p "github.com/FleexSecurity/fleex/pkg/provider"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
@@ -59,9 +60,9 @@ func (c Controller) Start(fleetName, command string, delete bool, input, outputP
 	provider := c.Configs.Settings.Provider
 	providerId := GetProvider(provider)
 
-	// if providerId == 0 {
-	// 	utils.Log.Fatal(models.ErrNotAvailableCustomVps)
-	// }
+	if providerId == 0 {
+		utils.Log.Fatal(models.ErrNotAvailableCustomVps)
+	}
 
 	timeStamp := strconv.FormatInt(time.Now().UnixNano(), 10)
 	// TODO: use a proper temp folder function so that it can run on windows too
@@ -146,14 +147,10 @@ loop:
 	processGroup := new(sync.WaitGroup)
 	processGroup.Add(len(fleet))
 
-	// port := c.Configs.Providers[provider].Port
-	// username := c.Configs.Providers[provider].Username
-	// password := c.Configs.Providers[provider].Password
+	port := c.Configs.Providers[provider].Port
+	username := c.Configs.Providers[provider].Username
+	password := c.Configs.Providers[provider].Password
 	token := c.Configs.Providers[provider].Token
-
-	port := 22
-	username := "debian"
-	password := "debian"
 
 	for i := 0; i < len(fleet); i++ {
 		go func() {
