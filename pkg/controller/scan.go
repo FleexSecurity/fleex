@@ -1,10 +1,9 @@
-package scan
+package controller
 
 import (
 	"bufio"
 	"bytes"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -14,8 +13,6 @@ import (
 
 	"github.com/hnakamur/go-scp"
 
-	"github.com/FleexSecurity/fleex/pkg/controller"
-	"github.com/FleexSecurity/fleex/pkg/models"
 	p "github.com/FleexSecurity/fleex/pkg/provider"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
@@ -55,7 +52,7 @@ func GetLine(filename string, names chan string, readerr chan error) {
 }
 
 // Start runs a scan
-func Start(fleetName, command string, delete bool, input, outputPath, chunksFolder string, token string, port int, username, password string, provider controller.Provider) {
+func (c Controller) Start(fleetName, command string, delete bool, input, outputPath, chunksFolder string) {
 	var isFolderOut bool
 	start := time.Now()
 
@@ -76,14 +73,10 @@ func Start(fleetName, command string, delete bool, input, outputPath, chunksFold
 
 	// Input file to string
 
-	// TODO: to fix this
-	newController := controller.NewController(&models.Config{})
-	fleet := newController.GetFleet(fleetName)
+	fleet := c.GetFleet(fleetName)
 	if len(fleet) < 1 {
 		utils.Log.Fatal("No fleet found")
 	}
-
-	/////
 
 	// First get lines count
 	file, err := os.Open(input)
@@ -142,11 +135,16 @@ loop:
 
 	utils.Log.Debug("Generated file chunks")
 
-	/////
-
 	fleetNames := make(chan *p.Box, len(fleet))
 	processGroup := new(sync.WaitGroup)
 	processGroup.Add(len(fleet))
+
+	provider := c.Configs.Settings.Provider
+	providerId := GetProvider(provider)
+	port := c.Configs.Providers[provider].Port
+	username := c.Configs.Providers[provider].Username
+	password := c.Configs.Providers[provider].Password
+	token := c.Configs.Providers[provider].Token
 
 	for i := 0; i < len(fleet); i++ {
 		go func() {
@@ -175,7 +173,7 @@ loop:
 
 				// Now download the output file
 				//utils.MakeFolder(filepath.Join(tempFolder, "chunk-out-"+boxName))
-				isFolderOut = SendSCP(chunkOutputFile, filepath.Join(tempFolder, "chunk-out-"+boxName), l.IP, port, username, password)
+				isFolderOut = c.SendSCP(chunkOutputFile, filepath.Join(tempFolder, "chunk-out-"+boxName), l.IP, port, username, password)
 
 				// err = scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).ReceiveFile(chunkOutputFile, filepath.Join(tempFolder, "chunk-out-"+boxName))
 				// if err != nil {
@@ -189,7 +187,7 @@ loop:
 					// TODO: Not the best way to delete a box, if this program crashes/is stopped
 					// before reaching this line the box won't be deleted. It's better to setup
 					// a cron/command on the box directly.
-					newController.DeleteBoxByID(l.ID, token, provider)
+					c.DeleteBoxByID(l.ID, token, providerId)
 					utils.Log.Debug("Killed box ", l.Label)
 				}
 
@@ -224,7 +222,7 @@ loop:
 
 }
 
-func SendSCP(source string, destination string, IP string, PORT int, username string, password string) bool {
+func (c Controller) SendSCP(source string, destination string, IP string, PORT int, username string, password string) bool {
 	err := scp.NewSCP(sshutils.GetConnection(IP, PORT, username, password).Client).ReceiveFile(source, destination)
 	if err != nil {
 		os.Remove(destination)

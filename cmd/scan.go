@@ -5,7 +5,6 @@ import (
 
 	"github.com/FleexSecurity/fleex/pkg/controller"
 	"github.com/FleexSecurity/fleex/pkg/models"
-	"github.com/FleexSecurity/fleex/pkg/scan"
 	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -24,8 +23,6 @@ var scanCmd = &cobra.Command{
 	Use:   "scan",
 	Short: "Send a command to a fleet, but also with files upload & chunks splitting",
 	Run: func(cmd *cobra.Command, args []string) {
-		var token string
-
 		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
 		utils.SetProxy(proxy)
 
@@ -59,7 +56,6 @@ var scanCmd = &cobra.Command{
 		if passwordFlag != "" {
 			providerInfo.Password = passwordFlag
 		}
-		token = globalConfig.Providers[providerFlag].Token
 
 		var module Module
 
@@ -74,13 +70,14 @@ var scanCmd = &cobra.Command{
 			utils.Log.Fatal("Command not found, insert a command or module")
 		}
 
-		scan.Start(fleetNameFlag, commandFlag, deleteFlag, inputFlag, output, chunksFolder, token, portFlag, usernameFlag, passwordFlag, provider)
+		newController := controller.NewController(globalConfig)
+		newController.Start(fleetNameFlag, commandFlag, deleteFlag, inputFlag, output, chunksFolder)
 
 	},
 }
 
 func init() {
-	// rootCmd.AddCommand(scanCmd)
+	rootCmd.AddCommand(scanCmd)
 	scanCmd.Flags().StringP("name", "n", "pwn", "Fleet name")
 	scanCmd.Flags().StringP("command", "c", "", "Command to send. Supports {{INPUT}} and {{OUTPUT}}")
 	scanCmd.Flags().StringP("input", "i", "", "Input file")
