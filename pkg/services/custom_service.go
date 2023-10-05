@@ -24,7 +24,7 @@ func (c CustomService) GetBoxes() (boxes []provider.Box, err error) {
 	for _, vps := range customVps {
 		boxes = append(boxes, provider.Box{
 			ID:     vps.InstanceID,
-			Label:  vps.Provider,
+			Label:  vps.InstanceID,
 			Group:  "custom",
 			Status: "unknown",
 			IP:     vps.PublicIP,
@@ -48,6 +48,16 @@ func (c CustomService) GetFleet(fleetName string) (fleet []provider.Box, err err
 }
 
 func (c CustomService) GetBox(boxName string) (provider.Box, error) {
+	boxes, err := c.GetBoxes()
+	if err != nil {
+		return provider.Box{}, err
+	}
+
+	for _, box := range boxes {
+		if strings.HasPrefix(box.ID, boxName) {
+			return box, nil
+		}
+	}
 	return provider.Box{}, models.ErrBoxNotFound
 }
 
