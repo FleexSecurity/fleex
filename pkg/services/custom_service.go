@@ -34,6 +34,16 @@ func (c CustomService) GetBoxes() (boxes []provider.Box, err error) {
 }
 
 func (c CustomService) GetFleet(fleetName string) (fleet []provider.Box, err error) {
+	boxes, err := c.GetBoxes()
+	if err != nil {
+		return []provider.Box{}, err
+	}
+
+	for _, box := range boxes {
+		if strings.HasPrefix(box.ID, fleetName) {
+			fleet = append(fleet, box)
+		}
+	}
 	return fleet, nil
 }
 

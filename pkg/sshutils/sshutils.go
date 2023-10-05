@@ -2,6 +2,7 @@ package sshutils
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -186,12 +187,12 @@ func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
 	return output, err
 }
 
-func GetConnection(ip string, port int, username string, password string) *Connection {
+func GetConnection(ip string, port int, username string, password string) (*Connection, error) {
 	conn, err := Connect(ip+":"+strconv.Itoa(port), username, password)
 	if err != nil {
-		utils.Log.Fatal("GetConnection: ", err)
+		return nil, fmt.Errorf("GetConnection: %v, IP: %s, Port: %d, Username: %s", err, ip, port, username)
 	}
-	return conn
+	return conn, nil
 }
 
 func GetConnectionBuild(ip string, port int, username string, password string) (*Connection, error) {
