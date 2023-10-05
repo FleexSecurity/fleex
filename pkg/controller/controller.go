@@ -221,8 +221,6 @@ func (c Controller) SSH(boxName, username, password string, port int, sshKey str
 		utils.Log.Fatal(err)
 	}
 
-	fmt.Println(box.Label, box.ID, port)
-
 	if box.Label == boxName {
 		// key, err := sshutils.GetKey(sshKey)
 		// if err != nil {
