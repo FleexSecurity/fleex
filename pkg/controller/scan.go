@@ -56,6 +56,13 @@ func (c Controller) Start(fleetName, command string, delete bool, input, outputP
 	var isFolderOut bool
 	start := time.Now()
 
+	provider := c.Configs.Settings.Provider
+	providerId := GetProvider(provider)
+
+	// if providerId == 0 {
+	// 	utils.Log.Fatal(models.ErrNotAvailableCustomVps)
+	// }
+
 	timeStamp := strconv.FormatInt(time.Now().UnixNano(), 10)
 	// TODO: use a proper temp folder function so that it can run on windows too
 	tempFolder := filepath.Join("/tmp", "fleex-"+timeStamp)
@@ -139,12 +146,14 @@ loop:
 	processGroup := new(sync.WaitGroup)
 	processGroup.Add(len(fleet))
 
-	provider := c.Configs.Settings.Provider
-	providerId := GetProvider(provider)
-	port := c.Configs.Providers[provider].Port
-	username := c.Configs.Providers[provider].Username
-	password := c.Configs.Providers[provider].Password
+	// port := c.Configs.Providers[provider].Port
+	// username := c.Configs.Providers[provider].Username
+	// password := c.Configs.Providers[provider].Password
 	token := c.Configs.Providers[provider].Token
+
+	port := 22
+	username := "debian"
+	password := "debian"
 
 	for i := 0; i < len(fleet); i++ {
 		go func() {
@@ -155,8 +164,12 @@ loop:
 				}
 				boxName := l.Label
 
+				conn, err := sshutils.GetConnection(l.IP, port, username, password)
+				if err != nil {
+					utils.Log.Fatal(err)
+				}
 				// Send input file via SCP
-				err := scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).SendFile(filepath.Join(tempFolderInput, "chunk-"+boxName), "/tmp/fleex-"+timeStamp+"-chunk-"+boxName)
+				err = scp.NewSCP(conn.Client).SendFile(filepath.Join(tempFolderInput, "chunk-"+boxName), "/tmp/fleex-"+timeStamp+"-chunk-"+boxName)
 				if err != nil {
 					utils.Log.Fatal("Failed to send file: ", err)
 				}
@@ -223,10 +236,14 @@ loop:
 }
 
 func (c Controller) SendSCP(source string, destination string, IP string, PORT int, username string, password string) bool {
-	err := scp.NewSCP(sshutils.GetConnection(IP, PORT, username, password).Client).ReceiveFile(source, destination)
+	conn, err := sshutils.GetConnection(IP, PORT, username, password)
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
+	err = scp.NewSCP(conn.Client).ReceiveFile(source, destination)
 	if err != nil {
 		os.Remove(destination)
-		err := scp.NewSCP(sshutils.GetConnection(IP, PORT, username, password).Client).ReceiveDir(source, destination, nil)
+		err := scp.NewSCP(conn.Client).ReceiveDir(source, destination, nil)
 		if err != nil {
 			utils.Log.Fatal("SEND DIR ERROR: ", err)
 		}
