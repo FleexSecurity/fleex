@@ -90,7 +90,15 @@ var initCmd = &cobra.Command{
 		}
 
 		bits := 4096
-		path := filepath.Join(fleexPath, "fleex", "configs", "ssh")
+		path := filepath.Join(fleexPath, "configs", "ssh")
+
+		_, err = os.Stat(path)
+		if os.IsNotExist(err) {
+			err = os.Mkdir(path, 0700)
+			if err != nil {
+				utils.Log.Fatal(err)
+			}
+		}
 
 		err = sshutils.GenerateSSHKeyPair(bits, emailFlag, path)
 		if err != nil {
