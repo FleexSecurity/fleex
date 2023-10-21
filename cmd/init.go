@@ -90,7 +90,7 @@ var initCmd = &cobra.Command{
 		}
 
 		bits := 4096
-		path := filepath.Join(fleexPath, "configs", "ssh")
+		path := filepath.Join(fleexPath, "ssh")
 
 		_, err = os.Stat(path)
 		if os.IsNotExist(err) {
