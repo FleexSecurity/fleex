@@ -1,7 +1,11 @@
 package sshutils
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -243,4 +247,56 @@ func getHomeDir() string {
 		utils.Log.Fatal("getHomeDir: ", err)
 	}
 	return usr.HomeDir
+}
+
+// Generate Key Pair
+func GenerateSSHKeyPair(bits int, email, path string) error {
+	privateKey, err := rsa.GenerateKey(rand.Reader, bits)
+	if err != nil {
+		return err
+	}
+
+	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+	privateKeyPEM := &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: privateKeyBytes,
+	}
+
+	privateKeyFile, err := os.Create(path + "/id_rsa")
+	if err != nil {
+		return err
+	}
+	defer privateKeyFile.Close()
+
+	err = pem.Encode(privateKeyFile, privateKeyPEM)
+	if err != nil {
+		return err
+	}
+
+	publicKey, err := sshPublicKeyFromPrivateKey(privateKey, email)
+	if err != nil {
+		return err
+	}
+
+	publicKeyFile, err := os.Create(path + "/id_rsa.pub")
+	if err != nil {
+		return err
+	}
+	defer publicKeyFile.Close()
+
+	_, err = publicKeyFile.WriteString(publicKey)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func sshPublicKeyFromPrivateKey(privateKey *rsa.PrivateKey, email string) (string, error) {
+	pub, err := ssh.NewPublicKey(&privateKey.PublicKey)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%s %s", ssh.MarshalAuthorizedKey(pub), email), nil
 }
