@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"log"
 	"path/filepath"
 	"strings"
 
@@ -10,6 +11,15 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
+
+type VMInfo struct {
+	Provider string
+	IP       string
+	Port     int
+	Username string
+	Password string
+	KeyPath  string
+}
 
 // scpCmd represents the scp command
 var scpCmd = &cobra.Command{
@@ -28,27 +38,21 @@ var scpCmd = &cobra.Command{
 
 		home, _ := homedir.Dir()
 
-		if providerFlag != "" {
-			globalConfig.Settings.Provider = providerFlag
-		}
-		providerFlag = globalConfig.Settings.Provider
-
-		provider := controller.GetProvider(providerFlag)
-		if provider == -1 {
-			utils.Log.Fatal(models.ErrInvalidProvider)
+		vmInfo := GetVMInfo(providerFlag, nameFlag, globalConfig)
+		if vmInfo == nil {
+			utils.Log.Fatal("Provider or custom VM not found")
 		}
 
-		providerInfo := globalConfig.Providers[providerFlag]
 		if portFlag != -1 {
-			providerInfo.Port = portFlag
+			vmInfo.Port = portFlag
 		}
 		if usernameFlag != "" {
-			providerInfo.Username = usernameFlag
+			vmInfo.Username = usernameFlag
 		}
 
 		if strings.HasPrefix(destinationFlag, home) {
 			if home != "/root" {
-				destinationFlag = filepath.Join("/home", usernameFlag, strings.TrimPrefix(destinationFlag, home))
+				destinationFlag = filepath.Join("/home", vmInfo.Username, strings.TrimPrefix(destinationFlag, home))
 			}
 		}
 
@@ -60,14 +64,17 @@ var scpCmd = &cobra.Command{
 		}
 		for _, box := range fleets {
 			if box.Label == nameFlag {
-				controller.SendSCP(sourceFlag, usernameFlag, destinationFlag, box.IP, portFlag, globalConfig.SSHKeys.PrivateFile)
+				err := controller.SendSCP(sourceFlag, destinationFlag, box.IP, vmInfo.Username, vmInfo.Port, vmInfo.KeyPath)
+				if err != nil {
+					log.Fatal(err)
+				}
 				return
 			}
 		}
 
 		for _, box := range fleets {
 			if strings.HasPrefix(box.Label, nameFlag) {
-				controller.SendSCP(sourceFlag, usernameFlag, destinationFlag, box.IP, portFlag, globalConfig.SSHKeys.PrivateFile)
+				controller.SendSCP(sourceFlag, vmInfo.Username, destinationFlag, box.IP, vmInfo.Port, vmInfo.KeyPath)
 			}
 		}
 
@@ -88,4 +95,31 @@ func init() {
 	scpCmd.MarkFlagRequired("source")
 	scpCmd.MarkFlagRequired("destination")
 
+}
+
+func GetVMInfo(provider, name string, config *models.Config) *VMInfo {
+	if providerConfig, exists := config.Providers[provider]; exists {
+		return &VMInfo{
+			Provider: provider,
+			Port:     providerConfig.Port,
+			Username: providerConfig.Username,
+			Password: providerConfig.Password,
+			KeyPath:  config.SSHKeys.PrivateFile,
+		}
+	}
+
+	for _, customVM := range config.CustomVMs {
+		if customVM.InstanceID == name {
+			return &VMInfo{
+				Provider: provider,
+				IP:       customVM.PublicIP,
+				Port:     customVM.SSHPort,
+				Username: customVM.Username,
+				Password: customVM.Password,
+				KeyPath:  customVM.KeyPath,
+			}
+		}
+	}
+
+	return nil
 }

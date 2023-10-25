@@ -288,7 +288,6 @@ func SendSCP(source, destination, ip, username string, port int, privateKeyPath 
 	if err != nil {
 		return err
 	}
-
 	config := &ssh.ClientConfig{
 		User: username,
 		Auth: []ssh.AuthMethod{
