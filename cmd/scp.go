@@ -60,14 +60,14 @@ var scpCmd = &cobra.Command{
 		}
 		for _, box := range fleets {
 			if box.Label == nameFlag {
-				controller.SendSCP(sourceFlag, destinationFlag, box.IP, portFlag, usernameFlag)
+				controller.SendSCP(sourceFlag, usernameFlag, destinationFlag, box.IP, portFlag, globalConfig.SSHKeys.PrivateFile)
 				return
 			}
 		}
 
 		for _, box := range fleets {
 			if strings.HasPrefix(box.Label, nameFlag) {
-				controller.SendSCP(sourceFlag, destinationFlag, box.IP, portFlag, usernameFlag)
+				controller.SendSCP(sourceFlag, usernameFlag, destinationFlag, box.IP, portFlag, globalConfig.SSHKeys.PrivateFile)
 			}
 		}
 
