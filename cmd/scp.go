@@ -12,15 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type VMInfo struct {
-	Provider string
-	IP       string
-	Port     int
-	Username string
-	Password string
-	KeyPath  string
-}
-
 // scpCmd represents the scp command
 var scpCmd = &cobra.Command{
 	Use:   "scp",
@@ -38,7 +29,7 @@ var scpCmd = &cobra.Command{
 
 		home, _ := homedir.Dir()
 
-		vmInfo := GetVMInfo(providerFlag, nameFlag, globalConfig)
+		vmInfo := models.GetVMInfo(providerFlag, nameFlag, globalConfig)
 		if vmInfo == nil {
 			utils.Log.Fatal("Provider or custom VM not found")
 		}
@@ -95,31 +86,4 @@ func init() {
 	scpCmd.MarkFlagRequired("source")
 	scpCmd.MarkFlagRequired("destination")
 
-}
-
-func GetVMInfo(provider, name string, config *models.Config) *VMInfo {
-	if providerConfig, exists := config.Providers[provider]; exists {
-		return &VMInfo{
-			Provider: provider,
-			Port:     providerConfig.Port,
-			Username: providerConfig.Username,
-			Password: providerConfig.Password,
-			KeyPath:  config.SSHKeys.PrivateFile,
-		}
-	}
-
-	for _, customVM := range config.CustomVMs {
-		if customVM.InstanceID == name {
-			return &VMInfo{
-				Provider: provider,
-				IP:       customVM.PublicIP,
-				Port:     customVM.SSHPort,
-				Username: customVM.Username,
-				Password: customVM.Password,
-				KeyPath:  customVM.KeyPath,
-			}
-		}
-	}
-
-	return nil
 }
