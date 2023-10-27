@@ -298,5 +298,8 @@ func sshPublicKeyFromPrivateKey(privateKey *rsa.PrivateKey, email string) (strin
 		return "", err
 	}
 
-	return fmt.Sprintf("%s %s", ssh.MarshalAuthorizedKey(pub), email), nil
+	pubStr := strings.ReplaceAll(string(ssh.MarshalAuthorizedKey(pub)), "\n", "")
+	email = strings.TrimSpace(email)
+
+	return fmt.Sprintf("%s %s", pubStr, email), nil
 }
