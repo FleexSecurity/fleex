@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Send a command to a fleet",
@@ -15,69 +14,50 @@ var runCmd = &cobra.Command{
 		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
 		utils.SetProxy(proxy)
 
+		providerFlag, _ := cmd.Flags().GetString("provider")
 		fleetName, _ := cmd.Flags().GetString("name")
 		commandFlag, _ := cmd.Flags().GetString("command")
-		providerFlag, _ := cmd.Flags().GetString("provider")
 		portFlag, _ := cmd.Flags().GetInt("port")
 		usernameFlag, _ := cmd.Flags().GetString("username")
-		passwordFlag, _ := cmd.Flags().GetString("password")
 
-		if providerFlag != "" {
-			globalConfig.Settings.Provider = providerFlag
-		}
-		providerFlag = globalConfig.Settings.Provider
-
-		provider := controller.GetProvider(providerFlag)
-		if provider == -1 {
-			utils.Log.Fatal(models.ErrInvalidProvider)
+		vmInfo := models.GetVMInfo(providerFlag, fleetName, globalConfig)
+		if vmInfo == nil {
+			utils.Log.Fatal("Provider or custom VM not found")
 		}
 
-		if provider == controller.PROVIDER_CUSTOM {
-			customProviderInfo := globalConfig.CustomVMs
-			if portFlag != -1 {
-				for _, custom := range customProviderInfo {
-					custom.SSHPort = portFlag
-				}
-			}
-			if usernameFlag != "" {
-				for _, custom := range customProviderInfo {
-					custom.Username = usernameFlag
-				}
-			}
-			if passwordFlag != "" {
-				for _, custom := range customProviderInfo {
-					custom.Password = passwordFlag
-				}
-			}
-			globalConfig.CustomVMs = customProviderInfo
-		} else {
-			providerInfo := globalConfig.Providers[providerFlag]
-			if portFlag != -1 {
-				providerInfo.Port = portFlag
-			}
-			if usernameFlag != "" {
-				providerInfo.Username = usernameFlag
-			}
-			if passwordFlag != "" {
-				providerInfo.Password = passwordFlag
-			}
-			globalConfig.Providers[providerFlag] = providerInfo
+		if portFlag != -1 {
+			vmInfo.Port = portFlag
+		}
+		if usernameFlag != "" {
+			vmInfo.Username = usernameFlag
 		}
 
 		newController := controller.NewController(globalConfig)
-		newController.RunCommand(fleetName, commandFlag)
 
+		fleets := newController.GetFleet(fleetName)
+		if len(fleets) == 0 {
+			utils.Log.Fatal("Fleet not found")
+		}
+		for _, box := range fleets {
+			if box.Label == fleetName {
+				newController.RunCommand(fleetName, commandFlag)
+				return
+			}
+		}
+
+		utils.Log.Info("Command executed on fleet " + fleetName)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(runCmd)
-	runCmd.Flags().StringP("name", "n", "pwn", "Box name")
+
+	runCmd.Flags().StringP("name", "n", "pwn", "Fleet name")
 	runCmd.Flags().StringP("command", "c", "", "Command to send")
-	runCmd.Flags().IntP("port", "", -1, "SSH port")
+	runCmd.Flags().IntP("port", "p", -1, "SSH port")
 	runCmd.Flags().StringP("username", "U", "", "SSH username")
-	runCmd.Flags().StringP("password", "P", "", "SSH password")
-	runCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean, vultr)")
+	runCmd.Flags().StringP("provider", "P", "", "Service provider")
 
 	runCmd.MarkFlagRequired("command")
+	runCmd.MarkFlagRequired("name")
 }
