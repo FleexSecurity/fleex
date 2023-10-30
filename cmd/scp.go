@@ -29,6 +29,11 @@ var scpCmd = &cobra.Command{
 
 		home, _ := homedir.Dir()
 
+		if providerFlag != "" {
+			globalConfig.Settings.Provider = providerFlag
+		}
+		providerFlag = globalConfig.Settings.Provider
+
 		vmInfo := models.GetVMInfo(providerFlag, nameFlag, globalConfig)
 		if vmInfo == nil {
 			utils.Log.Fatal("Provider or custom VM not found")
@@ -65,7 +70,10 @@ var scpCmd = &cobra.Command{
 
 		for _, box := range fleets {
 			if strings.HasPrefix(box.Label, nameFlag) {
-				controller.SendSCP(sourceFlag, vmInfo.Username, destinationFlag, box.IP, vmInfo.Port, vmInfo.KeyPath)
+				err := controller.SendSCP(sourceFlag, vmInfo.Username, destinationFlag, box.IP, vmInfo.Port, vmInfo.KeyPath)
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
 		}
 
