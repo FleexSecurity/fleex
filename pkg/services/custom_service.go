@@ -88,7 +88,7 @@ func (c CustomService) DeleteBoxByLabel(label string) error {
 func (c CustomService) RunCommand(name, command string, port int, username, password string) error {
 	for _, box := range c.Configs.CustomVMs {
 		if strings.HasPrefix(box.InstanceID, name) {
-			sshutils.RunCommandWithPassword(command, box.PublicIP, box.SSHPort, box.Username, box.Password)
+			sshutils.RunCommand(command, box.PublicIP, box.SSHPort, box.Username, c.Configs.SSHKeys.PrivateFile)
 			return nil
 		}
 	}
@@ -105,7 +105,7 @@ func (c CustomService) RunCommand(name, command string, port int, username, pass
 	for _, box := range c.Configs.CustomVMs {
 		go func(b models.CustomVM) {
 			defer wg.Done()
-			sshutils.RunCommandWithPassword(command, b.PublicIP, b.SSHPort, b.Username, b.Password)
+			sshutils.RunCommand(command, b.PublicIP, b.SSHPort, b.Username, c.Configs.SSHKeys.PrivateFile)
 		}(box)
 	}
 
