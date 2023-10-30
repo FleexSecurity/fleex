@@ -52,7 +52,7 @@ func GetConfigs() *models.Config {
 func GetLocalPublicSSHKey() string {
 	configs := GetConfigs()
 	publicSsh := configs.SSHKeys.PublicFile
-	rawKey := utils.FileToString(filepath.Join(getHomeDir(), ".ssh", publicSsh))
+	rawKey := utils.FileToString(publicSsh)
 	retString := strings.ReplaceAll(rawKey, "\r\n", "")
 	retString = strings.ReplaceAll(retString, "\n", "")
 
@@ -73,11 +73,11 @@ func SSHFingerprintGen(publicSSH string) string {
 	return f
 }
 
-func RunCommand(command string, ip string, port int, username string, password string) *Connection {
+func RunCommand(command string, ip string, port int, username string, privateKey string) *Connection {
 	var conn *Connection
 	var err error
 	for retries := 0; retries < 3; retries++ {
-		conn, err = Connect(ip+":"+strconv.Itoa(port), username, password)
+		conn, err = Connect(ip+":"+strconv.Itoa(port), username, privateKey)
 		if err != nil {
 			if strings.Contains(err.Error(), "connection refused") && retries < 3 {
 				continue
@@ -204,18 +204,25 @@ func GetConnectionBuild(ip string, port int, username string, password string) (
 	return conn, err
 }
 
-func Connect(addr, user, password string) (*Connection, error) {
-	configs := GetConfigs()
-	privateSsh := configs.SSHKeys.PrivateFile
-	sshConfig := &ssh.ClientConfig{
-		User: user,
-		Auth: []ssh.AuthMethod{
-			publicKeyFile(filepath.Join(getHomeDir(), ".ssh", privateSsh)), // todo replace with rsa
-		},
-		HostKeyCallback: ssh.HostKeyCallback(func(hostname string, remote net.Addr, key ssh.PublicKey) error { return nil }),
+func Connect(addr, username, sshKey string) (*Connection, error) {
+	key, err := ioutil.ReadFile(sshKey)
+	if err != nil {
+		return nil, err
 	}
 
-	conn, err := ssh.Dial("tcp", addr, sshConfig)
+	signer, err := ssh.ParsePrivateKey(key)
+	if err != nil {
+		return nil, err
+	}
+	config := &ssh.ClientConfig{
+		User: username,
+		Auth: []ssh.AuthMethod{
+			ssh.PublicKeys(signer),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}
+
+	conn, err := ssh.Dial("tcp", addr, config)
 	if err != nil {
 		return nil, err
 	}
