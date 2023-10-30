@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"strings"
+
 	"github.com/FleexSecurity/fleex/pkg/controller"
 	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/utils"
@@ -20,6 +22,11 @@ var runCmd = &cobra.Command{
 		portFlag, _ := cmd.Flags().GetInt("port")
 		usernameFlag, _ := cmd.Flags().GetString("username")
 
+		if providerFlag != "" {
+			globalConfig.Settings.Provider = providerFlag
+		}
+		providerFlag = globalConfig.Settings.Provider
+
 		vmInfo := models.GetVMInfo(providerFlag, fleetName, globalConfig)
 		if vmInfo == nil {
 			utils.Log.Fatal("Provider or custom VM not found")
@@ -35,6 +42,7 @@ var runCmd = &cobra.Command{
 		newController := controller.NewController(globalConfig)
 
 		fleets := newController.GetFleet(fleetName)
+
 		if len(fleets) == 0 {
 			utils.Log.Fatal("Fleet not found")
 		}
@@ -42,6 +50,12 @@ var runCmd = &cobra.Command{
 			if box.Label == fleetName {
 				newController.RunCommand(fleetName, commandFlag)
 				return
+			}
+		}
+
+		for _, box := range fleets {
+			if strings.HasPrefix(box.Label, fleetName) {
+				newController.RunCommand(fleetName, commandFlag)
 			}
 		}
 
