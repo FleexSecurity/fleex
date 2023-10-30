@@ -2,8 +2,10 @@ package controller
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
+	"path"
 	"runtime"
 	"strconv"
 	"strings"
@@ -276,8 +278,54 @@ func (c Controller) SSH(boxName, username, password string, port int, sshKey str
 	}
 }
 
-func SendSCP(source string, destination string, IP string, PORT int, username string) {
-	// We were using a nice native SCP golang library but apparently they all suck so to avoid problems we do it this way
+func SendSCP(source, destination, ip, username string, port int, privateKeyPath string) error {
+	key, err := ioutil.ReadFile(privateKeyPath)
+	if err != nil {
+		return err
+	}
 
-	utils.RunCommand("scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P "+strconv.Itoa(PORT)+" "+source+" "+username+"@"+IP+":"+destination, false)
+	signer, err := ssh.ParsePrivateKey(key)
+	if err != nil {
+		return err
+	}
+	config := &ssh.ClientConfig{
+		User: username,
+		Auth: []ssh.AuthMethod{
+			ssh.PublicKeys(signer),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}
+
+	client, err := ssh.Dial("tcp", ip+":"+strconv.Itoa(port), config)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	data, err := ioutil.ReadFile(source)
+	if err != nil {
+		return err
+	}
+
+	session, err := client.NewSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	go func() {
+		w, _ := session.StdinPipe()
+		defer w.Close()
+
+		content := string(data)
+		fmt.Fprintf(w, "C0644 %d %s\n", len(content), path.Base(destination))
+		fmt.Fprint(w, content)
+		fmt.Fprint(w, "\x00")
+	}()
+
+	if err := session.Run("/usr/bin/scp -tr " + path.Dir(destination)); err != nil {
+		return err
+	}
+
+	return nil
 }

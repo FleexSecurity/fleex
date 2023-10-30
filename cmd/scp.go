@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"log"
 	"path/filepath"
 	"strings"
 
@@ -28,27 +29,21 @@ var scpCmd = &cobra.Command{
 
 		home, _ := homedir.Dir()
 
-		if providerFlag != "" {
-			globalConfig.Settings.Provider = providerFlag
-		}
-		providerFlag = globalConfig.Settings.Provider
-
-		provider := controller.GetProvider(providerFlag)
-		if provider == -1 {
-			utils.Log.Fatal(models.ErrInvalidProvider)
+		vmInfo := models.GetVMInfo(providerFlag, nameFlag, globalConfig)
+		if vmInfo == nil {
+			utils.Log.Fatal("Provider or custom VM not found")
 		}
 
-		providerInfo := globalConfig.Providers[providerFlag]
 		if portFlag != -1 {
-			providerInfo.Port = portFlag
+			vmInfo.Port = portFlag
 		}
 		if usernameFlag != "" {
-			providerInfo.Username = usernameFlag
+			vmInfo.Username = usernameFlag
 		}
 
 		if strings.HasPrefix(destinationFlag, home) {
 			if home != "/root" {
-				destinationFlag = filepath.Join("/home", usernameFlag, strings.TrimPrefix(destinationFlag, home))
+				destinationFlag = filepath.Join("/home", vmInfo.Username, strings.TrimPrefix(destinationFlag, home))
 			}
 		}
 
@@ -60,14 +55,17 @@ var scpCmd = &cobra.Command{
 		}
 		for _, box := range fleets {
 			if box.Label == nameFlag {
-				controller.SendSCP(sourceFlag, destinationFlag, box.IP, portFlag, usernameFlag)
+				err := controller.SendSCP(sourceFlag, destinationFlag, box.IP, vmInfo.Username, vmInfo.Port, vmInfo.KeyPath)
+				if err != nil {
+					log.Fatal(err)
+				}
 				return
 			}
 		}
 
 		for _, box := range fleets {
 			if strings.HasPrefix(box.Label, nameFlag) {
-				controller.SendSCP(sourceFlag, destinationFlag, box.IP, portFlag, usernameFlag)
+				controller.SendSCP(sourceFlag, vmInfo.Username, destinationFlag, box.IP, vmInfo.Port, vmInfo.KeyPath)
 			}
 		}
 
