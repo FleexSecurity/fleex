@@ -1,5 +1,9 @@
 package models
 
+import (
+	"strings"
+)
+
 type Config struct {
 	Providers map[string]Provider `json:"providers"`
 	CustomVMs []CustomVM          `json:"custom_vms"`
@@ -59,7 +63,7 @@ func GetVMInfo(provider, name string, config *Config) *VMInfo {
 	}
 
 	for _, customVM := range config.CustomVMs {
-		if customVM.InstanceID == name {
+		if strings.HasPrefix(customVM.InstanceID, name) {
 			return &VMInfo{
 				Provider: provider,
 				IP:       customVM.PublicIP,
