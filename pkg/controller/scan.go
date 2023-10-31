@@ -234,19 +234,6 @@ loop:
 
 }
 
-func (c Controller) SendSCP(conn *sshutils.Connection, source string, destination string) bool {
-	err := scp.NewSCP(conn.Client).ReceiveFile(source, destination)
-	if err != nil {
-		os.Remove(destination)
-		err := scp.NewSCP(conn.Client).ReceiveDir(source, destination, nil)
-		if err != nil {
-			utils.Log.Fatal("SEND DIR ERROR: ", err)
-		}
-		return true
-	}
-	return false
-}
-
 func SaveInFolder(inputPath string, outputPath string) {
 	utils.MakeFolder(outputPath)
 
