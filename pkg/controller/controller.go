@@ -224,15 +224,19 @@ func (c Controller) SSH(boxName, username, password string, port int, sshKey str
 	}
 
 	if box.Label == boxName {
-		// key, err := sshutils.GetKey(sshKey)
-		// if err != nil {
-		// 	utils.Log.Fatal(err)
-		// }
+		key, err := ioutil.ReadFile(sshKey)
+		if err != nil {
+			return
+		}
 
+		signer, err := ssh.ParsePrivateKey(key)
+		if err != nil {
+			return
+		}
 		config := &ssh.ClientConfig{
 			User: username,
 			Auth: []ssh.AuthMethod{
-				ssh.Password("debian"),
+				ssh.PublicKeys(signer),
 			},
 			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		}
