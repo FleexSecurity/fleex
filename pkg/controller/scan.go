@@ -52,10 +52,13 @@ func GetLine(filename string, names chan string, readerr chan error) {
 	readerr <- scanner.Err()
 }
 
+var privateSshKeyStr string
+
 // Start runs a scan
 func (c Controller) Start(fleetName, command string, delete bool, input, outputPath, chunksFolder string) {
 	var isFolderOut bool
 	start := time.Now()
+	privateSshKeyStr = c.Configs.SSHKeys.PrivateFile
 
 	provider := c.Configs.Settings.Provider
 	providerId := GetProvider(provider)
@@ -149,7 +152,6 @@ loop:
 
 	port := c.Configs.Providers[provider].Port
 	username := c.Configs.Providers[provider].Username
-	password := c.Configs.Providers[provider].Password
 	token := c.Configs.Providers[provider].Token
 
 	for i := 0; i < len(fleet); i++ {
@@ -161,7 +163,7 @@ loop:
 				}
 				boxName := l.Label
 
-				conn, err := sshutils.GetConnection(l.IP, port, username, password)
+				conn, err := sshutils.Connect(l.IP+":"+strconv.Itoa(port), username, privateSshKeyStr)
 				if err != nil {
 					utils.Log.Fatal(err)
 				}
@@ -179,19 +181,19 @@ loop:
 				finalCommand = strings.ReplaceAll(finalCommand, "{{INPUT}}", chunkInputFile)
 				finalCommand = strings.ReplaceAll(finalCommand, "{{OUTPUT}}", chunkOutputFile)
 
-				sshutils.RunCommand(finalCommand, l.IP, port, username, password)
+				sshutils.RunCommand(finalCommand, l.IP, port, username, privateSshKeyStr)
 
-				// Now download the output file
-				//utils.MakeFolder(filepath.Join(tempFolder, "chunk-out-"+boxName))
-				isFolderOut = c.SendSCP(chunkOutputFile, filepath.Join(tempFolder, "chunk-out-"+boxName), l.IP, port, username, password)
-
-				// err = scp.NewSCP(sshutils.GetConnection(l.IP, port, username, password).Client).ReceiveFile(chunkOutputFile, filepath.Join(tempFolder, "chunk-out-"+boxName))
-				// if err != nil {
-				// 	utils.Log.Fatal("Failed to get file: ", err)
-				// }
+				err = scp.NewSCP(conn.Client).ReceiveFile(chunkOutputFile, filepath.Join(tempFolder, "chunk-out-"+boxName))
+				if err != nil {
+					os.Remove(filepath.Join(tempFolder, "chunk-out-"+boxName))
+					err := scp.NewSCP(conn.Client).ReceiveDir(chunkOutputFile, filepath.Join(tempFolder, "chunk-out-"+boxName), nil)
+					if err != nil {
+						utils.Log.Fatal("SEND DIR ERROR: ", err)
+					}
+				}
 
 				// Remove input chunk file from remote box to save space
-				sshutils.RunCommand("sudo rm -rf "+chunkInputFile+" "+chunkOutputFile, l.IP, port, username, password)
+				sshutils.RunCommand("sudo rm -rf "+chunkInputFile+" "+chunkOutputFile, l.IP, port, username, privateSshKeyStr)
 
 				if delete {
 					// TODO: Not the best way to delete a box, if this program crashes/is stopped
@@ -232,12 +234,8 @@ loop:
 
 }
 
-func (c Controller) SendSCP(source string, destination string, IP string, PORT int, username string, password string) bool {
-	conn, err := sshutils.GetConnection(IP, PORT, username, password)
-	if err != nil {
-		utils.Log.Fatal(err)
-	}
-	err = scp.NewSCP(conn.Client).ReceiveFile(source, destination)
+func (c Controller) SendSCP(conn *sshutils.Connection, source string, destination string) bool {
+	err := scp.NewSCP(conn.Client).ReceiveFile(source, destination)
 	if err != nil {
 		os.Remove(destination)
 		err := scp.NewSCP(conn.Client).ReceiveDir(source, destination, nil)
