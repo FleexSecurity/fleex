@@ -95,9 +95,54 @@ var termCount int
 func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
 	session, err := conn.NewSession()
 	if err != nil {
-		utils.Log.Fatal("sendCommands: ", err)
+		return nil, fmt.Errorf("sendCommands: %w", err)
 	}
 	defer session.Close()
+
+	if err := conn.setupPty(session); err != nil {
+		return nil, err
+	}
+
+	stdin, stdout, stderr, err := setupStdPipes(session)
+	if err != nil {
+		return nil, err
+	}
+	defer stdin.Close()
+
+	go io.Copy(stdin, os.Stdin)
+	go io.Copy(os.Stdout, stdout)
+	go io.Copy(os.Stderr, stderr)
+
+	cmd := strings.Join(cmds, "; ")
+	output, err := session.Output(cmd)
+	if err != nil {
+		// Log error for debugging purposes
+		utils.Log.Errorf("Failed to execute command: %s, error: %v", cmd, err)
+	}
+
+	return output, nil
+}
+
+func (conn *Connection) setupPty(session *ssh.Session) error {
+	term := os.Getenv("TERM")
+	if term == "" {
+		term = "xterm"
+	}
+
+	fd := int(os.Stdin.Fd())
+	if termCount == 0 { // Assuming termCount's usage is justified and managed properly
+		state, err := terminal.MakeRaw(fd)
+		if err != nil {
+			return fmt.Errorf("setupPty: making terminal raw: %w", err)
+		}
+		defer terminal.Restore(fd, state)
+		termCount++
+	}
+
+	width, height, err := terminal.GetSize(fd)
+	if err != nil {
+		return fmt.Errorf("setupPty: getting terminal size: %w", err)
+	}
 
 	modes := ssh.TerminalModes{
 		ssh.ECHO:          0,     // disable echoing
@@ -106,57 +151,30 @@ func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
 		ssh.OPOST:         1,
 	}
 
-	term := os.Getenv("TERM")
-	if term == "" {
-		term = "xterm"
+	if err := session.RequestPty(term, width, height, modes); err != nil {
+		return fmt.Errorf("setupPty: requesting PTY: %w", err)
 	}
 
-	fd := int(os.Stdin.Fd())
-	if termCount == 0 {
-		state, err := terminal.MakeRaw(fd)
-		if err != nil {
-			utils.Log.Fatal("terminal make raw:", err)
-		}
-		defer terminal.Restore(fd, state)
-		termCount++
-	}
+	return nil
+}
 
-	terminalWidth, terminalHeight, err := terminal.GetSize(fd)
-	if err != nil {
-		utils.Log.Fatal("terminal get size:", err)
-	}
-
-	err = session.RequestPty(term, terminalWidth, terminalHeight, modes)
-	if err != nil {
-		return []byte{}, err
-	}
-
+func setupStdPipes(session *ssh.Session) (io.WriteCloser, io.Reader, io.Reader, error) {
 	stdin, err := session.StdinPipe()
 	if err != nil {
-		utils.Log.Fatal("Unable to setup stdin for session: ", err)
+		return nil, nil, nil, fmt.Errorf("setupStdPipes: stdin pipe setup failed: %w", err)
 	}
-	go io.Copy(stdin, os.Stdin)
 
 	stdout, err := session.StdoutPipe()
 	if err != nil {
-		utils.Log.Fatal("Unable to setup stdout for session: ", err)
+		return nil, nil, nil, fmt.Errorf("setupStdPipes: stdout pipe setup failed: %w", err)
 	}
-	go io.Copy(os.Stdout, stdout)
 
 	stderr, err := session.StderrPipe()
 	if err != nil {
-		utils.Log.Fatal("Unable to setup stderr for session: ", err)
-	}
-	go io.Copy(os.Stderr, stderr)
-
-	cmd := strings.Join(cmds, "; ")
-	output, err := session.Output(cmd)
-	if err != nil {
-		// We ignore it as we print the remote stderr in our local terminal already
-		//return output, fmt.Errorf("failed to execute command '%s' on server: %v", cmd, err)
+		return nil, nil, nil, fmt.Errorf("setupStdPipes: stderr pipe setup failed: %w", err)
 	}
 
-	return output, err
+	return stdin, stdout, stderr, nil
 }
 
 func GetConnection(ip string, port int, username string, password string) (*Connection, error) {
