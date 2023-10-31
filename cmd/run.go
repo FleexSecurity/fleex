@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"strings"
-
 	"github.com/FleexSecurity/fleex/pkg/controller"
 	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/utils"
@@ -46,18 +44,8 @@ var runCmd = &cobra.Command{
 		if len(fleets) == 0 {
 			utils.Log.Fatal("Fleet not found")
 		}
-		for _, box := range fleets {
-			if box.Label == fleetName {
-				newController.RunCommand(fleetName, commandFlag)
-				return
-			}
-		}
 
-		for _, box := range fleets {
-			if strings.HasPrefix(box.Label, fleetName) {
-				newController.RunCommand(fleetName, commandFlag)
-			}
-		}
+		newController.RunCommand(fleetName, commandFlag)
 
 		utils.Log.Info("Command executed on fleet " + fleetName)
 	},
