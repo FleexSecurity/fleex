@@ -285,7 +285,7 @@ func (l LinodeService) RunCommand(name, command string, port int, username, pass
 	for _, box := range boxes {
 		if box.Label == name {
 			// It's a single box
-			sshutils.RunCommandWithPassword(command, box.IP, port, username, password)
+			sshutils.RunCommand(command, box.IP, port, username, l.Configs.SSHKeys.PrivateFile)
 			return nil
 		}
 	}
@@ -305,7 +305,7 @@ func (l LinodeService) RunCommand(name, command string, port int, username, pass
 				if box == nil {
 					break
 				}
-				sshutils.RunCommandWithPassword(command, box.IP, port, username, password)
+				sshutils.RunCommand(command, box.IP, port, username, l.Configs.SSHKeys.PrivateFile)
 			}
 			processGroup.Done()
 		}()

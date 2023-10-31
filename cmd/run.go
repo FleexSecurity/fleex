@@ -20,6 +20,11 @@ var runCmd = &cobra.Command{
 		portFlag, _ := cmd.Flags().GetInt("port")
 		usernameFlag, _ := cmd.Flags().GetString("username")
 
+		if providerFlag != "" {
+			globalConfig.Settings.Provider = providerFlag
+		}
+		providerFlag = globalConfig.Settings.Provider
+
 		vmInfo := models.GetVMInfo(providerFlag, fleetName, globalConfig)
 		if vmInfo == nil {
 			utils.Log.Fatal("Provider or custom VM not found")
@@ -35,15 +40,12 @@ var runCmd = &cobra.Command{
 		newController := controller.NewController(globalConfig)
 
 		fleets := newController.GetFleet(fleetName)
+
 		if len(fleets) == 0 {
 			utils.Log.Fatal("Fleet not found")
 		}
-		for _, box := range fleets {
-			if box.Label == fleetName {
-				newController.RunCommand(fleetName, commandFlag)
-				return
-			}
-		}
+
+		newController.RunCommand(fleetName, commandFlag)
 
 		utils.Log.Info("Command executed on fleet " + fleetName)
 	},
