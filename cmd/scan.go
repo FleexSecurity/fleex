@@ -123,19 +123,6 @@ func init() {
 	// scanCmd.MarkFlagRequired("command")
 }
 
-// func (m *Module) getModule(modulename string) *Module {
-// 	home, _ := homedir.Dir()
-// 	yamlFile, err := ioutil.ReadFile(home + "/fleex/modules/" + modulename + ".yaml")
-// 	if err != nil {
-// 		utils.Log.Fatal("yamlFile.Get:", err)
-// 	}
-// 	err = yaml.Unmarshal(yamlFile, m)
-// 	if err != nil {
-// 		utils.Log.Fatal("Unmarshal:", err)
-// 	}
-// 	return m
-// }
-
 func replaceCommandVars(command string, vars map[string]string) string {
 	for key, value := range vars {
 		placeholder := fmt.Sprintf("{vars.%s}", key)
