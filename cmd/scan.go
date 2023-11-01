@@ -13,13 +13,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type Config struct {
-	Name     string            `yaml:"name"`
-	Author   string            `yaml:"author"`
-	Vars     map[string]string `yaml:"vars"`
-	Commands []string          `yaml:"commands"`
-}
-
 // scanCmd represents the scan command
 var scanCmd = &cobra.Command{
 	Use:   "scan",
@@ -60,12 +53,12 @@ var scanCmd = &cobra.Command{
 			providerInfo.Password = passwordFlag
 		}
 
-		config := &Config{}
-		config.Vars = make(map[string]string)
+		module := &models.Module{}
+		module.Vars = make(map[string]string)
 
 		if templatePathFlag != "" {
 			var err error
-			config, err = readYAMLConfig(templatePathFlag)
+			module, err = readYAMLConfig(templatePathFlag)
 			if err != nil {
 				log.Fatalf("Error reading YAML file: %v", err)
 			}
@@ -75,27 +68,28 @@ var scanCmd = &cobra.Command{
 			splits := strings.SplitN(param, ":", 2)
 			if len(splits) == 2 {
 				key, value := splits[0], splits[1]
-				config.Vars[key] = value
+				module.Vars[key] = value
 			}
 		}
 
 		if commandFlag != "" {
-			command := replaceCommandVars(commandFlag, config.Vars)
-			config.Commands = []string{command}
-		} else if len(config.Commands) == 0 {
+			// command := replaceCommandVars(commandFlag, config.Vars)
+			module.Commands = []string{commandFlag}
+		} else if len(module.Commands) == 0 {
 			log.Fatal("No commands specified.")
-		} else {
-			for i, command := range config.Commands {
-				config.Commands[i] = replaceCommandVars(command, config.Vars)
-			}
 		}
+		// else {
+		// 	for i, command := range config.Commands {
+		// 		config.Commands[i] = replaceCommandVars(command, config.Vars)
+		// 	}
+		// }
 
 		finalCommand := ""
-		if len(config.Commands) > 0 {
-			finalCommand = config.Commands[0]
+		if len(module.Commands) > 0 {
+			finalCommand = module.Commands[0]
 		}
 
-		log.Fatal(1, finalCommand)
+		log.Fatal(1, module.Vars, " ", finalCommand)
 
 		newController := controller.NewController(globalConfig)
 		newController.Start(fleetNameFlag, finalCommand, deleteFlag, inputFlag, output, chunksFolder)
@@ -131,13 +125,13 @@ func replaceCommandVars(command string, vars map[string]string) string {
 	return command
 }
 
-func readYAMLConfig(path string) (*Config, error) {
+func readYAMLConfig(path string) (*models.Module, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	config := &Config{}
+	config := &models.Module{}
 	err = yaml.Unmarshal(data, config)
 	if err != nil {
 		return nil, err
