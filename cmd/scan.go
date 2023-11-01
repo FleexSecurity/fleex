@@ -73,16 +73,10 @@ var scanCmd = &cobra.Command{
 		}
 
 		if commandFlag != "" {
-			// command := replaceCommandVars(commandFlag, config.Vars)
 			module.Commands = []string{commandFlag}
 		} else if len(module.Commands) == 0 {
 			log.Fatal("No commands specified.")
 		}
-		// else {
-		// 	for i, command := range config.Commands {
-		// 		config.Commands[i] = replaceCommandVars(command, config.Vars)
-		// 	}
-		// }
 
 		finalCommand := ""
 		if len(module.Commands) > 0 {
