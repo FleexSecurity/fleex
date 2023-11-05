@@ -3,6 +3,7 @@ package controller
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -52,24 +53,46 @@ func GetLine(filename string, names chan string, readerr chan error) {
 	readerr <- scanner.Err()
 }
 
+func ReplaceCommandVars(command string, vars map[string]string) (string, error) {
+	if _, ok := vars["INPUT"]; !ok {
+		return "", fmt.Errorf("missing 'INPUT' variable")
+	}
+	if _, ok := vars["OUTPUT"]; !ok {
+		return "", fmt.Errorf("missing 'OUTPUT' variable")
+	}
+
+	for key, value := range vars {
+		placeholder := fmt.Sprintf("{vars.%s}", key)
+		command = strings.ReplaceAll(command, placeholder, value)
+	}
+	return command, nil
+}
+
 var privateSshKeyStr string
 
 // Start runs a scan
-func (c Controller) Start(fleetName, command string, delete bool, input, outputPath, chunksFolder string) {
+func (c Controller) Start(fleetName, command string, delete bool, input, outputPath1, chunksFolder string, module *models.Module) {
 	var isFolderOut bool
 	start := time.Now()
 	privateSshKeyStr = c.Configs.SSHKeys.PrivateFile
-
 	provider := c.Configs.Settings.Provider
 	providerId := GetProvider(provider)
-
 	if providerId == 0 {
 		utils.Log.Fatal(models.ErrNotAvailableCustomVps)
 	}
 
+	port := c.Configs.Providers[provider].Port
+	username := c.Configs.Providers[provider].Username
+
+	input, inputOk := module.Vars["INPUT"]
+	outputPath, outputOk := module.Vars["OUTPUT"]
+	if !inputOk || !outputOk {
+		utils.Log.Fatal("INPUT and OUTPUT vars are required in module")
+	}
+
 	timeStamp := strconv.FormatInt(time.Now().UnixNano(), 10)
 	// TODO: use a proper temp folder function so that it can run on windows too
-	tempFolder := filepath.Join("/tmp", "fleex-"+timeStamp)
+	tempFolder := filepath.Join("/tmp", "fleex-"+"1698879444435075000")
 
 	if chunksFolder != "" {
 		tempFolder = chunksFolder
@@ -77,9 +100,10 @@ func (c Controller) Start(fleetName, command string, delete bool, input, outputP
 
 	// Make local temp folder
 	tempFolderInput := filepath.Join(tempFolder, "input")
-	// Create temp folder
+	tempFolderFiles := filepath.Join(tempFolder, "files")
 	utils.MakeFolder(tempFolder)
 	utils.MakeFolder(tempFolderInput)
+	utils.MakeFolder(tempFolderFiles)
 	utils.Log.Info("Scan started!")
 
 	// Input file to string
@@ -87,6 +111,15 @@ func (c Controller) Start(fleetName, command string, delete bool, input, outputP
 	fleet := c.GetFleet(fleetName)
 	if len(fleet) < 1 {
 		utils.Log.Fatal("No fleet found")
+	}
+
+	// Send additional vars files (excluding "INPUT" and "OUTPUT") via SCP
+	for key, value := range module.Vars {
+		if key != "INPUT" && key != "OUTPUT" && isFile(value) {
+			newFileName := "/tmp/fleex-" + timeStamp + "-chunk-file-" + value
+			module.Vars[key] = newFileName
+			sendFileToFleet(value, newFileName, fleet, port, username, privateSshKeyStr)
+		}
 	}
 
 	// First get lines count
@@ -114,6 +147,7 @@ func (c Controller) Start(fleetName, command string, delete bool, input, outputP
 	asd := []string{}
 
 	x := 1
+
 loop:
 	for {
 		select {
@@ -150,10 +184,6 @@ loop:
 	processGroup := new(sync.WaitGroup)
 	processGroup.Add(len(fleet))
 
-	port := c.Configs.Providers[provider].Port
-	username := c.Configs.Providers[provider].Username
-	token := c.Configs.Providers[provider].Token
-
 	for i := 0; i < len(fleet); i++ {
 		go func() {
 			for {
@@ -177,9 +207,12 @@ loop:
 				chunkOutputFile := "/tmp/fleex-" + timeStamp + "-chunk-out-" + boxName
 
 				// Replace labels and craft final command
-				finalCommand := command
-				finalCommand = strings.ReplaceAll(finalCommand, "{{INPUT}}", chunkInputFile)
-				finalCommand = strings.ReplaceAll(finalCommand, "{{OUTPUT}}", chunkOutputFile)
+				module.Vars["INPUT"] = chunkInputFile
+				module.Vars["OUTPUT"] = chunkOutputFile
+				finalCommand, err := ReplaceCommandVars(command, module.Vars)
+				if err != nil {
+					utils.Log.Fatal(err)
+				}
 
 				sshutils.RunCommand(finalCommand, l.IP, port, username, privateSshKeyStr)
 
@@ -199,7 +232,7 @@ loop:
 					// TODO: Not the best way to delete a box, if this program crashes/is stopped
 					// before reaching this line the box won't be deleted. It's better to setup
 					// a cron/command on the box directly.
-					c.DeleteBoxByID(l.ID, token, providerId)
+					c.DeleteBoxByID(l.ID, "", providerId)
 					utils.Log.Debug("Killed box ", l.Label)
 				}
 
@@ -257,4 +290,27 @@ func IsDirectory(path string) (bool, error) {
 		return false, err
 	}
 	return fileInfo.IsDir(), err
+}
+
+func isFile(path string) bool {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
+}
+
+func sendFileToFleet(filePath, destinationPath string, fleet []p.Box, port int, username, privateKey string) error {
+	for _, box := range fleet {
+		conn, err := sshutils.Connect(box.IP+":"+strconv.Itoa(port), username, privateKey)
+		if err != nil {
+			return err
+		}
+
+		err = scp.NewSCP(conn.Client).SendFile(filePath, destinationPath)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
