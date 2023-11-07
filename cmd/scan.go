@@ -1,22 +1,14 @@
 package cmd
 
 import (
-	"io/ioutil"
+	"log"
+	"strings"
 
 	"github.com/FleexSecurity/fleex/pkg/controller"
 	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/utils"
-	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v2"
 )
-
-type Module struct {
-	Name        string `yaml:"name"`
-	Description string `yaml:"description"`
-	Author      string `yaml:"author"`
-	Command     string `yaml:"command"`
-}
 
 // scanCmd represents the scan command
 var scanCmd = &cobra.Command{
@@ -26,58 +18,55 @@ var scanCmd = &cobra.Command{
 		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
 		utils.SetProxy(proxy)
 
-		providerFlag, _ := cmd.Flags().GetString("provider")
+		paramsFlag, _ := cmd.Flags().GetStringSlice("params")
 		commandFlag, _ := cmd.Flags().GetString("command")
 		deleteFlag, _ := cmd.Flags().GetBool("delete")
 		fleetNameFlag, _ := cmd.Flags().GetString("name")
 		inputFlag, _ := cmd.Flags().GetString("input")
 		output, _ := cmd.Flags().GetString("output")
-		moduleFlag, _ := cmd.Flags().GetString("module")
-		portFlag, _ := cmd.Flags().GetInt("port")
-		usernameFlag, _ := cmd.Flags().GetString("username")
-		passwordFlag, _ := cmd.Flags().GetString("password")
+		modulePathFlag, _ := cmd.Flags().GetString("module")
 
 		chunksFolder, _ := cmd.Flags().GetString("chunks-folder")
-		if globalConfig.Settings.Provider != providerFlag && providerFlag == "" {
-			providerFlag = globalConfig.Settings.Provider
-		}
-		provider := controller.GetProvider(providerFlag)
-		if provider == -1 {
-			utils.Log.Fatal(models.ErrInvalidProvider)
+
+		module := &models.Module{}
+		module.Vars = make(map[string]string)
+
+		if modulePathFlag != "" {
+			var err error
+			module, err = utils.ReadModuleFile(modulePathFlag)
+			if err != nil {
+				log.Fatalf("Error reading YAML file: %v", err)
+			}
 		}
 
-		providerInfo := globalConfig.Providers[providerFlag]
-		if portFlag != -1 {
-			providerInfo.Port = portFlag
-		}
-		if usernameFlag != "" {
-			providerInfo.Username = usernameFlag
-		}
-		if passwordFlag != "" {
-			providerInfo.Password = passwordFlag
+		for _, param := range paramsFlag {
+			splits := strings.SplitN(param, ":", 2)
+			if len(splits) == 2 {
+				key, value := splits[0], splits[1]
+				module.Vars[key] = value
+			}
 		}
 
-		var module Module
-
-		if moduleFlag != "" {
-			selectedModule := module.getModule(moduleFlag)
-			commandFlag = selectedModule.Command
-			utils.Log.Info(selectedModule.Name, ": ", selectedModule.Description)
-			utils.Log.Info("Created by: ", selectedModule.Author)
+		if commandFlag != "" {
+			module.Commands = []string{commandFlag}
+		} else if len(module.Commands) == 0 {
+			log.Fatal("No commands specified.")
 		}
 
-		if commandFlag == "" {
-			utils.Log.Fatal("Command not found, insert a command or module")
+		finalCommand := ""
+		if len(module.Commands) > 0 {
+			finalCommand = module.Commands[0]
 		}
 
 		newController := controller.NewController(globalConfig)
-		newController.Start(fleetNameFlag, commandFlag, deleteFlag, inputFlag, output, chunksFolder)
+		newController.Start(fleetNameFlag, finalCommand, deleteFlag, inputFlag, output, chunksFolder, module)
 
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(scanCmd)
+	scanCmd.Flags().StringSliceP("params", "", []string{}, "Set parameters in the format KEY:VALUE")
 	scanCmd.Flags().StringP("name", "n", "pwn", "Fleet name")
 	scanCmd.Flags().StringP("command", "c", "", "Command to send. Supports {{INPUT}} and {{OUTPUT}}")
 	scanCmd.Flags().StringP("input", "i", "", "Input file")
@@ -88,21 +77,8 @@ func init() {
 	scanCmd.Flags().StringP("username", "U", "", "SSH username")
 	scanCmd.Flags().StringP("password", "P", "", "SSH password")
 	scanCmd.Flags().BoolP("delete", "d", false, "Delete boxes as soon as they finish their job")
-	scanCmd.Flags().StringP("module", "m", "", "Scan modules")
+	scanCmd.Flags().StringP("module", "", "", "Specify path to a YAML module file")
 
-	scanCmd.MarkFlagRequired("output")
+	// scanCmd.MarkFlagRequired("output")
 	// scanCmd.MarkFlagRequired("command")
-}
-
-func (m *Module) getModule(modulename string) *Module {
-	home, _ := homedir.Dir()
-	yamlFile, err := ioutil.ReadFile(home + "/fleex/modules/" + modulename + ".yaml")
-	if err != nil {
-		utils.Log.Fatal("yamlFile.Get:", err)
-	}
-	err = yaml.Unmarshal(yamlFile, m)
-	if err != nil {
-		utils.Log.Fatal("Unmarshal:", err)
-	}
-	return m
 }
