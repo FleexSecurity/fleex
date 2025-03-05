@@ -241,15 +241,9 @@ func GetConfigDir() (string, error) {
 
 	var configDir string
 
-	switch os := runtime.GOOS; os {
-	case "darwin":
-		configDir = filepath.Join(usr.HomeDir, ".config")
-	case "linux":
-		configDir = filepath.Join(usr.HomeDir, ".config")
-	case "windows":
+	configDir = filepath.Join(usr.HomeDir, ".config")
+	if runtime.GOOS == "windows" {
 		configDir = filepath.Join(usr.HomeDir, "AppData", "Roaming", "fleex")
-	default:
-		configDir = filepath.Join(usr.HomeDir, ".config")
 	}
 
 	_, err = os.Stat(configDir)
