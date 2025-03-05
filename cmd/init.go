@@ -105,7 +105,7 @@ var initCmd = &cobra.Command{
 			utils.Log.Fatal(err)
 		}
 
-		utils.Log.Info("Fleex initialized successfully, see", fleexPath)
+		utils.Log.Info("Fleex initialized successfully, see ", fleexPath)
 	},
 }
 
