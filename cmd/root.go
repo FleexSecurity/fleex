@@ -50,7 +50,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/fleex/config.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config path (default is $HOME/.config/fleex/config.json). Will search for a config.json file if a directory is provided.")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rootCmd.PersistentFlags().StringP("loglevel", "l", "info", "Set log level. Available: debug, info, warn, error, fatal")
 	rootCmd.PersistentFlags().StringP("proxy", "", "", "HTTP Proxy (Useful for debugging. Example: http://127.0.0.1:8080)")
@@ -59,9 +59,12 @@ func init() {
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	if cfgFile != "" {
-		// Use config file from the flag.
-		if !utils.FileExists(cfgFile) {
+		// Use config path from the flag.
+		exists, isDir := utils.PathExists(cfgFile)
+		if !exists {
 			utils.Log.Fatal("Invalid config file path")
+		} else if isDir {
+			cfgFile = filepath.Join(cfgFile, "config.json")
 		}
 	} else {
 		// Find config directory.

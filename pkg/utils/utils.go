@@ -216,21 +216,12 @@ func SetProxy(proxyURL string) {
 
 }
 
-func FileExists(name string) bool {
-	if _, err := os.Stat(name); err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-	}
-	return true
-}
-
-func IsDirectory(path string) (bool, error) {
+func PathExists(path string) (bool, bool) {
 	fileInfo, err := os.Stat(path)
-	if err != nil {
-		return false, err
+	if err != nil || os.IsNotExist(err) {
+		return false, false
 	}
-	return fileInfo.IsDir(), err
+	return true, fileInfo.IsDir()
 }
 
 func GetConfigDir() (string, error) {
@@ -255,4 +246,19 @@ func GetConfigDir() (string, error) {
 	}
 
 	return configDir, nil
+}
+
+func GetConfigFile() (string, error) {
+	configDir, err := GetConfigDir()
+	if err != nil {
+		return "", err
+	}
+
+	configFile := filepath.Join(configDir, "fleex", "config.json")
+	_, err = os.Stat(configFile)
+	if os.IsNotExist(err) {
+		return "", err
+	}
+
+	return configFile, nil
 }

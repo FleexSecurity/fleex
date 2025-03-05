@@ -37,12 +37,7 @@ var initCmd = &cobra.Command{
 		emailFlag, _ := cmd.Flags().GetString("email")
 		overwrite, _ := cmd.Flags().GetBool("overwrite")
 
-		configDir, err := utils.GetConfigDir()
-		if err != nil {
-			utils.Log.Fatal(err)
-		}
-
-		fleexPath := filepath.Join(configDir, "fleex")
+		fleexPath := filepath.Dir(cfgFile)
 
 		if _, err := os.Stat(fleexPath); !os.IsNotExist(err) {
 			if !overwrite {
@@ -58,7 +53,7 @@ var initCmd = &cobra.Command{
 		timeNow := strconv.FormatInt(time.Now().Unix(), 10)
 		tmpZipPath := filepath.Join("/tmp", "fleex-config-"+timeNow+".zip")
 
-		err = utils.DownloadFile(tmpZipPath, fileUrl)
+		err := utils.DownloadFile(tmpZipPath, fileUrl)
 		if err != nil {
 			utils.Log.Fatal(err)
 		}
@@ -105,7 +100,11 @@ var initCmd = &cobra.Command{
 			utils.Log.Fatal(err)
 		}
 
-		utils.Log.Info("Fleex initialized successfully, see ", fleexPath)
+		fullPath, err := filepath.Abs(fleexPath)
+		if err != nil {
+			utils.Log.Fatal(err)
+		}
+		utils.Log.Info("Fleex initialized successfully, see ", fullPath)
 	},
 }
 
