@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/olekukonko/tablewriter"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/provider"
 	"github.com/FleexSecurity/fleex/pkg/services"
+	"github.com/FleexSecurity/fleex/pkg/ui"
 	"github.com/FleexSecurity/fleex/pkg/utils"
 )
 
@@ -72,14 +74,16 @@ func NewController(configs *models.Config) Controller {
 			Client:  config.GetLinodeClient(token),
 			Configs: configs,
 		}
-	// case PROVIDER_DIGITALOCEAN:
-	// 	c.Service = services.DigitaloceanService{
-	// 		Client: config.GetDigitaloaceanToken(token),
-	// 	}
-	// case PROVIDER_VULTR:
-	// 	c.Service = services.VultrService{
-	// 		Client: config.GetVultrClient(token),
-	// 	}
+	case PROVIDER_DIGITALOCEAN:
+		c.Service = services.DigitaloceanService{
+			Client:  config.GetDigitaloaceanToken(token),
+			Configs: configs,
+		}
+	case PROVIDER_VULTR:
+		c.Service = services.VultrService{
+			Client:  config.GetVultrClient(token),
+			Configs: configs,
+		}
 	default:
 		utils.Log.Fatal(models.ErrInvalidProvider)
 	}
@@ -93,9 +97,23 @@ func (c Controller) ListBoxes(token string, provider Provider) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, linode := range boxes {
-		fmt.Printf("%-20v %-16v %-10v %-20v %-15v\n", linode.ID, linode.Label, linode.Group, linode.Status, linode.IP)
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"ID", "Label", "Group", "Status", "IP"})
+
+	for _, box := range boxes {
+		table.Append([]string{
+			fmt.Sprintf("%v", box.ID),
+			box.Label,
+			box.Group,
+			box.Status,
+			box.IP,
+		})
 	}
+
+	table.SetBorder(true)
+	table.SetRowLine(true)
+	table.Render()
 }
 
 // DeleteFleet deletes a whole fleet or a single box
@@ -143,6 +161,14 @@ func (c Controller) GetFleet(fleetName string) []provider.Box {
 	return fleet
 }
 
+func (c Controller) GetImages() ([]provider.Image, error) {
+	images, err := c.Service.GetImages()
+	if err != nil {
+		return []provider.Image{}, err
+	}
+	return images, nil
+}
+
 func (c Controller) GetBox(boxName string) (provider.Box, error) {
 	return c.Service.GetBox(boxName)
 }
@@ -171,8 +197,11 @@ func (c Controller) SpawnFleet(fleetName string, fleetCount int, skipWait bool, 
 	selectedProvider := c.Configs.Settings.Provider
 	providerId := GetProvider(selectedProvider)
 
+	progress := ui.NewSpawnProgress(fleetCount)
+	progress.Start()
+
 	if len(startFleet) > 0 {
-		utils.Log.Info("Increasing fleet ", fleetName, " from size ", len(startFleet), " to ", finalFleetSize)
+		ui.Info(fmt.Sprintf("Increasing fleet %s from size %d to %d", fleetName, len(startFleet), finalFleetSize))
 	}
 
 	// Handle CTRL+C SIGINT
@@ -180,41 +209,45 @@ func (c Controller) SpawnFleet(fleetName string, fleetCount int, skipWait bool, 
 	signal.Notify(ch, os.Interrupt)
 	go func() {
 		for range ch {
-			utils.Log.Info("Spawn interrupted. Killing boxes...")
+			ui.Warning("Spawn interrupted. Killing boxes...")
 			c.DeleteFleet(fleetName)
 			os.Exit(0)
 		}
 	}()
 
+	progress.StartSpawning()
 	err := c.Service.SpawnFleet(fleetName, fleetCount)
 	if err != nil {
 		utils.Log.Fatal(err)
 	}
+	progress.SpawningDone()
 
 	if !skipWait {
-		utils.Log.Info("All spawn requests sent! Now waiting for all boxes to become ready")
+		progress.StartWaiting()
 		for {
 			stillNotReady := false
 			fleet := c.GetFleet(fleetName)
 			if len(fleet) == finalFleetSize {
 				for i := range fleet {
+					progress.UpdateBoxStatus(fleet[i].Label, fleet[i].Status, fleet[i].IP)
 					if (providerId == PROVIDER_DIGITALOCEAN && fleet[i].Status != "active") || (providerId == PROVIDER_LINODE && fleet[i].Status != "running") || (providerId == PROVIDER_VULTR && fleet[i].Status != "active") {
 						stillNotReady = true
 					}
 				}
 
 				if stillNotReady {
-					time.Sleep(8 * time.Second)
+					time.Sleep(5 * time.Second)
 				} else {
 					break
 				}
+			} else {
+				time.Sleep(3 * time.Second)
 			}
-
 		}
-
-		utils.Log.Info("All boxes ready!")
-
+		progress.WaitingDone()
 	}
+
+	progress.Done()
 }
 
 func (c Controller) SSH(boxName, username, password string, port int, sshKey string) {
@@ -223,21 +256,35 @@ func (c Controller) SSH(boxName, username, password string, port int, sshKey str
 		utils.Log.Fatal(err)
 	}
 
+	fmt.Println(box)
+
 	if box.Label == boxName {
-		key, err := ioutil.ReadFile(sshKey)
-		if err != nil {
-			return
+		var authMethods []ssh.AuthMethod
+
+		// Try to use SSH key if provided and readable
+		if sshKey != "" {
+			key, err := ioutil.ReadFile(sshKey)
+			if err == nil {
+				signer, err := ssh.ParsePrivateKey(key)
+				if err == nil {
+					authMethods = append(authMethods, ssh.PublicKeys(signer))
+				}
+			}
 		}
 
-		signer, err := ssh.ParsePrivateKey(key)
-		if err != nil {
-			return
+		// If password is provided, add password authentication
+		if password != "" {
+			authMethods = append(authMethods, ssh.Password(password))
 		}
+
+		// If no auth methods, fail
+		if len(authMethods) == 0 {
+			utils.Log.Fatal("No valid SSH authentication method provided (neither valid key nor password)")
+		}
+
 		config := &ssh.ClientConfig{
-			User: username,
-			Auth: []ssh.AuthMethod{
-				ssh.PublicKeys(signer),
-			},
+			User:            username,
+			Auth:            authMethods,
 			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		}
 

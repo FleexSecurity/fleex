@@ -61,8 +61,8 @@ func (c CustomService) GetBox(boxName string) (provider.Box, error) {
 	return provider.Box{}, models.ErrBoxNotFound
 }
 
-func (c CustomService) GetImages() (images []provider.Image) {
-	return []provider.Image{}
+func (c CustomService) GetImages() (images []provider.Image, err error) {
+	return []provider.Image{}, nil
 }
 
 func (c CustomService) ListImages() error {

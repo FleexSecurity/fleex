@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/FleexSecurity/fleex/pkg/controller"
 	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/utils"
@@ -22,6 +24,8 @@ var spawnCmd = &cobra.Command{
 		fleetCount, _ := cmd.Flags().GetInt("count")
 		fleetName, _ := cmd.Flags().GetString("name")
 		skipWait, _ := cmd.Flags().GetBool("skipwait")
+		buildRecipe, _ := cmd.Flags().GetString("build")
+		noVerify, _ := cmd.Flags().GetBool("no-verify")
 
 		if providerFlag != "" {
 			globalConfig.Settings.Provider = providerFlag
@@ -47,6 +51,36 @@ var spawnCmd = &cobra.Command{
 		newController := controller.NewController(globalConfig)
 		newController.SpawnFleet(fleetName, fleetCount, skipWait, false)
 
+		if buildRecipe != "" {
+			recipe, err := utils.ReadBuildFile(buildRecipe)
+			if err != nil {
+				utils.Log.Fatal("Failed to load build recipe: ", err)
+			}
+
+			fmt.Printf("Building fleet '%s' with recipe '%s'...\n", fleetName, recipe.Name)
+
+			opts := models.BuildOptions{
+				Recipe:    recipe,
+				FleetName: fleetName,
+				Parallel:  5,
+				NoVerify:  noVerify,
+				Verbose:   true,
+			}
+
+			results, err := newController.BuildFleet(opts)
+			if err != nil {
+				utils.Log.Fatal(err)
+			}
+
+			successCount := 0
+			for _, r := range results {
+				if r.Success {
+					successCount++
+				}
+			}
+
+			fmt.Printf("Build complete: %d/%d successful\n", successCount, len(results))
+		}
 	},
 }
 
@@ -63,6 +97,6 @@ func init() {
 	spawnCmd.Flags().StringP("region", "R", "", "Region")
 	spawnCmd.Flags().StringP("size", "S", "", "Size")
 	spawnCmd.Flags().StringP("image", "I", "", "Image")
-
-	//spawnCmd.Flags().StringP("provider", "p", "linode", "Service provider (Supported: linode, digitalocean, vultr)")
+	spawnCmd.Flags().StringP("build", "b", "", "Build recipe to run after spawn")
+	spawnCmd.Flags().BoolP("no-verify", "", false, "Skip build verification")
 }

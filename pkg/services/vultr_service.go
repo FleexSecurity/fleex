@@ -16,12 +16,18 @@ import (
 )
 
 type VultrService struct {
-	Client *govultr.Client
+	Client  *govultr.Client
+	Configs *models.Config
 }
 
-// SpawnFleet spawns a Vultr fleet
-func (v VultrService) SpawnFleet(fleetName, password string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string) error {
+func (v VultrService) SpawnFleet(fleetName string, fleetCount int) error {
 	existingFleet, _ := v.GetFleet(fleetName)
+	providerName := v.Configs.Settings.Provider
+	providerInfo := v.Configs.Providers[providerName]
+
+	image := providerInfo.Image
+	region := providerInfo.Region
+	size := providerInfo.Size
 
 	threads := 10
 	fleet := make(chan string, threads)
@@ -112,24 +118,21 @@ func (v VultrService) GetBox(boxName string) (provider.Box, error) {
 	return provider.Box{}, models.ErrBoxNotFound
 }
 
-// GetImages returns a slice containing all snapshots of vultr account
-func (v VultrService) GetImages() (images []provider.Image) {
+func (v VultrService) GetImages() (images []provider.Image, err error) {
 	listOptions := &govultr.ListOptions{PerPage: 100}
 	for {
 		vultrImages, meta, err := v.Client.Snapshot.List(context.Background(), listOptions)
 
 		if err != nil {
-			utils.Log.Fatal(err)
+			return []provider.Image{}, err
 		}
 
 		for _, image := range vultrImages {
-			// Only list custom images
 			images = append(images, provider.Image{
 				ID:      image.ID,
 				Label:   image.Description,
 				Created: image.DateCreated,
 				Size:    image.Size,
-				//Vendor:  "",
 			})
 		}
 		if meta.Links.Next == "" {
@@ -139,21 +142,36 @@ func (v VultrService) GetImages() (images []provider.Image) {
 			continue
 		}
 	}
-	return images
+	return images, nil
 }
 
-// ListImages prints snapshots of vultr account
 func (v VultrService) ListImages() error {
-	images := v.GetImages()
+	images, err := v.GetImages()
+	if err != nil {
+		return err
+	}
 	for _, image := range images {
 		fmt.Printf("%-18v %-48v %-6v %-29v %-15v\n", image.ID, image.Label, image.Size, image.Created, image.Vendor)
 	}
 	return nil
 }
 
-// TODO
-func (l VultrService) RemoveImages(name string) error {
-	return nil
+func (v VultrService) RemoveImages(name string) error {
+	images, err := v.GetImages()
+	if err != nil {
+		return err
+	}
+	for _, image := range images {
+		if image.Label == name {
+			err := v.Client.Snapshot.Delete(context.Background(), image.ID)
+			if err != nil {
+				return err
+			}
+			fmt.Println("Successfully removed:", name)
+			return nil
+		}
+	}
+	return models.ErrImageNotFound
 }
 
 func (v VultrService) DeleteFleet(name string) error {
@@ -237,15 +255,16 @@ func (v VultrService) RunCommand(name, command string, port int, username, passw
 	if err != nil {
 		return err
 	}
+
+	privateKey := v.Configs.SSHKeys.PrivateFile
+
 	for _, box := range boxes {
 		if box.Label == name {
-			// It's a single box
-			sshutils.RunCommand(command, box.IP, port, username, password)
+			sshutils.RunCommand(command, box.IP, port, username, privateKey)
 			return nil
 		}
 	}
 
-	// Otherwise, send command to a fleet
 	fleetSize := v.CountFleet(name, boxes)
 
 	fleet := make(chan *provider.Box, fleetSize)
@@ -260,7 +279,7 @@ func (v VultrService) RunCommand(name, command string, port int, username, passw
 				if box == nil {
 					break
 				}
-				sshutils.RunCommand(command, box.IP, port, username, password)
+				sshutils.RunCommand(command, box.IP, port, username, privateKey)
 			}
 			processGroup.Done()
 		}()

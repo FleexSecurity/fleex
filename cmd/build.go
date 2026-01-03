@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -10,201 +10,376 @@ import (
 
 	"github.com/FleexSecurity/fleex/pkg/controller"
 	"github.com/FleexSecurity/fleex/pkg/models"
-	"github.com/FleexSecurity/fleex/pkg/sshutils"
 	"github.com/FleexSecurity/fleex/pkg/utils"
-	"github.com/hnakamur/go-scp"
-	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
 
-type BuildConfig struct {
-	//Name   string
-	Config struct {
-		Source      string `yaml:"source"`
-		Destination string `yaml:"destination"`
-	}
-
-	Commands []string
-}
-
-// buildCmd represents the build command
 var buildCmd = &cobra.Command{
 	Use:   "build",
-	Short: "Build an image with all the tools you need. Run this the first time only (for each provider).",
-	Long:  "Build image",
-	Run: func(cmd *cobra.Command, args []string) {
-		var token, region, size, boxIP, image string
-		var boxID string
+	Short: "Build and provision fleet instances with tools",
+	Long: `Build provisions fleet instances with specified tools and configurations.
 
+Examples:
+  fleex build list                              # List available build recipes
+  fleex build show security-tools               # Show recipe details
+  fleex build run -r security-tools -n pwn      # Build existing fleet
+  fleex build verify -r security-tools -n pwn   # Verify installation`,
+}
+
+var buildListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List available build recipes",
+	Run: func(cmd *cobra.Command, args []string) {
+		recipes, err := utils.ListBuildRecipes()
+		if err != nil {
+			utils.Log.Fatal(err)
+		}
+
+		if len(recipes) == 0 {
+			fmt.Println("No build recipes found. Run 'fleex init' to create default recipes.")
+			return
+		}
+
+		fmt.Println("\n=== AVAILABLE BUILD RECIPES ===\n")
+		fmt.Printf("%-25s %-50s\n", "NAME", "DESCRIPTION")
+		fmt.Printf("%-25s %-50s\n", strings.Repeat("-", 25), strings.Repeat("-", 50))
+
+		for _, name := range recipes {
+			recipe, err := utils.ReadBuildFile(name)
+			if err != nil {
+				continue
+			}
+			fmt.Printf("%-25s %-50s\n", name, recipe.Description)
+		}
+		fmt.Println()
+	},
+}
+
+var buildShowCmd = &cobra.Command{
+	Use:   "show [recipe-name]",
+	Short: "Show build recipe details",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		recipeName := args[0]
+
+		recipe, err := utils.ReadBuildFile(recipeName)
+		if err != nil {
+			utils.Log.Fatal("Recipe not found: ", recipeName)
+		}
+
+		fmt.Printf("\n=== %s ===\n\n", strings.ToUpper(recipe.Name))
+		fmt.Printf("Description: %s\n", recipe.Description)
+		fmt.Printf("Author:      %s\n", recipe.Author)
+		fmt.Printf("Version:     %s\n", recipe.Version)
+
+		if len(recipe.OS.Supported) > 0 {
+			fmt.Printf("OS:          %s\n", strings.Join(recipe.OS.Supported, ", "))
+		}
+
+		if len(recipe.Vars) > 0 {
+			fmt.Println("\nVariables:")
+			for k, v := range recipe.Vars {
+				if v == "" {
+					fmt.Printf("  %s: (required)\n", k)
+				} else {
+					fmt.Printf("  %s: %s\n", k, v)
+				}
+			}
+		}
+
+		if len(recipe.Files) > 0 {
+			fmt.Println("\nFiles:")
+			for _, f := range recipe.Files {
+				fmt.Printf("  %s -> %s\n", f.Source, f.Destination)
+			}
+		}
+
+		fmt.Println("\nSteps:")
+		for i, step := range recipe.Steps {
+			retries := ""
+			if step.Retries > 0 {
+				retries = fmt.Sprintf(" (retries: %d)", step.Retries)
+			}
+			fmt.Printf("  %d. %s%s\n", i+1, step.Name, retries)
+			for _, cmd := range step.Commands {
+				if len(cmd) > 60 {
+					fmt.Printf("     $ %s...\n", cmd[:60])
+				} else {
+					fmt.Printf("     $ %s\n", cmd)
+				}
+			}
+		}
+
+		if len(recipe.Verify) > 0 {
+			fmt.Println("\nVerification:")
+			for _, v := range recipe.Verify {
+				fmt.Printf("  - %s: %s\n", v.Name, v.Command)
+			}
+		}
+		fmt.Println()
+	},
+}
+
+var buildRunCmd = &cobra.Command{
+	Use:   "run",
+	Short: "Run build on a fleet",
+	Run: func(cmd *cobra.Command, args []string) {
 		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
 		utils.SetProxy(proxy)
 
-		providerFlag, _ := cmd.Flags().GetString("provider")
-		regionFlag, _ := cmd.Flags().GetString("region")
-		sizeFlag, _ := cmd.Flags().GetString("size")
-		fileFlag, _ := cmd.Flags().GetString("file")
-		noDeleteFlag, _ := cmd.Flags().GetBool("no-delete")
-		debugFlag, _ := cmd.Flags().GetBool("debug")
+		recipeName, _ := cmd.Flags().GetString("recipe")
+		recipeFile, _ := cmd.Flags().GetString("file")
+		fleetName, _ := cmd.Flags().GetString("name")
+		parallel, _ := cmd.Flags().GetInt("parallel")
+		noVerify, _ := cmd.Flags().GetBool("no-verify")
+		continueErr, _ := cmd.Flags().GetBool("continue")
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
+		verbose, _ := cmd.Flags().GetBool("verbose")
 
-		timeNow := strconv.FormatInt(time.Now().Unix(), 10)
-		home, _ := homedir.Dir()
-		fleetName := "fleex-" + timeNow
-
-		pubSSH := globalConfig.SSHKeys.PublicFile
-		if pubSSH == "" {
-			utils.Log.Fatal("You need to create a Key Pair for SSH")
+		if recipeName == "" && recipeFile == "" {
+			utils.Log.Fatal("Either --recipe or --file is required")
 		}
 
-		providerInfo := globalConfig.Providers[providerFlag]
-		providerInfo.Tags = []string{"snapshot"}
-		globalConfig.Providers[providerFlag] = providerInfo
-
-		if globalConfig.Settings.Provider != providerFlag && providerFlag == "" {
-			providerFlag = globalConfig.Settings.Provider
+		if fleetName == "" {
+			utils.Log.Fatal("--name flag is required")
 		}
 
-		provider := controller.GetProvider(providerFlag)
+		var recipe *models.BuildRecipe
+		var err error
+
+		if recipeFile != "" {
+			recipe, err = utils.ReadBuildFile(recipeFile)
+		} else {
+			recipe, err = utils.ReadBuildFile(recipeName)
+		}
+
+		if err != nil {
+			utils.Log.Fatal("Failed to load recipe: ", err)
+		}
+
+		provider := controller.GetProvider(globalConfig.Settings.Provider)
 		if provider == -1 {
 			utils.Log.Fatal(models.ErrInvalidProvider)
 		}
-		token = globalConfig.Providers[providerFlag].Token
-
-		if regionFlag == "" {
-			regionFlag = globalConfig.Providers[providerFlag].Region
-		}
-		if sizeFlag == "" {
-			sizeFlag = globalConfig.Providers[providerFlag].Size
-
-		}
-		token = globalConfig.Providers[providerFlag].Token
-		switch provider {
-		case controller.PROVIDER_LINODE:
-			image = "linode/ubuntu20.04"
-		case controller.PROVIDER_DIGITALOCEAN:
-			image = "ubuntu-20-04-x64"
-		case controller.PROVIDER_VULTR:
-			image = "270"
-		}
-
-		destinationPath := filepath.Join(home, "fleex/configs/authorized_keys")
-
-		sourcePath := filepath.Join(home, ".ssh", pubSSH)
-		utils.Copy(sourcePath, destinationPath)
 
 		newController := controller.NewController(globalConfig)
 
-		if provider == controller.PROVIDER_LINODE {
-			packerVars := "-var 'TOKEN=" + token + "'"
-			packerVars += " -var 'IMAGE=" + image + "'"
-			packerVars += " -var 'SIZE=" + size + "'"
-			packerVars += " -var 'REGION=" + region + "'"
-			utils.RunCommand("packer build "+packerVars+" "+fileFlag, debugFlag)
-		} else {
-			c, err := readConf(fileFlag)
+		snapshot, _ := cmd.Flags().GetBool("snapshot")
+
+		fleet := newController.GetFleet(fleetName)
+		fleetExisted := len(fleet) > 0
+
+		if len(fleet) == 0 {
+			fmt.Printf("Spawning 1 instance for fleet '%s'...\n", fleetName)
+			newController.SpawnFleet(fleetName, 1, false, false)
+			fleet = newController.GetFleet(fleetName)
+		}
+
+		if len(fleet) == 0 {
+			utils.Log.Fatal("Failed to get fleet after spawn")
+		}
+
+		createSnapshot := func() {
+			now := time.Now()
+			snapshotName := fmt.Sprintf("fleex-%s-%s", recipe.Name, now.Format("02-01-2006-15-04"))
+			fmt.Printf("Creating snapshot '%s' from %s (ID: %s)...\n", snapshotName, fleet[0].Label, fleet[0].ID)
+
+			boxID, _ := strconv.Atoi(fleet[0].ID)
+			err := newController.Service.CreateImage(boxID, snapshotName)
+
 			if err != nil {
-				utils.Log.Fatal(err)
+				utils.Log.Error("Failed to create snapshot: ", err)
+			} else {
+				fmt.Printf("Snapshot '%s' created successfully\n", snapshotName)
 			}
+		}
 
-			newController.SpawnFleet(fleetName, 1, false, true)
+		if fleetExisted && snapshot {
+			fmt.Printf("Fleet '%s' already exists. Creating snapshot...\n", fleetName)
+			createSnapshot()
+			return
+		}
 
-			for {
-				stillNotReady := false
-				fleets := newController.GetFleet(fleetName + "-1")
-				if len(fleets) == 0 {
-					stillNotReady = true
-				}
-				for _, box := range fleets {
-					if box.Label == fleetName+"-1" {
-						boxID = box.ID
-						boxIP = box.IP
-						break
-					}
-				}
+		fmt.Printf("Building fleet '%s' (%d instances) with recipe '%s'...\n", fleetName, len(fleet), recipe.Name)
 
-				if stillNotReady {
-					time.Sleep(3 * time.Second)
-				} else {
-					break
-				}
+		opts := models.BuildOptions{
+			Recipe:      recipe,
+			FleetName:   fleetName,
+			Parallel:    parallel,
+			NoVerify:    noVerify,
+			ContinueErr: continueErr,
+			DryRun:      dryRun,
+			Verbose:     verbose,
+		}
+
+		results, err := newController.BuildFleet(opts)
+		if err != nil {
+			utils.Log.Fatal(err)
+		}
+
+		successCount := 0
+		for _, r := range results {
+			if r.Success {
+				successCount++
 			}
+		}
 
-			if strings.ContainsAny("~", c.Config.Source) {
-				c.Config.Source = strings.ReplaceAll(c.Config.Source, "~", home)
-			}
+		fmt.Printf("\nBuild complete: %d/%d successful\n", successCount, len(results))
 
-			for {
-				stillNotReady := false
-				_, err := sshutils.GetConnectionBuild(boxIP, 22, "root", "1337superPass")
-				if err != nil {
-					stillNotReady = true
-				}
-
-				if stillNotReady {
-					time.Sleep(5 * time.Second)
-				} else {
-					break
-				}
-			}
-			conn, err := sshutils.GetConnection(boxIP, 22, "root", "1337superPass")
-			if err != nil {
-				utils.Log.Fatal(err)
-			}
-			err = scp.NewSCP(conn.Client).SendDir(c.Config.Source, c.Config.Destination, nil)
-			if err != nil {
-				utils.Log.Fatal(err)
-			}
-
-			if provider == controller.PROVIDER_DIGITALOCEAN {
-				c.Commands = append(c.Commands, `/bin/su -l op -c "curl http://169.254.169.254/metadata/v1/user-data > /home/op/install.sh"`)
-				c.Commands = append(c.Commands, `/bin/su -l op -c "chmod +x /home/op/install.sh"`)
-				c.Commands = append(c.Commands, `/bin/su -l op -c "/home/op/install.sh"`)
-			}
-
-			for _, command := range c.Commands {
-				prov := newController.Configs.Settings.Provider
-				provInfo := newController.Configs.Providers[prov]
-				provInfo.Port = 22
-				provInfo.Token = token
-				provInfo.Username = "root"
-				provInfo.Password = "1337superPass"
-				newController.RunCommand(fleetName+"-1", command)
-			}
-
-			time.Sleep(8 * time.Second)
-			newController.CreateImage(token, provider, boxID, "Fleex-build-"+timeNow)
-			if !noDeleteFlag {
-				time.Sleep(5 * time.Second)
-				newController.DeleteFleet(fleetName + "-1")
-			}
-			utils.Log.Info("\nImage done!")
+		if snapshot && successCount > 0 {
+			createSnapshot()
 		}
 	},
 }
 
-func init() {
-	home, _ := homedir.Dir()
-	// rootCmd.AddCommand(buildCmd)
-	buildCmd.Flags().StringP("provider", "p", "", "Service provider (Supported: linode, digitalocean, vultr)")
-	buildCmd.Flags().StringP("file", "f", home+"/fleex/build/common.yaml", "Build file")
-	buildCmd.Flags().StringP("region", "R", "", "Region")
-	buildCmd.Flags().StringP("size", "S", "", "Size")
-	buildCmd.Flags().BoolP("no-delete", "", false, "Don't delete the box after image creation")
-	buildCmd.Flags().BoolP("debug", "D", false, "Show build logs")
+var buildVerifyCmd = &cobra.Command{
+	Use:   "verify",
+	Short: "Verify build installation on a fleet",
+	Run: func(cmd *cobra.Command, args []string) {
+		proxy, _ := rootCmd.PersistentFlags().GetString("proxy")
+		utils.SetProxy(proxy)
 
+		recipeName, _ := cmd.Flags().GetString("recipe")
+		fleetName, _ := cmd.Flags().GetString("name")
+		verbose, _ := cmd.Flags().GetBool("verbose")
+
+		if recipeName == "" {
+			utils.Log.Fatal("--recipe flag is required")
+		}
+
+		if fleetName == "" {
+			utils.Log.Fatal("--name flag is required")
+		}
+
+		recipe, err := utils.ReadBuildFile(recipeName)
+		if err != nil {
+			utils.Log.Fatal("Failed to load recipe: ", err)
+		}
+
+		if len(recipe.Verify) == 0 {
+			utils.Log.Fatal("Recipe has no verification steps")
+		}
+
+		provider := controller.GetProvider(globalConfig.Settings.Provider)
+		if provider == -1 {
+			utils.Log.Fatal(models.ErrInvalidProvider)
+		}
+
+		newController := controller.NewController(globalConfig)
+
+		opts := models.BuildOptions{
+			Recipe:    recipe,
+			FleetName: fleetName,
+			Verbose:   verbose,
+		}
+
+		results, err := newController.VerifyFleet(opts)
+		if err != nil {
+			utils.Log.Fatal(err)
+		}
+
+		passCount := 0
+		for _, passed := range results {
+			if passed {
+				passCount++
+			}
+		}
+
+		fmt.Printf("\nVerification complete: %d/%d passed\n", passCount, len(results))
+	},
 }
 
-func readConf(filename string) (*BuildConfig, error) {
-	buf, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
+var buildCreateCmd = &cobra.Command{
+	Use:   "create [recipe-name]",
+	Short: "Create a new build recipe",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		recipeName := args[0]
+		description, _ := cmd.Flags().GetString("description")
+		fromRecipe, _ := cmd.Flags().GetString("from")
 
-	c := &BuildConfig{}
-	err = yaml.Unmarshal(buf, c)
-	if err != nil {
-		return nil, fmt.Errorf("in file %q: %v", filename, err)
-	}
+		buildsDir, err := utils.GetBuildsDir()
+		if err != nil {
+			utils.Log.Fatal(err)
+		}
 
-	return c, nil
+		if err := os.MkdirAll(buildsDir, 0755); err != nil {
+			utils.Log.Fatal(err)
+		}
+
+		var recipe *models.BuildRecipe
+
+		if fromRecipe != "" {
+			recipe, err = utils.ReadBuildFile(fromRecipe)
+			if err != nil {
+				utils.Log.Fatal("Source recipe not found: ", fromRecipe)
+			}
+			recipe.Name = recipeName
+		} else {
+			recipe = &models.BuildRecipe{
+				Name:        recipeName,
+				Description: description,
+				Author:      "user",
+				Version:     "1.0.0",
+				OS: models.OSConfig{
+					Supported: []string{"ubuntu", "debian"},
+				},
+				Vars: map[string]string{
+					"USERNAME": "op",
+				},
+				Steps: []models.BuildStep{
+					{
+						Name: "Example Step",
+						Commands: []string{
+							"echo 'Hello from {vars.USERNAME}'",
+						},
+					},
+				},
+			}
+		}
+
+		if description != "" {
+			recipe.Description = description
+		}
+
+		recipeFile := filepath.Join(buildsDir, recipeName+".yaml")
+		data, err := yaml.Marshal(recipe)
+		if err != nil {
+			utils.Log.Fatal(err)
+		}
+
+		if err := os.WriteFile(recipeFile, data, 0644); err != nil {
+			utils.Log.Fatal(err)
+		}
+
+		fmt.Printf("Build recipe '%s' created at: %s\n", recipeName, recipeFile)
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(buildCmd)
+
+	buildCmd.AddCommand(buildListCmd)
+	buildCmd.AddCommand(buildShowCmd)
+	buildCmd.AddCommand(buildRunCmd)
+	buildCmd.AddCommand(buildVerifyCmd)
+	buildCmd.AddCommand(buildCreateCmd)
+
+	buildRunCmd.Flags().StringP("recipe", "r", "", "Build recipe name")
+	buildRunCmd.Flags().StringP("file", "f", "", "Custom recipe file path")
+	buildRunCmd.Flags().StringP("name", "n", "", "Fleet name to build")
+	buildRunCmd.Flags().BoolP("snapshot", "s", false, "Create snapshot after successful build")
+	buildRunCmd.Flags().IntP("parallel", "p", 5, "Number of parallel builds")
+	buildRunCmd.Flags().BoolP("no-verify", "", false, "Skip verification step")
+	buildRunCmd.Flags().BoolP("continue", "", false, "Continue on step failure")
+	buildRunCmd.Flags().BoolP("dry-run", "", false, "Show what would be executed")
+	buildRunCmd.Flags().BoolP("verbose", "v", false, "Show detailed output")
+
+	buildVerifyCmd.Flags().StringP("recipe", "r", "", "Build recipe name")
+	buildVerifyCmd.Flags().StringP("name", "n", "", "Fleet name to verify")
+	buildVerifyCmd.Flags().BoolP("verbose", "v", false, "Show detailed output")
+
+	buildCreateCmd.Flags().StringP("description", "", "Custom build recipe", "Recipe description")
+	buildCreateCmd.Flags().StringP("from", "", "", "Copy from existing recipe")
 }

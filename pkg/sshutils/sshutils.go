@@ -59,7 +59,11 @@ func GetLocalPublicSSHKey() string {
 }
 
 func SSHFingerprintGen(publicSSH string) string {
-	rawKey := utils.FileToString(filepath.Join(getHomeDir(), ".ssh", publicSSH))
+	keyPath := publicSSH
+	if !filepath.IsAbs(publicSSH) {
+		keyPath = filepath.Join(getHomeDir(), ".ssh", publicSSH)
+	}
+	rawKey := utils.FileToString(keyPath)
 
 	// Parse the key, other info ignored
 	pk, _, _, _, err := ssh.ParseAuthorizedKey([]byte(rawKey))
@@ -90,6 +94,31 @@ func RunCommand(command string, ip string, port int, username string, privateKey
 	return conn
 }
 
+func RunCommandSilent(command string, ip string, port int, username string, privateKey string) (*Connection, error) {
+	conn, err := Connect(ip+":"+strconv.Itoa(port), username, privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = conn.sendCommandsSilent(command)
+	if err != nil {
+		return nil, err
+	}
+
+	return conn, nil
+}
+
+func RunCommandWithOutput(command string, ip string, port int, username string, privateKey string) ([]byte, error) {
+	conn, err := Connect(ip+":"+strconv.Itoa(port), username, privateKey)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	output, err := conn.sendCommandsSilent(command)
+	return output, err
+}
+
 var termCount int
 
 func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
@@ -116,11 +145,23 @@ func (conn *Connection) sendCommands(cmds ...string) ([]byte, error) {
 	cmd := strings.Join(cmds, "; ")
 	output, err := session.Output(cmd)
 	if err != nil {
-		// Log error for debugging purposes
 		utils.Log.Errorf("Failed to execute command: %s, error: %v", cmd, err)
 	}
 
 	return output, nil
+}
+
+func (conn *Connection) sendCommandsSilent(cmds ...string) ([]byte, error) {
+	session, err := conn.NewSession()
+	if err != nil {
+		return nil, fmt.Errorf("sendCommandsSilent: %w", err)
+	}
+	defer session.Close()
+
+	cmd := strings.Join(cmds, "; ")
+	output, err := session.CombinedOutput(cmd)
+
+	return output, err
 }
 
 func (conn *Connection) setupPty(session *ssh.Session) error {
