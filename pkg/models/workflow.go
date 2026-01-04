@@ -5,6 +5,7 @@ type Workflow struct {
 	Description string            `yaml:"description"`
 	Author      string            `yaml:"author"`
 	Vars        map[string]string `yaml:"vars"`
+	Files       []FileTransfer    `yaml:"files,omitempty"`
 	Setup       []string          `yaml:"setup,omitempty"`
 	Steps       []WorkflowStep    `yaml:"steps"`
 	Output      WorkflowOutput    `yaml:"output,omitempty"`

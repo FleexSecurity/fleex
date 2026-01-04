@@ -63,6 +63,15 @@ func (c Controller) RunWorkflow(opts models.WorkflowOptions) ([]models.WorkflowR
 		progress.SetupDone()
 	}
 
+	if len(opts.Workflow.Files) > 0 {
+		progress.StartFileTransfer()
+		err := c.transferFilesToFleet(fleet, opts.Workflow.Files, opts.Workflow.Vars, port, username, privateKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("file transfer failed: %w", err)
+		}
+		progress.FileTransferDone(len(opts.Workflow.Files))
+	}
+
 	progress.StartChunking(opts.Input)
 	chunkFiles, err := c.splitInputIntoChunks(opts.Input, tempFolderInput, opts.FleetName, len(fleet))
 	if err != nil {
@@ -154,6 +163,17 @@ func (c Controller) dryRunWorkflow(opts models.WorkflowOptions, fleet []provider
 		fmt.Println("Setup commands (run on all boxes):")
 		for _, cmd := range opts.Workflow.Setup {
 			fmt.Printf("  $ %s\n", cmd)
+		}
+		fmt.Println()
+	}
+
+	if len(opts.Workflow.Files) > 0 {
+		fmt.Println("Files to transfer (to all boxes):")
+		for _, file := range opts.Workflow.Files {
+			srcPath := utils.ExpandPath(file.Source)
+			srcPath = utils.ReplaceWorkflowVars(srcPath, opts.Workflow.Vars)
+			dstPath := utils.ReplaceWorkflowVars(file.Destination, opts.Workflow.Vars)
+			fmt.Printf("  %s -> %s\n", srcPath, dstPath)
 		}
 		fmt.Println()
 	}
@@ -408,4 +428,43 @@ func uniqueStrings(input []string) []string {
 		}
 	}
 	return result
+}
+
+func (c Controller) transferFilesToFleet(fleet []provider.Box, files []models.FileTransfer, vars map[string]string, port int, username, privateKeyPath string) error {
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(fleet))
+
+	for _, box := range fleet {
+		wg.Add(1)
+		go func(b provider.Box) {
+			defer wg.Done()
+
+			conn, err := sshutils.Connect(b.IP+":"+strconv.Itoa(port), username, privateKeyPath)
+			if err != nil {
+				errChan <- fmt.Errorf("[%s] connection failed: %w", b.Label, err)
+				return
+			}
+			defer conn.Close()
+
+			for _, file := range files {
+				srcPath := utils.ExpandPath(file.Source)
+				srcPath = utils.ReplaceWorkflowVars(srcPath, vars)
+				dstPath := utils.ReplaceWorkflowVars(file.Destination, vars)
+
+				err := scp.NewSCP(conn.Client).SendFile(srcPath, dstPath)
+				if err != nil {
+					errChan <- fmt.Errorf("[%s] failed to transfer %s: %w", b.Label, file.Source, err)
+					return
+				}
+			}
+		}(box)
+	}
+
+	wg.Wait()
+	close(errChan)
+
+	for err := range errChan {
+		return err
+	}
+	return nil
 }

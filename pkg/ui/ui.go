@@ -300,6 +300,18 @@ func (wp *WorkflowProgress) SetupDone() {
 	}
 }
 
+func (wp *WorkflowProgress) StartFileTransfer() {
+	wp.spinner, _ = pterm.DefaultSpinner.
+		WithRemoveWhenDone(true).
+		Start("Transferring files to fleet...")
+}
+
+func (wp *WorkflowProgress) FileTransferDone(count int) {
+	if wp.spinner != nil {
+		wp.spinner.Success(fmt.Sprintf("Transferred %d file(s) to all boxes", count))
+	}
+}
+
 func (wp *WorkflowProgress) StartChunking(inputFile string) {
 	wp.spinner, _ = pterm.DefaultSpinner.
 		WithRemoveWhenDone(true).
