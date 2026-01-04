@@ -14,16 +14,57 @@ import (
 )
 
 type DigitaloceanService struct {
-	Client *godo.Client
+	Client  *godo.Client
+	Configs *models.Config
 }
 
-func (d DigitaloceanService) SpawnFleet(fleetName, password string, fleetCount int, image string, region string, size string, sshFingerprint string, tags []string) error {
+func (d DigitaloceanService) ensureSSHKey() (string, error) {
+	ctx := context.TODO()
+	publicKey := sshutils.GetLocalPublicSSHKey()
+	fingerprint := sshutils.SSHFingerprintGen(d.Configs.SSHKeys.PublicFile)
+
+	opt := &godo.ListOptions{Page: 1, PerPage: 200}
+	keys, _, err := d.Client.Keys.List(ctx, opt)
+	if err != nil {
+		return "", err
+	}
+
+	for _, key := range keys {
+		if key.Fingerprint == fingerprint {
+			return fingerprint, nil
+		}
+	}
+
+	createRequest := &godo.KeyCreateRequest{
+		Name:      "fleex",
+		PublicKey: publicKey,
+	}
+	newKey, _, err := d.Client.Keys.Create(ctx, createRequest)
+	if err != nil {
+		return "", err
+	}
+
+	return newKey.Fingerprint, nil
+}
+
+func (d DigitaloceanService) SpawnFleet(fleetName string, fleetCount int) error {
 	existingFleet, _ := d.GetFleet(fleetName)
+	providerName := d.Configs.Settings.Provider
+	providerInfo := d.Configs.Providers[providerName]
 
 	ctx := context.TODO()
-	digitaloceanPasswd := password
-	if digitaloceanPasswd == "" {
-		digitaloceanPasswd = "1337rootPass"
+	password := providerInfo.Password
+	if password == "" {
+		password = "1337rootPass"
+	}
+	image := providerInfo.Image
+	region := providerInfo.Region
+	size := providerInfo.Size
+	tags := providerInfo.Tags
+
+	sshFingerprint, err := d.ensureSSHKey()
+	if err != nil {
+		return fmt.Errorf("failed to ensure SSH key: %w", err)
 	}
 
 	droplets := []string{}
@@ -35,7 +76,7 @@ func (d DigitaloceanService) SpawnFleet(fleetName, password string, fleetCount i
 	user_data := `#!/bin/bash
 sudo sed -i "/^[^#]*PasswordAuthentication[[:space:]]no/c\PasswordAuthentication yes" /etc/ssh/sshd_config
 sudo service sshd restart
-echo 'op:` + digitaloceanPasswd + `' | sudo chpasswd`
+echo 'op:` + password + `' | sudo chpasswd`
 
 	var createRequest *godo.DropletMultiCreateRequest
 	imageIntID, err := strconv.Atoi(image)
@@ -124,26 +165,58 @@ func (d DigitaloceanService) GetBoxes() (boxes []provider.Box, err error) {
 	return boxes, nil
 }
 
-func (d DigitaloceanService) ListImages() error {
+func (d DigitaloceanService) GetImages() (images []provider.Image, err error) {
 	ctx := context.TODO()
 	opt := &godo.ListOptions{
 		Page:    1,
 		PerPage: 9999,
 	}
 
-	images, _, err := d.Client.Images.ListUser(ctx, opt)
+	doImages, _, err := d.Client.Images.ListUser(ctx, opt)
+	if err != nil {
+		return []provider.Image{}, err
+	}
+
+	for _, image := range doImages {
+		images = append(images, provider.Image{
+			ID:     strconv.Itoa(image.ID),
+			Label:  image.Name,
+			Size:   int(image.SizeGigaBytes),
+			Status: image.Status,
+		})
+	}
+	return images, nil
+}
+
+func (d DigitaloceanService) ListImages() error {
+	images, err := d.GetImages()
 	if err != nil {
 		return err
 	}
 	for _, image := range images {
-		fmt.Println(image.ID, image.Name, image.Status, image.SizeGigaBytes)
+		fmt.Printf("%-18v %-48v %-6v %-15v\n", image.ID, image.Label, image.Size, image.Status)
 	}
 	return nil
 }
 
-// TODO
-func (l DigitaloceanService) RemoveImages(name string) error {
-	return nil
+func (d DigitaloceanService) RemoveImages(name string) error {
+	ctx := context.TODO()
+	images, err := d.GetImages()
+	if err != nil {
+		return err
+	}
+	for _, image := range images {
+		if image.Label == name {
+			imageID, _ := strconv.Atoi(image.ID)
+			_, err := d.Client.Images.Delete(ctx, imageID)
+			if err != nil {
+				return err
+			}
+			fmt.Println("Successfully removed:", name)
+			return nil
+		}
+	}
+	return models.ErrImageNotFound
 }
 
 func (d DigitaloceanService) DeleteFleet(name string) error {
@@ -219,16 +292,15 @@ func (d DigitaloceanService) RunCommand(name, command string, port int, username
 		return err
 	}
 
+	privateKey := d.Configs.SSHKeys.PrivateFile
+
 	for _, box := range boxes {
 		if box.Label == name {
-			// It's a single box
-			boxIP := box.IP
-			sshutils.RunCommand(command, boxIP, port, username, password)
+			sshutils.RunCommand(command, box.IP, port, username, privateKey)
 			return nil
 		}
 	}
 
-	// Otherwise, send command to a fleet
 	fleetSize := d.CountFleet(name, boxes)
 
 	fleet := make(chan *provider.Box, fleetSize)
@@ -243,8 +315,7 @@ func (d DigitaloceanService) RunCommand(name, command string, port int, username
 				if box == nil {
 					break
 				}
-				boxIP := box.IP
-				sshutils.RunCommand(command, boxIP, port, username, password)
+				sshutils.RunCommand(command, box.IP, port, username, privateKey)
 			}
 			processGroup.Done()
 		}()

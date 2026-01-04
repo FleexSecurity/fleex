@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
@@ -15,6 +17,12 @@ import (
 	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/linode/linodego"
 )
+
+func generateRandomPassword(length int) string {
+	b := make([]byte, length)
+	rand.Read(b)
+	return base64.URLEncoding.EncodeToString(b)[:length]
+}
 
 type LinodeService struct {
 	Client  linodego.Client
@@ -105,7 +113,7 @@ func (l LinodeService) GetBoxes() (boxes []provider.Box, err error) {
 	return boxes, nil
 }
 
-func (l LinodeService) getImages() (images []provider.Image, err error) {
+func (l LinodeService) GetImages() (images []provider.Image, err error) {
 	linodeImages, err := l.Client.ListImages(context.Background(), nil)
 
 	if err != nil {
@@ -114,13 +122,14 @@ func (l LinodeService) getImages() (images []provider.Image, err error) {
 
 	for _, image := range linodeImages {
 		// Only list custom images
-		if strings.HasPrefix(image.ID, "private") {
+		if strings.HasPrefix(image.ID, "private") && image.Type == "manual" {
 			images = append(images, provider.Image{
 				ID:      image.ID,
 				Label:   image.Label,
 				Created: image.Created.String(),
 				Size:    image.Size,
 				Vendor:  image.Vendor,
+				Status:  string(image.Status),
 			})
 		}
 	}
@@ -128,7 +137,7 @@ func (l LinodeService) getImages() (images []provider.Image, err error) {
 }
 
 func (l LinodeService) ListImages() error {
-	images, err := l.getImages()
+	images, err := l.GetImages()
 	if err != nil {
 		return err
 	}
@@ -139,7 +148,7 @@ func (l LinodeService) ListImages() error {
 }
 
 func (l LinodeService) RemoveImages(name string) error {
-	images, err := l.getImages()
+	images, err := l.GetImages()
 	if err != nil {
 		return err
 	}
@@ -162,11 +171,16 @@ func (l LinodeService) spawnBox(name string) error {
 	swapSize := 512
 	booted := true
 
+	rootPass := providerInfo.Password
+	if rootPass == "" {
+		rootPass = generateRandomPassword(32)
+	}
+
 	for {
 		instance, err := l.Client.CreateInstance(context.Background(), linodego.InstanceCreateOptions{
 			SwapSize:       &swapSize,
 			Image:          providerInfo.Image,
-			RootPass:       providerInfo.Password,
+			RootPass:       rootPass,
 			Type:           providerInfo.Size,
 			Region:         providerInfo.Region,
 			AuthorizedKeys: []string{sshutils.GetLocalPublicSSHKey()},

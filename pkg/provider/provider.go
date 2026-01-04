@@ -14,6 +14,7 @@ type Image struct {
 	Created string
 	Size    int
 	Vendor  string
+	Status  string
 }
 
 type Provider interface {
@@ -22,6 +23,7 @@ type Provider interface {
 	GetFleet(fleetName string) (fleet []Box, err error)
 	GetBox(boxName string) (Box, error)
 	ListImages() error
+	GetImages() (images []Image, err error)
 	RemoveImages(name string) error
 	RunCommand(name, command string, port int, username, password string) error
 	CountFleet(fleetName string, boxes []Box) (count int)
