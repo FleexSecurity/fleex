@@ -9,12 +9,17 @@ type Workflow struct {
 	Setup       []string          `yaml:"setup,omitempty"`
 	Steps       []WorkflowStep    `yaml:"steps"`
 	Output      WorkflowOutput    `yaml:"output,omitempty"`
+	ScaleMode   string            `yaml:"scale-mode,omitempty"`
+	SplitVar    string            `yaml:"split-var,omitempty"`
 }
 
 type WorkflowStep struct {
-	Name    string `yaml:"name"`
-	Command string `yaml:"command"`
-	Timeout string `yaml:"timeout,omitempty"`
+	Name      string `yaml:"name"`
+	Id        string `yaml:"id,omitempty"`
+	Command   string `yaml:"command"`
+	Timeout   string `yaml:"timeout,omitempty"`
+	ScaleMode string `yaml:"scale-mode,omitempty"`
+	SplitVar  string `yaml:"split-var,omitempty"`
 }
 
 type WorkflowOutput struct {
