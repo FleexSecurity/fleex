@@ -127,7 +127,43 @@ fleex scan -n <fleet> -i input.txt -c "command {vars.INPUT} -o {vars.OUTPUT}"
 fleex scan -n <fleet> -m module.yaml
 
 # Using workflow
-fleex workflow run -w <workflow> -n <fleet> -i input.txt -o output.txt
+fleex scan -n <fleet> -w <workflow> -i input.txt -o output.txt
+```
+
+### Horizontal vs Vertical Scaling
+
+Fleex supports two scaling modes:
+
+| Mode | Splits | Use Case |
+|------|--------|----------|
+| **Horizontal** (default) | Target list | Scan many targets across fleet |
+| **Vertical** | Wordlist | Attack single target with distributed wordlist |
+
+```bash
+# Horizontal: split 1000 domains across 10 machines (100 each)
+fleex scan -n scan -i domains.txt -c "subfinder -d {vars.INPUT} -o {vars.OUTPUT}"
+
+# Vertical: all machines attack tesla.com with different wordlist chunks
+fleex scan -n scan --vertical --split-var WORDLIST \
+  -c "puredns bruteforce {vars.WORDLIST} tesla.com -o {vars.OUTPUT}" \
+  -p WORDLIST:wordlist.txt -p OUTPUT:results.txt -o results.txt
+```
+
+Workflows support per-step scale modes with step references:
+
+```yaml
+steps:
+  - name: Subdomain enumeration
+    id: subfinder
+    command: subfinder -d {INPUT} -o {OUTPUT}
+
+  - name: HTTP probing
+    command: httpx -l {subfinder.OUTPUT} -o {OUTPUT}
+
+  - name: Directory fuzzing
+    scale-mode: vertical
+    split-var: WORDLIST
+    command: ffuf -u {INPUT}/FUZZ -w {vars.WORDLIST} -o {OUTPUT}
 ```
 
 ### Remote Operations
