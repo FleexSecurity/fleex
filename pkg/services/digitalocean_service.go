@@ -6,10 +6,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/provider"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
+	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/digitalocean/godo"
 )
 
@@ -78,43 +80,66 @@ sudo sed -i "/^[^#]*PasswordAuthentication[[:space:]]no/c\PasswordAuthentication
 sudo service sshd restart
 echo 'op:` + password + `' | sudo chpasswd`
 
-	var createRequest *godo.DropletMultiCreateRequest
-	imageIntID, err := strconv.Atoi(image)
-	if err != nil {
-		createRequest = &godo.DropletMultiCreateRequest{
-			Names:    droplets,
-			Region:   region,
-			Size:     size,
-			UserData: user_data,
-			Image: godo.DropletCreateImage{
-				Slug: image,
-			},
-			SSHKeys: []godo.DropletCreateSSHKey{
-				{Fingerprint: sshFingerprint},
-			},
-			Tags: tags,
+	// DigitalOcean limits CreateMultiple to 10 droplets per request
+	const batchSize = 10
+	imageIntID, _ := strconv.Atoi(image)
+	isImageID := imageIntID > 0
+
+	for i := 0; i < len(droplets); i += batchSize {
+		end := i + batchSize
+		if end > len(droplets) {
+			end = len(droplets)
 		}
-	} else {
-		createRequest = &godo.DropletMultiCreateRequest{
-			Names:    droplets,
-			Region:   region,
-			Size:     size,
-			UserData: user_data,
-			Image: godo.DropletCreateImage{
-				ID: imageIntID,
-			},
-			SSHKeys: []godo.DropletCreateSSHKey{
-				{Fingerprint: sshFingerprint},
-			},
-			Tags: tags,
+		batch := droplets[i:end]
+		batchNum := (i / batchSize) + 1
+		totalBatches := (len(droplets) + batchSize - 1) / batchSize
+
+		if totalBatches > 1 {
+			utils.Log.Infof("Spawning batch %d/%d (%d droplets)", batchNum, totalBatches, len(batch))
+		}
+
+		var createRequest *godo.DropletMultiCreateRequest
+		if isImageID {
+			createRequest = &godo.DropletMultiCreateRequest{
+				Names:    batch,
+				Region:   region,
+				Size:     size,
+				UserData: user_data,
+				Image: godo.DropletCreateImage{
+					ID: imageIntID,
+				},
+				SSHKeys: []godo.DropletCreateSSHKey{
+					{Fingerprint: sshFingerprint},
+				},
+				Tags: tags,
+			}
+		} else {
+			createRequest = &godo.DropletMultiCreateRequest{
+				Names:    batch,
+				Region:   region,
+				Size:     size,
+				UserData: user_data,
+				Image: godo.DropletCreateImage{
+					Slug: image,
+				},
+				SSHKeys: []godo.DropletCreateSSHKey{
+					{Fingerprint: sshFingerprint},
+				},
+				Tags: tags,
+			}
+		}
+
+		_, _, err := d.Client.Droplets.CreateMultiple(ctx, createRequest)
+		if err != nil {
+			return fmt.Errorf("batch %d/%d failed: %w", batchNum, totalBatches, err)
+		}
+
+		// Small delay between batches to avoid overwhelming the API
+		if end < len(droplets) {
+			time.Sleep(200 * time.Millisecond)
 		}
 	}
 
-	_, _, err = d.Client.Droplets.CreateMultiple(ctx, createRequest)
-
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
