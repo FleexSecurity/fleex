@@ -131,6 +131,7 @@ var buildRunCmd = &cobra.Command{
 		recipeName, _ := cmd.Flags().GetString("recipe")
 		recipeFile, _ := cmd.Flags().GetString("file")
 		fleetName, _ := cmd.Flags().GetString("name")
+		sizeFlag, _ := cmd.Flags().GetString("size")
 		parallel, _ := cmd.Flags().GetInt("parallel")
 		noVerify, _ := cmd.Flags().GetBool("no-verify")
 		continueErr, _ := cmd.Flags().GetBool("continue")
@@ -161,6 +162,13 @@ var buildRunCmd = &cobra.Command{
 		provider := controller.GetProvider(globalConfig.Settings.Provider)
 		if provider == -1 {
 			utils.Log.Fatal(models.ErrInvalidProvider)
+		}
+
+		providerName := globalConfig.Settings.Provider
+		if sizeFlag != "" {
+			providerInfo := globalConfig.Providers[providerName]
+			providerInfo.Size = sizeFlag
+			globalConfig.Providers[providerName] = providerInfo
 		}
 
 		newController := controller.NewController(globalConfig)
@@ -369,6 +377,7 @@ func init() {
 	buildRunCmd.Flags().StringP("recipe", "r", "", "Build recipe name")
 	buildRunCmd.Flags().StringP("file", "f", "", "Custom recipe file path")
 	buildRunCmd.Flags().StringP("name", "n", "", "Fleet name to build")
+	buildRunCmd.Flags().StringP("size", "S", "", "Droplet size (overrides config)")
 	buildRunCmd.Flags().BoolP("snapshot", "s", false, "Create snapshot after successful build")
 	buildRunCmd.Flags().IntP("parallel", "p", 5, "Number of parallel builds")
 	buildRunCmd.Flags().BoolP("no-verify", "", false, "Skip verification step")
