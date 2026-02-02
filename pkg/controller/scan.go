@@ -251,11 +251,7 @@ loop:
 
 				err = scp.NewSCP(conn.Client).ReceiveFile(chunkOutputFile, filepath.Join(tempFolder, "chunk-out-"+boxName))
 				if err != nil {
-					os.Remove(filepath.Join(tempFolder, "chunk-out-"+boxName))
-					err := scp.NewSCP(conn.Client).ReceiveDir(chunkOutputFile, filepath.Join(tempFolder, "chunk-out-"+boxName), nil)
-					if err != nil {
-						utils.Log.Fatal("SEND DIR ERROR: ", err)
-					}
+					utils.Log.Warnf("%s: no output received (remote file may not exist)", boxName)
 				}
 
 				// Remove input chunk file from remote box to save space
