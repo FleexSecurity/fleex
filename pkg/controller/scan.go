@@ -62,8 +62,9 @@ func ReplaceCommandVars(command string, vars map[string]string) (string, error) 
 	}
 
 	for key, value := range vars {
-		placeholder := fmt.Sprintf("{vars.%s}", key)
-		command = strings.ReplaceAll(command, placeholder, value)
+		// Support both {KEY} and {vars.KEY} formats
+		command = strings.ReplaceAll(command, fmt.Sprintf("{%s}", key), value)
+		command = strings.ReplaceAll(command, fmt.Sprintf("{vars.%s}", key), value)
 	}
 	return command, nil
 }
