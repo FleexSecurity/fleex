@@ -358,3 +358,11 @@ func (l LinodeService) getDiskID(linodeID int) int {
 	}
 	return disk[0].ID
 }
+
+func (l LinodeService) TransferImage(imageID int, region string) error {
+	return models.ErrTransferNotSupported
+}
+
+func (l LinodeService) GetImageRegions(imageID int) ([]string, error) {
+	return nil, models.ErrTransferNotSupported
+}

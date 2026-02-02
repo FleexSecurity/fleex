@@ -153,6 +153,21 @@ func (c Controller) CreateImage(token string, provider Provider, diskID string, 
 	}
 }
 
+func (c Controller) TransferImage(imageID int, region string) {
+	err := c.Service.TransferImage(imageID, region)
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
+}
+
+func (c Controller) GetImageRegions(imageID int) []string {
+	regions, err := c.Service.GetImageRegions(imageID)
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
+	return regions
+}
+
 func (c Controller) GetFleet(fleetName string) []provider.Box {
 	fleet, err := c.Service.GetFleet(fleetName)
 	if err != nil {

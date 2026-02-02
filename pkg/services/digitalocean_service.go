@@ -204,10 +204,11 @@ func (d DigitaloceanService) GetImages() (images []provider.Image, err error) {
 
 	for _, image := range doImages {
 		images = append(images, provider.Image{
-			ID:     strconv.Itoa(image.ID),
-			Label:  image.Name,
-			Size:   int(image.SizeGigaBytes),
-			Status: image.Status,
+			ID:      strconv.Itoa(image.ID),
+			Label:   image.Name,
+			Size:    int(image.SizeGigaBytes),
+			Status:  image.Status,
+			Regions: image.Regions,
 		})
 	}
 	return images, nil
@@ -218,10 +219,23 @@ func (d DigitaloceanService) ListImages() error {
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("%-12s  %-40s  %-6s  %-10s  %s\n", "ID", "NAME", "SIZE", "STATUS", "REGIONS")
+	fmt.Println(strings.Repeat("-", 100))
 	for _, image := range images {
-		fmt.Printf("%-18v %-48v %-6v %-15v\n", image.ID, image.Label, image.Size, image.Status)
+		regions := strings.Join(image.Regions, ",")
+		fmt.Printf("%-12s  %-40s  %-4dGB  %-10s  %s\n", image.ID, image.Label, image.Size, image.Status, regions)
 	}
 	return nil
+}
+
+func (d DigitaloceanService) GetImageRegions(imageID int) ([]string, error) {
+	ctx := context.TODO()
+	image, _, err := d.Client.Images.GetByID(ctx, imageID)
+	if err != nil {
+		return nil, err
+	}
+	return image.Regions, nil
 }
 
 func (d DigitaloceanService) RemoveImages(name string) error {
@@ -364,5 +378,21 @@ func (d DigitaloceanService) CreateImage(diskID int, label string) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (d DigitaloceanService) TransferImage(imageID int, region string) error {
+	ctx := context.TODO()
+
+	action, _, err := d.Client.ImageActions.Transfer(ctx, imageID, &godo.ActionRequest{
+		"type":   "transfer",
+		"region": region,
+	})
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Transfer initiated (action ID: %d). This may take several minutes.\n", action.ID)
+	fmt.Printf("Image %d is being transferred to region '%s'.\n", imageID, region)
 	return nil
 }
