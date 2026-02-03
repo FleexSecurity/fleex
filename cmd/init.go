@@ -398,7 +398,7 @@ steps:
     commands:
       - wget -q https://go.dev/dl/go{vars.GO_VERSION}.linux-amd64.tar.gz -O /tmp/go.tar.gz
       - rm -rf /usr/local/go && tar -C /usr/local -xzf /tmp/go.tar.gz
-      - echo 'export PATH=$PATH:/usr/local/go/bin:/root/go/bin' >> ~/.bashrc
+      - echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:/root/go/bin"' > /etc/environment
   - name: Install ProjectDiscovery Tools
     commands:
       - /usr/local/go/bin/go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest

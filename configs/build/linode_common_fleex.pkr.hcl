@@ -65,7 +65,7 @@ build {
         "chown -R op:users /home/op",
         "echo 'op:1337superPass' | chpasswd",
         "/bin/su -l op -c 'sh -c \"$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\" \"\" --unattended'",
-        "/bin/su -l op -c 'echo \"export PATH=$HOME/bin:/usr/local/bin:$HOME/go/bin:$PATH\" >> ~/.zshrc'",
+        "echo 'PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/op/go/bin\"' > /etc/environment",
         "rm /etc/resolv.conf",
         "rm -rf /etc/update-motd.d/*",
         "cp /tmp/configs/sshd_config /etc/ssh/sshd_config",
