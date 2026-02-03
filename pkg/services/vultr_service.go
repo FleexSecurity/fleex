@@ -396,3 +396,11 @@ func (v VultrService) KeyCheck(fleex_key string) string {
 	}
 	return keyID
 }
+
+func (v VultrService) TransferImage(imageID int, region string) error {
+	return models.ErrTransferNotSupported
+}
+
+func (v VultrService) GetImageRegions(imageID int) ([]string, error) {
+	return nil, models.ErrTransferNotSupported
+}

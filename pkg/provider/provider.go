@@ -15,6 +15,7 @@ type Image struct {
 	Size    int
 	Vendor  string
 	Status  string
+	Regions []string
 }
 
 type Provider interface {
@@ -31,4 +32,6 @@ type Provider interface {
 	DeleteBoxByID(id string) error
 	DeleteBoxByLabel(label string) error
 	CreateImage(diskID int, label string) error
+	TransferImage(imageID int, region string) error
+	GetImageRegions(imageID int) ([]string, error)
 }

@@ -120,3 +120,11 @@ func (c CustomService) CountFleet(fleetName string, boxes []provider.Box) (count
 func (c CustomService) CreateImage(diskID int, label string) error {
 	return models.ErrNotAvailableCustomVps
 }
+
+func (c CustomService) TransferImage(imageID int, region string) error {
+	return models.ErrNotAvailableCustomVps
+}
+
+func (c CustomService) GetImageRegions(imageID int) ([]string, error) {
+	return nil, models.ErrNotAvailableCustomVps
+}

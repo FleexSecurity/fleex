@@ -17,4 +17,5 @@ var (
 	ErrFleetNotFound         = errors.New("fleet not found")
 	ErrConfigInvalid         = errors.New("invalid configuration")
 	ErrSSHConnectionFailed   = errors.New("SSH connection failed")
+	ErrTransferNotSupported  = errors.New("image transfer not supported for this provider")
 )
