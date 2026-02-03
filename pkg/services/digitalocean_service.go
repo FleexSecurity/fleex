@@ -11,7 +11,6 @@ import (
 	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/provider"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
-	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/digitalocean/godo"
 )
 
@@ -94,10 +93,6 @@ echo 'op:` + password + `' | sudo chpasswd`
 		batchNum := (i / batchSize) + 1
 		totalBatches := (len(droplets) + batchSize - 1) / batchSize
 
-		if totalBatches > 1 {
-			utils.Log.Infof("Spawning batch %d/%d (%d droplets)", batchNum, totalBatches, len(batch))
-		}
-
 		var createRequest *godo.DropletMultiCreateRequest
 		if isImageID {
 			createRequest = &godo.DropletMultiCreateRequest{
@@ -172,21 +167,32 @@ func (d DigitaloceanService) GetBox(boxName string) (provider.Box, error) {
 
 func (d DigitaloceanService) GetBoxes() (boxes []provider.Box, err error) {
 	ctx := context.TODO()
+
+	// DigitalOcean API has a max of 200 per page, so we need to paginate
 	opt := &godo.ListOptions{
 		Page:    1,
-		PerPage: 9999,
+		PerPage: 200,
 	}
 
-	droplets, _, err := d.Client.Droplets.List(ctx, opt)
-	if err != nil {
-		return []provider.Box{}, err
+	for {
+		droplets, resp, err := d.Client.Droplets.List(ctx, opt)
+		if err != nil {
+			return []provider.Box{}, err
+		}
+
+		for _, droplet := range droplets {
+			ip, _ := droplet.PublicIPv4()
+			dID := strconv.Itoa(droplet.ID)
+			boxes = append(boxes, provider.Box{ID: dID, Label: droplet.Name, Group: "", Status: droplet.Status, IP: ip})
+		}
+
+		// Check if there are more pages
+		if resp.Links == nil || resp.Links.IsLastPage() {
+			break
+		}
+		opt.Page++
 	}
 
-	for _, d := range droplets {
-		ip, _ := d.PublicIPv4()
-		dID := strconv.Itoa(d.ID)
-		boxes = append(boxes, provider.Box{ID: dID, Label: d.Name, Group: "", Status: d.Status, IP: ip})
-	}
 	return boxes, nil
 }
 
@@ -275,15 +281,16 @@ func (d DigitaloceanService) DeleteFleet(name string) error {
 	}
 
 	// Otherwise, we got a fleet to delete
+	// Continue deleting even if some fail (e.g., rate limits, transient errors)
+	var lastErr error
 	for _, droplet := range boxes {
 		if strings.HasPrefix(droplet.Label, name) {
-			err := d.DeleteBoxByID(droplet.ID)
-			if err != nil {
-				return err
+			if err := d.DeleteBoxByID(droplet.ID); err != nil {
+				lastErr = err
 			}
 		}
 	}
-	return nil
+	return lastErr
 }
 
 func (d DigitaloceanService) DeleteBoxByID(ID string) error {
