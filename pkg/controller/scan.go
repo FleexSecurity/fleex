@@ -20,6 +20,32 @@ import (
 	"github.com/FleexSecurity/fleex/pkg/utils"
 )
 
+const (
+	sshMaxRetries    = 10
+	sshRetryInterval = 5 * time.Second
+)
+
+// connectWithRetry attempts SSH connection with retries for cases where droplets
+// are still booting and SSH isn't ready yet
+func connectWithRetry(addr, username, privateKey string) (*sshutils.Connection, error) {
+	var conn *sshutils.Connection
+	var err error
+
+	for attempt := 1; attempt <= sshMaxRetries; attempt++ {
+		conn, err = sshutils.Connect(addr, username, privateKey)
+		if err == nil {
+			return conn, nil
+		}
+
+		if attempt < sshMaxRetries {
+			utils.Log.Warnf("SSH connection to %s failed (attempt %d/%d), retrying in %v...", addr, attempt, sshMaxRetries, sshRetryInterval)
+			time.Sleep(sshRetryInterval)
+		}
+	}
+
+	return nil, fmt.Errorf("SSH connection to %s failed after %d attempts: %w", addr, sshMaxRetries, err)
+}
+
 func lineCounter(r io.Reader) (int, error) {
 	buf := make([]byte, 32*1024)
 	count := 0
@@ -199,7 +225,7 @@ loop:
 				}
 				boxName := l.Label
 
-				conn, err := sshutils.Connect(l.IP+":"+strconv.Itoa(port), username, privateSshKeyStr)
+				conn, err := connectWithRetry(l.IP+":"+strconv.Itoa(port), username, privateSshKeyStr)
 				if err != nil {
 					utils.Log.Fatal(err)
 				}
@@ -308,7 +334,7 @@ func isFile(path string) bool {
 
 func sendFileToFleet(filePath, destinationPath string, fleet []p.Box, port int, username, privateKey string) error {
 	for _, box := range fleet {
-		conn, err := sshutils.Connect(box.IP+":"+strconv.Itoa(port), username, privateKey)
+		conn, err := connectWithRetry(box.IP+":"+strconv.Itoa(port), username, privateKey)
 		if err != nil {
 			return err
 		}
