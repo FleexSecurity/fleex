@@ -84,11 +84,17 @@ func (c Controller) Start(fleetName, command string, delete bool, input, outputP
 	port := c.Configs.Providers[provider].Port
 	username := c.Configs.Providers[provider].Username
 
-	input, inputOk := module.Vars["INPUT"]
-	outputPath, outputOk := module.Vars["OUTPUT"]
-	if !inputOk || !outputOk {
-		utils.Log.Fatal("INPUT and OUTPUT vars are required in module")
+	// Use module.Vars if set, otherwise fall back to function parameters
+	if val, ok := module.Vars["INPUT"]; ok {
+		input = val
 	}
+	if val, ok := module.Vars["OUTPUT"]; ok {
+		outputPath1 = val
+	}
+	if input == "" || outputPath1 == "" {
+		utils.Log.Fatal("INPUT and OUTPUT are required (use -i and -o flags, or set in module)")
+	}
+	outputPath := outputPath1
 
 	timeStamp := strconv.FormatInt(time.Now().UnixNano(), 10)
 	// TODO: use a proper temp folder function so that it can run on windows too
