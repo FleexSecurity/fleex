@@ -14,12 +14,17 @@ import (
 var scanCmd = &cobra.Command{
 	Use:   "scan",
 	Short: "Send a command to a fleet, but also with files upload & chunks splitting",
-	Long: `Run scans on a fleet. Supports two modes:
+	Long: `Run scans on a fleet. Supports three modes:
 
-1. Single command mode (default):
+1. Horizontal scan (default):
    fleex scan -n myfleet -c "nuclei -l {INPUT} -o {OUTPUT}" -i targets.txt -o results.txt
+   Splits the input file (targets) across fleet boxes, each box uses the same command.
 
-2. Workflow mode (multi-step pipeline):
+2. Vertical scan:
+   fleex scan -n myfleet --vertical --split-var WORDLIST -c "puredns bruteforce {vars.WORDLIST} {vars.TARGET} -o {OUTPUT}" -p TARGET:tesla.com -p WORDLIST:wordlist.txt -o results.txt
+   Splits the wordlist across fleet boxes, all boxes target the same host.
+
+3. Workflow mode (multi-step pipeline):
    fleex scan -n myfleet --workflow full-recon -i targets.txt -o results.txt
 
 In workflow mode, each machine:
@@ -41,6 +46,9 @@ In workflow mode, each machine:
 
 		workflowName, _ := cmd.Flags().GetString("workflow")
 		workflowFile, _ := cmd.Flags().GetString("workflow-file")
+
+		verticalFlag, _ := cmd.Flags().GetBool("vertical")
+		splitVarFlag, _ := cmd.Flags().GetString("split-var")
 
 		if workflowName != "" || workflowFile != "" {
 			runWorkflowMode(cmd, fleetNameFlag, inputFlag, output, chunksFolder, deleteFlag, workflowName, workflowFile)
@@ -78,7 +86,18 @@ In workflow mode, each machine:
 		}
 
 		newController := controller.NewController(globalConfig)
-		newController.Start(fleetNameFlag, finalCommand, deleteFlag, inputFlag, output, chunksFolder, module)
+
+		if verticalFlag {
+			if splitVarFlag == "" {
+				log.Fatal("Vertical scan requires --split-var to specify which variable to split (e.g., WORDLIST)")
+			}
+			if _, ok := module.Vars[splitVarFlag]; !ok {
+				log.Fatalf("Variable '%s' not found in params. Use -p %s:/path/to/file", splitVarFlag, splitVarFlag)
+			}
+			newController.VerticalStart(fleetNameFlag, finalCommand, deleteFlag, output, chunksFolder, module, splitVarFlag)
+		} else {
+			newController.Start(fleetNameFlag, finalCommand, deleteFlag, inputFlag, output, chunksFolder, module)
+		}
 	},
 }
 
@@ -94,6 +113,17 @@ func runWorkflowMode(cmd *cobra.Command, fleetName, input, output, chunksFolder 
 
 	if err != nil {
 		utils.Log.Fatal("Failed to load workflow: ", err)
+	}
+
+	paramsFlag, _ := cmd.Flags().GetStringSlice("params")
+	if workflow.Vars == nil {
+		workflow.Vars = make(map[string]string)
+	}
+	for _, param := range paramsFlag {
+		splits := strings.SplitN(param, ":", 2)
+		if len(splits) == 2 {
+			workflow.Vars[splits[0]] = splits[1]
+		}
 	}
 
 	newController := controller.NewController(globalConfig)
@@ -180,6 +210,15 @@ var scanShowCmd = &cobra.Command{
 			fmt.Printf("Author:      %s\n", workflow.Author)
 		}
 
+		scaleMode := workflow.ScaleMode
+		if scaleMode == "" {
+			scaleMode = "horizontal"
+		}
+		fmt.Printf("Scale mode:  %s\n", scaleMode)
+		if workflow.SplitVar != "" {
+			fmt.Printf("Split var:   %s\n", workflow.SplitVar)
+		}
+
 		if len(workflow.Vars) > 0 {
 			fmt.Println("\nVariables:")
 			for k, v := range workflow.Vars {
@@ -200,7 +239,25 @@ var scanShowCmd = &cobra.Command{
 
 		fmt.Println("\nSteps (run sequentially on each chunk):")
 		for i, step := range workflow.Steps {
-			fmt.Printf("  %d. %s\n", i+1, step.Name)
+			stepHeader := fmt.Sprintf("%d. %s", i+1, step.Name)
+			if step.Id != "" {
+				stepHeader += fmt.Sprintf(" [id: %s]", step.Id)
+			}
+			fmt.Printf("  %s\n", stepHeader)
+
+			stepScaleMode := step.ScaleMode
+			if stepScaleMode == "" {
+				if i == 0 {
+					stepScaleMode = scaleMode
+				} else {
+					stepScaleMode = "local"
+				}
+			}
+			fmt.Printf("     scale-mode: %s\n", stepScaleMode)
+			if step.SplitVar != "" {
+				fmt.Printf("     split-var: %s\n", step.SplitVar)
+			}
+
 			if len(step.Command) > 80 {
 				fmt.Printf("     $ %s...\n", step.Command[:80])
 			} else {
@@ -247,4 +304,7 @@ func init() {
 	scanCmd.Flags().StringP("workflow-file", "", "", "Custom workflow file path")
 	scanCmd.Flags().BoolP("dry-run", "", false, "Show what would be executed (workflow mode)")
 	scanCmd.Flags().BoolP("verbose", "v", false, "Show detailed output (workflow mode)")
+
+	scanCmd.Flags().BoolP("vertical", "", false, "Enable vertical scanning (split wordlist instead of targets)")
+	scanCmd.Flags().StringP("split-var", "", "", "Variable name to split in vertical mode (e.g., WORDLIST)")
 }

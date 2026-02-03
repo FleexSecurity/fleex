@@ -36,6 +36,15 @@ func (c Controller) RunWorkflow(opts models.WorkflowOptions) ([]models.WorkflowR
 		return c.dryRunWorkflow(opts, fleet)
 	}
 
+	scaleMode := opts.Workflow.ScaleMode
+	if scaleMode == "" {
+		scaleMode = "horizontal"
+	}
+
+	if scaleMode == "vertical" && opts.Workflow.SplitVar == "" {
+		return nil, fmt.Errorf("vertical scale-mode requires split-var to be specified")
+	}
+
 	progress := ui.NewWorkflowProgress(len(fleet))
 	progress.Start(opts.Workflow.Name, len(opts.Workflow.Steps))
 
@@ -72,12 +81,54 @@ func (c Controller) RunWorkflow(opts models.WorkflowOptions) ([]models.WorkflowR
 		progress.FileTransferDone(len(opts.Workflow.Files))
 	}
 
-	progress.StartChunking(opts.Input)
-	chunkFiles, err := c.splitInputIntoChunks(opts.Input, tempFolderInput, opts.FleetName, len(fleet))
-	if err != nil {
-		return nil, fmt.Errorf("failed to split input: %w", err)
+	var chunkFiles []string
+	var err error
+	splitVarChunksMap := make(map[string][]string)
+
+	if scaleMode == "vertical" {
+		splitVarFile, ok := opts.Workflow.Vars[opts.Workflow.SplitVar]
+		if !ok {
+			return nil, fmt.Errorf("split-var '%s' not found in workflow vars", opts.Workflow.SplitVar)
+		}
+		splitVarFile = utils.ExpandPath(splitVarFile)
+
+		progress.StartChunking(splitVarFile)
+		splitVarChunks, err := c.splitInputIntoChunks(splitVarFile, tempFolderInput, opts.FleetName+"-split-"+opts.Workflow.SplitVar, len(fleet))
+		if err != nil {
+			return nil, fmt.Errorf("failed to split %s: %w", opts.Workflow.SplitVar, err)
+		}
+		splitVarChunksMap[opts.Workflow.SplitVar] = splitVarChunks
+		progress.ChunkingDone(len(splitVarChunks))
+
+		chunkFiles = make([]string, len(fleet))
+		for i := range chunkFiles {
+			chunkFiles[i] = ""
+		}
+	} else {
+		progress.StartChunking(opts.Input)
+		chunkFiles, err = c.splitInputIntoChunks(opts.Input, tempFolderInput, opts.FleetName, len(fleet))
+		if err != nil {
+			return nil, fmt.Errorf("failed to split input: %w", err)
+		}
+		progress.ChunkingDone(len(chunkFiles))
 	}
-	progress.ChunkingDone(len(chunkFiles))
+
+	for _, step := range opts.Workflow.Steps {
+		if step.ScaleMode == "vertical" && step.SplitVar != "" {
+			if _, exists := splitVarChunksMap[step.SplitVar]; !exists {
+				splitVarFile, ok := opts.Workflow.Vars[step.SplitVar]
+				if !ok {
+					return nil, fmt.Errorf("step '%s' split-var '%s' not found in workflow vars", step.Name, step.SplitVar)
+				}
+				splitVarFile = utils.ExpandPath(splitVarFile)
+				splitVarChunks, err := c.splitInputIntoChunks(splitVarFile, tempFolderInput, opts.FleetName+"-split-"+step.SplitVar, len(fleet))
+				if err != nil {
+					return nil, fmt.Errorf("failed to split %s for step %s: %w", step.SplitVar, step.Name, err)
+				}
+				splitVarChunksMap[step.SplitVar] = splitVarChunks
+			}
+		}
+	}
 
 	results := make([]models.WorkflowResult, len(fleet))
 	resultsChan := make(chan models.WorkflowResult, len(fleet))
@@ -110,7 +161,22 @@ func (c Controller) RunWorkflow(opts models.WorkflowOptions) ([]models.WorkflowR
 		if i < len(chunkFiles) {
 			chunkFile = chunkFiles[i]
 		}
-		fleetChan <- boxWithChunk{box: &box, chunkFile: chunkFile, index: i}
+
+		boxSplitVarChunks := make(map[string]string)
+		for varName, chunks := range splitVarChunksMap {
+			if i < len(chunks) {
+				boxSplitVarChunks[varName] = chunks[i]
+			}
+		}
+
+		fleetChan <- boxWithChunk{
+			box:              &box,
+			chunkFile:        chunkFile,
+			splitVarChunks:   boxSplitVarChunks,
+			index:            i,
+			scaleMode:        scaleMode,
+			splitVar:         opts.Workflow.SplitVar,
+		}
 	}
 	close(fleetChan)
 
@@ -150,13 +216,27 @@ func (c Controller) RunWorkflow(opts models.WorkflowOptions) ([]models.WorkflowR
 }
 
 type boxWithChunk struct {
-	box       *provider.Box
-	chunkFile string
-	index     int
+	box              *provider.Box
+	chunkFile        string
+	splitVarChunks   map[string]string
+	index            int
+	scaleMode        string
+	splitVar         string
 }
 
 func (c Controller) dryRunWorkflow(opts models.WorkflowOptions, fleet []provider.Box) ([]models.WorkflowResult, error) {
 	ui.Info("Dry run mode - showing what would be executed:")
+	fmt.Println()
+
+	scaleMode := opts.Workflow.ScaleMode
+	if scaleMode == "" {
+		scaleMode = "horizontal"
+	}
+
+	fmt.Printf("Scale mode: %s\n", scaleMode)
+	if scaleMode == "vertical" {
+		fmt.Printf("Split variable: %s\n", opts.Workflow.SplitVar)
+	}
 	fmt.Println()
 
 	if len(opts.Workflow.Setup) > 0 {
@@ -178,11 +258,34 @@ func (c Controller) dryRunWorkflow(opts models.WorkflowOptions, fleet []provider
 		fmt.Println()
 	}
 
-	fmt.Printf("Input: %s -> split into %d chunks\n\n", opts.Input, len(fleet))
+	if scaleMode == "vertical" {
+		splitVarFile := opts.Workflow.Vars[opts.Workflow.SplitVar]
+		fmt.Printf("Split file: %s -> split into %d chunks\n\n", splitVarFile, len(fleet))
+	} else {
+		fmt.Printf("Input: %s -> split into %d chunks\n\n", opts.Input, len(fleet))
+	}
 
 	fmt.Println("Steps (run sequentially on each box):")
 	for i, step := range opts.Workflow.Steps {
-		fmt.Printf("  %d. %s\n", i+1, step.Name)
+		stepHeader := fmt.Sprintf("%d. %s", i+1, step.Name)
+		if step.Id != "" {
+			stepHeader += fmt.Sprintf(" [id: %s]", step.Id)
+		}
+		fmt.Printf("  %s\n", stepHeader)
+
+		stepScaleMode := step.ScaleMode
+		if stepScaleMode == "" {
+			if i == 0 {
+				stepScaleMode = scaleMode
+			} else {
+				stepScaleMode = "local"
+			}
+		}
+		fmt.Printf("     scale-mode: %s\n", stepScaleMode)
+		if step.SplitVar != "" {
+			fmt.Printf("     split-var: %s\n", step.SplitVar)
+		}
+
 		cmdExpanded := utils.ReplaceWorkflowVars(step.Command, opts.Workflow.Vars)
 		fmt.Printf("     $ %s\n", cmdExpanded)
 		if step.Timeout != "" {
@@ -302,15 +405,46 @@ func (c Controller) runWorkflowOnBox(item boxWithChunk, opts models.WorkflowOpti
 	}
 	defer conn.Close()
 
-	remoteChunkInput := fmt.Sprintf("/tmp/fleex-%s-chunk-%s", timeStamp, item.box.Label)
-	err = scp.NewSCP(conn.Client).SendFile(item.chunkFile, remoteChunkInput)
-	if err != nil {
-		result.Error = fmt.Errorf("failed to send input chunk: %w", err)
-		return result
+	var currentInput string
+	remoteSplitVarFiles := make(map[string]string)
+
+	if item.scaleMode == "vertical" && item.splitVar != "" {
+		if chunkPath, ok := item.splitVarChunks[item.splitVar]; ok && chunkPath != "" {
+			remotePath := fmt.Sprintf("/tmp/fleex-%s-splitvar-%s-%s", timeStamp, item.splitVar, item.box.Label)
+			err = scp.NewSCP(conn.Client).SendFile(chunkPath, remotePath)
+			if err != nil {
+				result.Error = fmt.Errorf("failed to send split-var chunk: %w", err)
+				return result
+			}
+			remoteSplitVarFiles[item.splitVar] = remotePath
+		}
+		currentInput = ""
+	} else {
+		if item.chunkFile != "" {
+			remoteChunkInput := fmt.Sprintf("/tmp/fleex-%s-chunk-%s", timeStamp, item.box.Label)
+			err = scp.NewSCP(conn.Client).SendFile(item.chunkFile, remoteChunkInput)
+			if err != nil {
+				result.Error = fmt.Errorf("failed to send input chunk: %w", err)
+				return result
+			}
+			currentInput = remoteChunkInput
+		}
 	}
 
-	currentInput := remoteChunkInput
+	for varName, chunkPath := range item.splitVarChunks {
+		if _, exists := remoteSplitVarFiles[varName]; !exists && chunkPath != "" {
+			remotePath := fmt.Sprintf("/tmp/fleex-%s-splitvar-%s-%s", timeStamp, varName, item.box.Label)
+			err = scp.NewSCP(conn.Client).SendFile(chunkPath, remotePath)
+			if err != nil {
+				result.Error = fmt.Errorf("failed to send split-var %s chunk: %w", varName, err)
+				return result
+			}
+			remoteSplitVarFiles[varName] = remotePath
+		}
+	}
+
 	var currentOutput string
+	stepOutputs := make(map[string]string)
 
 	for i, step := range opts.Workflow.Steps {
 		if progress != nil {
@@ -323,10 +457,47 @@ func (c Controller) runWorkflowOnBox(item boxWithChunk, opts models.WorkflowOpti
 		for k, v := range opts.Workflow.Vars {
 			vars[k] = v
 		}
-		vars["INPUT"] = currentInput
+
+		stepScaleMode := step.ScaleMode
+		if stepScaleMode == "" {
+			if i == 0 {
+				stepScaleMode = item.scaleMode
+			} else {
+				stepScaleMode = "local"
+			}
+		}
+
+		if stepScaleMode == "vertical" {
+			stepSplitVar := step.SplitVar
+			if stepSplitVar == "" {
+				stepSplitVar = item.splitVar
+			}
+			if remotePath, ok := remoteSplitVarFiles[stepSplitVar]; ok {
+				vars[stepSplitVar] = remotePath
+			}
+		}
+
+		if item.scaleMode == "vertical" && item.splitVar != "" {
+			if remotePath, ok := remoteSplitVarFiles[item.splitVar]; ok {
+				vars[item.splitVar] = remotePath
+			}
+		}
+
+		if stepScaleMode == "local" && currentInput != "" {
+			vars["INPUT"] = currentInput
+		} else if stepScaleMode != "vertical" && currentInput != "" {
+			vars["INPUT"] = currentInput
+		}
+
 		vars["OUTPUT"] = currentOutput
 
-		command := utils.ReplaceWorkflowVars(step.Command, vars)
+		command := step.Command
+		for stepId, stepOutput := range stepOutputs {
+			placeholder := fmt.Sprintf("{%s.OUTPUT}", stepId)
+			command = strings.ReplaceAll(command, placeholder, stepOutput)
+		}
+
+		command = utils.ReplaceWorkflowVars(command, vars)
 
 		stepResult := models.WorkflowStepResult{
 			StepName: step.Name,
@@ -349,6 +520,10 @@ func (c Controller) runWorkflowOnBox(item boxWithChunk, opts models.WorkflowOpti
 
 		stepResult.Success = true
 		result.StepResults = append(result.StepResults, stepResult)
+
+		if step.Id != "" {
+			stepOutputs[step.Id] = currentOutput
+		}
 
 		currentInput = currentOutput
 	}
