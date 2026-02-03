@@ -47,6 +47,7 @@ var spawnCmd = &cobra.Command{
 		if imageFlag != "" {
 			providerInfo.Image = imageFlag
 		}
+		globalConfig.Providers[providerFlag] = providerInfo
 
 		newController := controller.NewController(globalConfig)
 		newController.SpawnFleet(fleetName, fleetCount, skipWait, false)
