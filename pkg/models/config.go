@@ -63,7 +63,7 @@ func GetVMInfo(provider, name string, config *Config) *VMInfo {
 	}
 
 	for _, customVM := range config.CustomVMs {
-		if strings.HasPrefix(customVM.InstanceID, name) {
+		if matchesFleetName(customVM.InstanceID, name) {
 			return &VMInfo{
 				Provider: provider,
 				IP:       customVM.PublicIP,
@@ -76,4 +76,33 @@ func GetVMInfo(provider, name string, config *Config) *VMInfo {
 	}
 
 	return nil
+}
+
+// matchesFleetName determines if a label matches the given fleet name.
+// If name ends with -{number}, only exact matches are returned.
+// Otherwise, prefix matching is used.
+// Note: this is a local copy to avoid circular import with utils package.
+func matchesFleetName(label, name string) bool {
+	if label == name {
+		return true
+	}
+
+	parts := strings.Split(name, "-")
+	if len(parts) >= 2 {
+		lastPart := parts[len(parts)-1]
+		if len(lastPart) > 0 {
+			isNumber := true
+			for _, c := range lastPart {
+				if c < '0' || c > '9' {
+					isNumber = false
+					break
+				}
+			}
+			if isNumber {
+				return false
+			}
+		}
+	}
+
+	return strings.HasPrefix(label, name)
 }

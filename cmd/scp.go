@@ -69,7 +69,7 @@ var scpCmd = &cobra.Command{
 		}
 
 		for _, box := range fleets {
-			if strings.HasPrefix(box.Label, nameFlag) {
+			if utils.MatchesFleetName(box.Label, nameFlag) {
 				err := controller.SendSCP(sourceFlag, destinationFlag, box.IP, vmInfo.Username, vmInfo.Port, vmInfo.KeyPath)
 				if err != nil {
 					log.Fatal(err)

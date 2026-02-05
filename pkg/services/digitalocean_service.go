@@ -150,7 +150,7 @@ func (d DigitaloceanService) GetFleet(fleetName string) (fleet []provider.Box, e
 	}
 
 	for _, box := range boxes {
-		if strings.HasPrefix(box.Label, fleetName) {
+		if utils.MatchesFleetName(box.Label, fleetName) {
 			fleet = append(fleet, box)
 		}
 	}
@@ -276,7 +276,7 @@ func (d DigitaloceanService) DeleteFleet(name string) error {
 
 	// Otherwise, we got a fleet to delete
 	for _, droplet := range boxes {
-		if strings.HasPrefix(droplet.Label, name) {
+		if utils.MatchesFleetName(droplet.Label, name) {
 			err := d.DeleteBoxByID(droplet.ID)
 			if err != nil {
 				return err
@@ -318,7 +318,7 @@ func (l DigitaloceanService) DeleteBoxByLabel(label string) error {
 
 func (d DigitaloceanService) CountFleet(fleetName string, boxes []provider.Box) (count int) {
 	for _, box := range boxes {
-		if strings.HasPrefix(box.Label, fleetName) {
+		if utils.MatchesFleetName(box.Label, fleetName) {
 			count++
 		}
 	}
@@ -361,7 +361,7 @@ func (d DigitaloceanService) RunCommand(name, command string, port int, username
 	}
 
 	for i := range boxes {
-		if strings.HasPrefix(boxes[i].Label, name) {
+		if utils.MatchesFleetName(boxes[i].Label, name) {
 			fleet <- &boxes[i]
 		}
 	}

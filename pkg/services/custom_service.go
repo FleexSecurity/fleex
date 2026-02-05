@@ -2,12 +2,12 @@ package services
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/provider"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
+	"github.com/FleexSecurity/fleex/pkg/utils"
 )
 
 type CustomService struct {
@@ -40,7 +40,7 @@ func (c CustomService) GetFleet(fleetName string) (fleet []provider.Box, err err
 	}
 
 	for _, box := range boxes {
-		if strings.HasPrefix(box.ID, fleetName) {
+		if utils.MatchesFleetName(box.ID, fleetName) {
 			fleet = append(fleet, box)
 		}
 	}
@@ -54,7 +54,7 @@ func (c CustomService) GetBox(boxName string) (provider.Box, error) {
 	}
 
 	for _, box := range boxes {
-		if strings.HasPrefix(box.ID, boxName) {
+		if utils.MatchesFleetName(box.ID, boxName) {
 			return box, nil
 		}
 	}
@@ -87,7 +87,7 @@ func (c CustomService) DeleteBoxByLabel(label string) error {
 
 func (c CustomService) RunCommand(name, command string, port int, username, password string) error {
 	for _, box := range c.Configs.CustomVMs {
-		if strings.HasPrefix(box.InstanceID, name) {
+		if utils.MatchesFleetName(box.InstanceID, name) {
 			sshutils.RunCommand(command, box.PublicIP, box.SSHPort, box.Username, c.Configs.SSHKeys.PrivateFile)
 			return nil
 		}

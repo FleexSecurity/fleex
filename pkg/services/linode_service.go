@@ -73,7 +73,7 @@ func (l LinodeService) GetFleet(fleetName string) (fleet []provider.Box, err err
 	}
 
 	for _, box := range boxes {
-		if strings.HasPrefix(box.Label, fleetName) {
+		if utils.MatchesFleetName(box.Label, fleetName) {
 			fleet = append(fleet, box)
 		}
 	}
@@ -246,7 +246,7 @@ func (l LinodeService) DeleteFleet(name string) error {
 	}
 
 	for i := range boxes {
-		if strings.HasPrefix(boxes[i].Label, name) {
+		if utils.MatchesFleetName(boxes[i].Label, name) {
 			fleet <- &boxes[i]
 		}
 	}
@@ -283,7 +283,7 @@ func (l LinodeService) DeleteBoxByLabel(label string) error {
 
 func (l LinodeService) CountFleet(fleetName string, boxes []provider.Box) (count int) {
 	for _, box := range boxes {
-		if strings.HasPrefix(box.Label, fleetName) {
+		if utils.MatchesFleetName(box.Label, fleetName) {
 			count++
 		}
 	}
@@ -326,7 +326,7 @@ func (l LinodeService) RunCommand(name, command string, port int, username, pass
 	}
 
 	for i := range boxes {
-		if strings.HasPrefix(boxes[i].Label, name) {
+		if utils.MatchesFleetName(boxes[i].Label, name) {
 			fleet <- &boxes[i]
 		}
 	}
