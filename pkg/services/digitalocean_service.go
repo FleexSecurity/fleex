@@ -11,6 +11,7 @@ import (
 	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/provider"
 	"github.com/FleexSecurity/fleex/pkg/sshutils"
+	"github.com/FleexSecurity/fleex/pkg/utils"
 	"github.com/digitalocean/godo"
 )
 
