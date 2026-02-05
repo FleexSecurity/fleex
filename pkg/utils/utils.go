@@ -262,3 +262,35 @@ func GetConfigDir() (string, error) {
 
 	return configDir, nil
 }
+
+// MatchesFleetName determines if a box label matches the given fleet name.
+// If the name ends with -{number}, only exact matches are returned (e.g., "droplet-2" only matches "droplet-2").
+// Otherwise, prefix matching is used (e.g., "droplet" matches "droplet-1", "droplet-2", etc.).
+func MatchesFleetName(label, name string) bool {
+	// First check for exact match (always valid)
+	if label == name {
+		return true
+	}
+
+	// Check if name ends with -{number} pattern (e.g., "droplet-2", "fleet-42")
+	// If so, we want exact match only (already checked above, so return false)
+	parts := strings.Split(name, "-")
+	if len(parts) >= 2 {
+		lastPart := parts[len(parts)-1]
+		// Check if last part is a number
+		isNumber := true
+		for _, c := range lastPart {
+			if c < '0' || c > '9' {
+				isNumber = false
+				break
+			}
+		}
+		if isNumber && len(lastPart) > 0 {
+			// Name ends with -{number}, so we only want exact match
+			return false
+		}
+	}
+
+	// Otherwise, use prefix matching (fleet name behavior)
+	return strings.HasPrefix(label, name)
+}

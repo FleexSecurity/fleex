@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/FleexSecurity/fleex/pkg/models"
 	"github.com/FleexSecurity/fleex/pkg/utils"
@@ -77,17 +78,25 @@ func SSHFingerprintGen(publicSSH string) string {
 }
 
 func RunCommand(command string, ip string, port int, username string, privateKey string) *Connection {
+	const maxRetries = 10
+	const retryInterval = 5 * time.Second
+
 	var conn *Connection
 	var err error
-	for retries := 0; retries < 3; retries++ {
-		conn, err = Connect(ip+":"+strconv.Itoa(port), username, privateKey)
-		if err != nil {
-			if strings.Contains(err.Error(), "connection refused") && retries < 3 {
-				continue
-			}
-			utils.Log.Fatal("RunCommand: ", err)
+	addr := ip + ":" + strconv.Itoa(port)
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		conn, err = Connect(addr, username, privateKey)
+		if err == nil {
+			break
 		}
-		break
+		if attempt < maxRetries {
+			utils.Log.Warnf("RunCommand: SSH to %s failed (attempt %d/%d), retrying in %v...", addr, attempt, maxRetries, retryInterval)
+			time.Sleep(retryInterval)
+		}
+	}
+	if conn == nil {
+		utils.Log.Fatalf("RunCommand: SSH to %s failed after %d attempts: %v", addr, maxRetries, err)
 	}
 	conn.sendCommands(command)
 
