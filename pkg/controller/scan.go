@@ -137,7 +137,7 @@ func (c Controller) Start(fleetName, command string, delete bool, input, outputP
 
 	timeStamp := strconv.FormatInt(time.Now().UnixNano(), 10)
 	// TODO: use a proper temp folder function so that it can run on windows too
-	tempFolder := filepath.Join("/tmp", "fleex-"+"1698879444435075000")
+	tempFolder := filepath.Join("/tmp", "fleex-"+timeStamp)
 
 	if chunksFolder != "" {
 		tempFolder = chunksFolder
@@ -181,6 +181,22 @@ func (c Controller) Start(fleetName, command string, delete bool, input, outputP
 	}
 
 	utils.Log.Debug("Fleet count: ", len(fleet))
+
+	// Only use as many boxes as we have lines (no point sending empty chunks)
+	activeFleetSize := len(fleet)
+	if linesCount < activeFleetSize {
+		activeFleetSize = linesCount
+	}
+	if activeFleetSize == 0 {
+		utils.Log.Fatal("Input file is empty, nothing to scan")
+	}
+	if activeFleetSize < len(fleet) {
+		utils.Log.Infof("Input has %d lines, using %d of %d available boxes", linesCount, activeFleetSize, len(fleet))
+	}
+
+	// Only use the boxes we need
+	fleet = fleet[:activeFleetSize]
+
 	linesPerChunk := linesCount / len(fleet)
 	linesPerChunkRest := linesCount % len(fleet)
 
@@ -191,7 +207,8 @@ func (c Controller) Start(fleetName, command string, delete bool, input, outputP
 	counter := 1
 	asd := []string{}
 
-	x := 1
+	// Use fleet box labels for chunk names so they match during SCP
+	x := 0
 
 loop:
 	for {
@@ -206,7 +223,7 @@ loop:
 				re = 1
 			}
 			if counter%(linesPerChunk+re) == 0 {
-				utils.StringToFile(filepath.Join(tempFolderInput, "chunk-"+fleetName+"-"+strconv.Itoa(x)), strings.Join(asd[0:counter], "\n")+"\n")
+				utils.StringToFile(filepath.Join(tempFolderInput, "chunk-"+fleet[x].Label), strings.Join(asd[0:counter], "\n")+"\n")
 				asd = nil
 				x++
 				counter = 0
@@ -251,10 +268,14 @@ loop:
 				chunkInputFile := "/tmp/fleex-" + timeStamp + "-chunk-" + boxName
 				chunkOutputFile := "/tmp/fleex-" + timeStamp + "-chunk-out-" + boxName
 
-				// Replace labels and craft final command
-				module.Vars["INPUT"] = chunkInputFile
-				module.Vars["OUTPUT"] = chunkOutputFile
-				finalCommand, err := ReplaceCommandVars(command, module.Vars)
+				// Create a local copy of vars to avoid concurrent map writes
+				localVars := make(map[string]string)
+				for k, v := range module.Vars {
+					localVars[k] = v
+				}
+				localVars["INPUT"] = chunkInputFile
+				localVars["OUTPUT"] = chunkOutputFile
+				finalCommand, err := ReplaceCommandVars(command, localVars)
 				if err != nil {
 					utils.Log.Fatal(err)
 				}
@@ -422,6 +443,22 @@ func (c Controller) VerticalStart(fleetName, command string, delete bool, output
 
 	utils.Log.Debug("Fleet count: ", len(fleet))
 	utils.Log.Debug("Total lines to split: ", linesCount)
+
+	// Only use as many boxes as we have lines (no point sending empty chunks)
+	activeFleetSize := len(fleet)
+	if linesCount < activeFleetSize {
+		activeFleetSize = linesCount
+	}
+	if activeFleetSize == 0 {
+		utils.Log.Fatal("Input file is empty, nothing to scan")
+	}
+	if activeFleetSize < len(fleet) {
+		utils.Log.Infof("Input has %d lines, using %d of %d available boxes", linesCount, activeFleetSize, len(fleet))
+	}
+
+	// Only use the boxes we need
+	fleet = fleet[:activeFleetSize]
+
 	linesPerChunk := linesCount / len(fleet)
 	linesPerChunkRest := linesCount % len(fleet)
 
