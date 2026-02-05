@@ -62,7 +62,7 @@ Examples:
 		})
 
 		for _, box := range boxes {
-			if fleetFilter != "" && !strings.HasPrefix(box.Label, fleetFilter) {
+			if fleetFilter != "" && !utils.MatchesFleetName(box.Label, fleetFilter) {
 				continue
 			}
 

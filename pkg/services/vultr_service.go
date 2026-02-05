@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/FleexSecurity/fleex/pkg/models"
@@ -98,7 +97,7 @@ func (v VultrService) GetFleet(fleetName string) (fleet []provider.Box, err erro
 	}
 
 	for _, box := range boxes {
-		if strings.HasPrefix(box.Label, fleetName) {
+		if utils.MatchesFleetName(box.Label, fleetName) {
 			fleet = append(fleet, box)
 		}
 	}
@@ -216,7 +215,7 @@ func (v VultrService) DeleteFleet(name string) error {
 	}
 
 	for i := range boxes {
-		if strings.HasPrefix(boxes[i].Label, name) {
+		if utils.MatchesFleetName(boxes[i].Label, name) {
 			fleet <- &boxes[i]
 		}
 	}
@@ -286,7 +285,7 @@ func (v VultrService) RunCommand(name, command string, port int, username, passw
 	}
 
 	for i := range boxes {
-		if strings.HasPrefix(boxes[i].Label, name) {
+		if utils.MatchesFleetName(boxes[i].Label, name) {
 			fleet <- &boxes[i]
 		}
 	}
@@ -298,7 +297,7 @@ func (v VultrService) RunCommand(name, command string, port int, username, passw
 
 func (v VultrService) CountFleet(fleetName string, boxes []provider.Box) (count int) {
 	for _, box := range boxes {
-		if strings.HasPrefix(box.Label, fleetName) {
+		if utils.MatchesFleetName(box.Label, fleetName) {
 			count++
 		}
 	}
